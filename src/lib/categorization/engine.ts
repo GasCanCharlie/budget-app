@@ -7,7 +7,12 @@
 import prisma from '@/lib/db'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+// Lazy-initialize so the client is only created at runtime (not during next build)
+let _openai: OpenAI | null = null
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  return _openai
+}
 
 // ─── Merchant normalization ───────────────────────────────────────────────────
 
@@ -137,7 +142,7 @@ async function classifyWithAI(description: string): Promise<AIResult> {
   const categoryList = AI_CATEGORY_NAMES.join(', ')
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       temperature: 0,
       max_tokens: 60,
