@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
   delete (baseWhere as Record<string, unknown>)['ingestionStatus']
   delete (baseWhere as Record<string, unknown>)['isPossibleDuplicate']
 
+  try {
   const [transactions, total, flaggedCount, duplicateCount] = await Promise.all([
     prisma.transaction.findMany({
       where: whereClause,
@@ -127,4 +128,8 @@ export async function GET(req: NextRequest) {
     flaggedCount,
     duplicateCount,
   })
+  } catch (e) {
+    console.error('[/api/transactions] ERROR:', e)
+    return NextResponse.json({ error: 'Internal server error', detail: String(e) }, { status: 500 })
+  }
 }

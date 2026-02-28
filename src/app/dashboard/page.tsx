@@ -13,6 +13,7 @@ import { useApi } from '@/hooks/useApi'
 import { format } from 'date-fns'
 import { TrendingDown, AlertTriangle, Info, ArrowUpRight, X } from 'lucide-react'
 import Link from 'next/link'
+import { ReconciliationShield } from '@/components/ReconciliationShield'
 
 function fmt(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
@@ -48,6 +49,13 @@ export default function DashboardPage() {
     queryFn: () => apiFetch('/api/summaries/trends?months=36'),
     enabled: !!user,
   })
+
+  const { data: uploadsData } = useQuery({
+    queryKey: ['uploads'],
+    queryFn: () => apiFetch('/api/uploads'),
+    enabled: !!user,
+  })
+  const latestUpload = uploadsData?.uploads?.[0] as { id: string; reconciliationStatus: string } | undefined
 
   const dismissAlert = useMutation({
     mutationFn: (alertId: string) =>
@@ -153,6 +161,29 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Reconciliation trust strip */}
+        {latestUpload && latestUpload.reconciliationStatus !== 'UNVERIFIABLE' && (
+          latestUpload.reconciliationStatus === 'FAIL' ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-3">
+              <ReconciliationShield status="FAIL" size="sm" />
+              <p className="text-sm text-red-800 flex-1">Your latest statement has a discrepancy. Some numbers may be inaccurate.</p>
+              <Link href={`/upload/${latestUpload.id}`} className="text-xs font-semibold text-red-700 hover:underline flex-shrink-0">View detail</Link>
+            </div>
+          ) : latestUpload.reconciliationStatus === 'PASS_WITH_WARNINGS' ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+              <ReconciliationShield status="PASS_WITH_WARNINGS" size="sm" />
+              <p className="text-sm text-amber-800 flex-1">Latest statement has minor warnings.</p>
+              <Link href={`/upload/${latestUpload.id}`} className="text-xs font-semibold text-amber-700 hover:underline flex-shrink-0">View detail</Link>
+            </div>
+          ) : latestUpload.reconciliationStatus === 'PASS' ? (
+            <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-3">
+              <ReconciliationShield status="PASS" size="sm" />
+              <p className="text-sm text-green-700 flex-1">Latest statement verified</p>
+              <Link href={`/upload/${latestUpload.id}`} className="text-xs font-semibold text-green-700 hover:underline flex-shrink-0">View detail</Link>
+            </div>
+          ) : null
         )}
 
         {/* KPI Cards */}

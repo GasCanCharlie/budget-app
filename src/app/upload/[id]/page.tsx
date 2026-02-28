@@ -9,6 +9,7 @@ import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { format } from 'date-fns'
+import { ReconciliationShield } from '@/components/ReconciliationShield'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,14 +145,6 @@ function fmtDate(s: string | null | undefined) {
   try { return format(new Date(s), 'MMM d, yyyy') } catch { return s }
 }
 
-const RECON_STATUS: Record<string, { cls: string; label: string; icon: React.ReactNode }> = {
-  PASS:               { cls: 'bg-green-100 text-green-800 border-green-200',   label: 'Balanced',         icon: <CheckCircle2 size={14}/> },
-  PASS_WITH_WARNINGS: { cls: 'bg-yellow-100 text-yellow-800 border-yellow-200', label: 'Balanced w/ warnings', icon: <AlertTriangle size={14}/> },
-  FAIL:               { cls: 'bg-red-100 text-red-800 border-red-200',         label: 'Mismatch detected', icon: <AlertCircle size={14}/> },
-  UNVERIFIABLE:       { cls: 'bg-slate-100 text-slate-600 border-slate-200',   label: 'Unverifiable',     icon: <Info size={14}/> },
-  PENDING:            { cls: 'bg-blue-100 text-blue-800 border-blue-200',      label: 'Pending',          icon: <Loader2 size={14}/> },
-}
-
 const ISSUE_SEVERITY: Record<string, { cls: string; icon: React.ReactNode }> = {
   ERROR:   { cls: 'bg-red-100 text-red-700',    icon: <AlertCircle size={12}/> },
   WARNING: { cls: 'bg-yellow-100 text-yellow-700', icon: <AlertTriangle size={12}/> },
@@ -192,7 +185,6 @@ function StatChip({ label, value, accent }: { label: string; value: string | num
 
 function ReconciliationPanel({ report, status }: { report: ReconciliationReport | null; status: string }) {
   const [open, setOpen] = useState(true)
-  const cfg = RECON_STATUS[status] ?? RECON_STATUS.UNVERIFIABLE
 
   return (
     <section className="card space-y-3">
@@ -202,9 +194,7 @@ function ReconciliationPanel({ report, status }: { report: ReconciliationReport 
       >
         <h2 className="font-bold text-slate-700 flex items-center gap-2">
           Reconciliation
-          <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold', cfg.cls)}>
-            {cfg.icon}{cfg.label}
-          </span>
+          <ReconciliationShield status={status} size="sm" />
         </h2>
         {open ? <ChevronDown size={16} className="text-slate-400"/> : <ChevronRight size={16} className="text-slate-400"/>}
       </button>
@@ -440,7 +430,6 @@ export default function UploadDetailPage() {
   }
 
   const reconStatus = upload.reconciliationStatus
-  const reconCfg    = RECON_STATUS[reconStatus] ?? RECON_STATUS.UNVERIFIABLE
   const displayIssues = tab === 'open' ? openIssues : resolvedIssues
 
   return (
@@ -464,12 +453,7 @@ export default function UploadDetailPage() {
                 {upload.formatDetected && <> · {upload.formatDetected}</>}
               </p>
             </div>
-            <span className={clsx(
-              'inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-semibold flex-shrink-0',
-              reconCfg.cls
-            )}>
-              {reconCfg.icon}{reconCfg.label}
-            </span>
+            <ReconciliationShield status={reconStatus} size="md" />
           </div>
         </div>
 

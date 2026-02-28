@@ -9,6 +9,7 @@ import { useApi } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Upload, CheckCircle, AlertCircle, Loader2, Building2, PlusCircle, MoreHorizontal, RefreshCw, Trash2, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
+import { ReconciliationShield } from '@/components/ReconciliationShield'
 
 export default function UploadPage() {
   const router     = useRouter()
@@ -381,7 +382,6 @@ export default function UploadPage() {
                   {([
                     ['Transactions imported', String((result.data as Record<string, unknown>).accepted)],
                     ['Format detected',       String((result.data as Record<string, unknown>).formatDetected)],
-                    ['Reconciliation',        String((result.data as Record<string, unknown>).reconciliationStatus ?? 'UNVERIFIABLE')],
                     ...(Number((result.data as Record<string, unknown>).possibleDuplicates) > 0
                       ? [['Possible duplicates', String((result.data as Record<string, unknown>).possibleDuplicates)] as [string, string]]
                       : []),
@@ -391,6 +391,18 @@ export default function UploadPage() {
                       <p className="font-bold text-green-900 mt-0.5">{val}</p>
                     </div>
                   ))}
+                  {(() => {
+                    const reconStatus = String((result.data as Record<string, unknown>).reconciliationStatus ?? 'UNVERIFIABLE')
+                    return (
+                      <div className="bg-white/70 rounded-lg p-3 col-span-2 flex items-center gap-2">
+                        <ReconciliationShield status={reconStatus} size="md" />
+                        {reconStatus === 'PASS' && <p className="text-xs text-green-700">All totals verified against bank statement</p>}
+                        {reconStatus === 'PASS_WITH_WARNINGS' && <p className="text-xs text-amber-700">Minor issues found — see statement detail</p>}
+                        {reconStatus === 'FAIL' && <p className="text-xs text-red-700">Totals don&apos;t match — review the statement detail</p>}
+                        {reconStatus === 'UNVERIFIABLE' && <p className="text-xs text-slate-500">Bank format doesn&apos;t include statement totals</p>}
+                      </div>
+                    )
+                  })()}
                 </div>
                 {Boolean((result.data as Record<string, unknown>).dateAmbiguous) && (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
@@ -453,18 +465,6 @@ function SampleDataLoader({ onLoaded }: { onLoaded: () => void }) {
   )
 }
 
-// Maps reconciliationStatus → badge colour + label
-function ReconciliationBadge({ status }: { status: string }) {
-  const cfg: Record<string, { cls: string; label: string }> = {
-    PASS:                 { cls: 'bg-green-100 text-green-700',  label: 'Balanced' },
-    PASS_WITH_WARNINGS:   { cls: 'bg-yellow-100 text-yellow-700', label: 'Balanced*' },
-    FAIL:                 { cls: 'bg-red-100 text-red-700',      label: 'Mismatch' },
-    UNVERIFIABLE:         { cls: 'bg-slate-100 text-slate-500',  label: 'Unverified' },
-    PENDING:              { cls: 'bg-blue-100 text-blue-600',    label: 'Pending' },
-  }
-  const { cls, label } = cfg[status] ?? { cls: 'bg-slate-100 text-slate-500', label: status }
-  return <span className={clsx('badge text-xs', cls)}>{label}</span>
-}
 
 interface UploadRow {
   id: string
@@ -505,7 +505,7 @@ function UploadHistory() {
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {u.reconciliationStatus && u.status === 'complete' && (
-                <ReconciliationBadge status={u.reconciliationStatus} />
+                <ReconciliationShield status={u.reconciliationStatus} size="sm" />
               )}
               <span className={clsx('badge text-xs', u.status === 'complete' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700')}>
                 {u.status}
