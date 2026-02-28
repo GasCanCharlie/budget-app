@@ -86,7 +86,7 @@ export default function CategoriesPage() {
     <AppShell>
       <main className="max-w-2xl mx-auto px-4 py-8 pb-24 space-y-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-800">Categories</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Categories</h1>
           <p className="text-slate-500 text-sm mt-1">
             Manage your spending categories. System categories cannot be deleted.
           </p>
@@ -105,7 +105,7 @@ export default function CategoriesPage() {
           </div>
 
           {showAdd && (
-            <div className="bg-slate-50 rounded-xl p-4 space-y-4 border border-slate-200">
+            <div className="bg-slate-50 rounded-lg p-4 space-y-4 border border-slate-200">
               <h3 className="text-sm font-semibold text-slate-700">New Category</h3>
 
               {/* Name */}
@@ -206,7 +206,7 @@ export default function CategoriesPage() {
           ) : (
             <div className="space-y-2">
               {userCats.map(cat => (
-                <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white">
+                <div key={cat.id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white">
                   <span className="text-xl">{cat.icon}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-slate-800">{cat.name}</p>
@@ -266,7 +266,7 @@ export default function CategoriesPage() {
               {systemCats.map(cat => (
                 <div
                   key={cat.id}
-                  className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100"
+                  className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
                 >
                   <span className="text-base">{cat.icon}</span>
                   <div className="min-w-0">

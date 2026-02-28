@@ -98,7 +98,7 @@ function TxCard({
       onClick={() => onSelect(tx.id)}
       tabIndex={0}
       className={clsx(
-        'group relative flex cursor-grab items-start gap-3 rounded-xl border bg-white p-3 shadow-sm transition-all active:cursor-grabbing touch-none select-none',
+        'group relative flex cursor-grab items-start gap-3 rounded-lg border bg-white p-3 transition-all active:cursor-grabbing touch-none select-none',
         isSelected ? 'border-accent-500 ring-2 ring-accent-200' : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
       )}
     >
@@ -223,7 +223,7 @@ function ConfirmModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
         <div className="mb-4 flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-100 text-xl">
             {state.category.icon}
@@ -237,7 +237,7 @@ function ConfirmModal({
         </div>
 
         {state.similarCount > 1 && (
-          <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+          <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
             <strong>{state.similarCount}</strong> unreviewed transactions from{' '}
             <strong>{state.transaction.merchantNormalized}</strong> found.
             Apply to all + save as a rule for future imports?
@@ -282,7 +282,7 @@ function TouchGhost({ tx, pos }: { tx: Transaction | null; pos: { x: number; y: 
   if (!tx || !pos) return null
   return (
     <div
-      className="pointer-events-none fixed z-[100] max-w-[180px] rounded-xl border border-accent-300 bg-white/90 p-2 shadow-lg backdrop-blur-sm"
+      className="pointer-events-none fixed z-[100] max-w-[180px] rounded-lg border border-accent-300 bg-white/90 p-2 shadow-lg backdrop-blur-sm"
       style={{ left: pos.x - 90, top: pos.y - 30 }}
     >
       <p className="truncate text-xs font-semibold text-slate-900">{tx.merchantNormalized || tx.description}</p>
@@ -518,7 +518,7 @@ export default function CategorizePage() {
         {/* Header */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-black text-slate-800">Categorize</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Categorize</h1>
             <p className="text-sm text-slate-500 mt-0.5">
               Drag transactions into a category on the left, or select one and press a number key.
             </p>
@@ -529,7 +529,7 @@ export default function CategorizePage() {
                 {needsReviewCount} need review
               </span>
             )}
-            <div className="flex rounded-xl border border-slate-200 overflow-hidden text-sm font-semibold">
+            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm font-semibold">
               <button
                 onClick={() => setFilterMode('needs-review')}
                 className={clsx('px-3 py-1.5 transition', filterMode === 'needs-review' ? 'bg-accent-500 text-white' : 'text-slate-600 hover:bg-slate-50')}

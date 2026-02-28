@@ -168,7 +168,7 @@ export default function UploadPage() {
           </div>
 
           {showNewAcct && (
-            <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+            <div className="bg-slate-50 rounded-lg p-4 space-y-3">
               <input
                 className="input"
                 placeholder="Account name (e.g. Chase Checking)"
@@ -361,6 +361,11 @@ export default function UploadPage() {
           )}
         </div>
 
+        {/* Privacy commitment */}
+        <p className="text-xs text-center text-slate-400">
+          Parsed in-session · SHA-256 fingerprinted · Raw file not retained
+        </p>
+
         {/* Upload button — always visible once a file is chosen */}
         {selectedFile && (
           <>
@@ -380,6 +385,9 @@ export default function UploadPage() {
                 <><Upload size={18} /> Begin Ingestion</>
               )}
             </button>
+            {!uploadMutation.isPending && (
+              <p className="text-xs text-center text-slate-400">Estimated processing time: 8–15 seconds</p>
+            )}
           </>
         )}
 
@@ -467,9 +475,17 @@ export default function UploadPage() {
                     ⚠️ Date format was ambiguous (MM/DD vs DD/MM). Please verify your transaction dates.
                   </div>
                 )}
-                <button onClick={() => router.push('/dashboard')} className="btn-primary w-full justify-center">
-                  View Dashboard →
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => router.push(`/upload/${String(result.data.uploadId)}`)}
+                    className="btn-secondary w-full justify-center text-sm"
+                  >
+                    View reconciliation report →
+                  </button>
+                  <button onClick={() => router.push('/dashboard')} className="btn-primary w-full justify-center">
+                    View Dashboard →
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex items-start gap-3">
