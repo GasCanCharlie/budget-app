@@ -189,7 +189,7 @@ export default function UploadPage() {
                   <div
                     key={acct.id}
                     className={clsx(
-                      'rounded-xl border-2 overflow-hidden transition',
+                      'rounded-xl border-2 transition',
                       isConfirming && confirmAction === 'delete' ? 'border-red-300' :
                       isConfirming && confirmAction === 'reset'  ? 'border-amber-300' :
                       accountId === acct.id ? 'border-accent-500' : 'border-slate-200'
@@ -202,7 +202,8 @@ export default function UploadPage() {
                       onClick={() => { setAccountId(acct.id); setMenuOpenId(null) }}
                       onKeyDown={e => e.key === 'Enter' && setAccountId(acct.id)}
                       className={clsx(
-                        'flex items-center gap-3 p-3 cursor-pointer transition',
+                        'flex items-center gap-3 p-3 cursor-pointer transition rounded-t-xl',
+                        isConfirming ? '' : 'rounded-b-xl',
                         accountId === acct.id ? 'bg-accent-50' : 'hover:bg-slate-50'
                       )}
                     >
@@ -257,7 +258,7 @@ export default function UploadPage() {
                     {/* Inline confirm banner */}
                     {isConfirming && (
                       <div className={clsx(
-                        'px-4 py-3 text-sm border-t',
+                        'px-4 py-3 text-sm border-t rounded-b-xl',
                         confirmAction === 'delete' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
                       )}>
                         <p className={clsx('font-semibold mb-2.5', confirmAction === 'delete' ? 'text-red-800' : 'text-amber-800')}>
