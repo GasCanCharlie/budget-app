@@ -366,12 +366,12 @@ async function detectAnomalies(
 export async function getAvailableMonths(userId: string): Promise<{ year: number; month: number }[]> {
   const months = await prisma.$queryRaw<{ year: number; month: number }[]>`
     SELECT DISTINCT
-      CAST(strftime('%Y', t.date) AS INTEGER) AS year,
-      CAST(strftime('%m', t.date) AS INTEGER) AS month
+      EXTRACT(YEAR FROM t.date)::INTEGER AS year,
+      EXTRACT(MONTH FROM t.date)::INTEGER AS month
     FROM transactions t
-    JOIN accounts a ON t.accountId = a.id
-    WHERE a.userId = ${userId}
-      AND t.isExcluded = 0
+    JOIN accounts a ON t."accountId" = a.id
+    WHERE a."userId" = ${userId}
+      AND t."isExcluded" = false
     ORDER BY year DESC, month DESC
   `
   return months

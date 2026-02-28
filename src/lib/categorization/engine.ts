@@ -178,7 +178,7 @@ async function classifyWithAI(description: string): Promise<AIResult> {
 // ─── Main categorization pipeline ────────────────────────────────────────────
 
 export interface CategorizationResult {
-  categoryId: string
+  categoryId: string | undefined
   categoryName: string
   confidence: number
   source: 'rule' | 'ai' | 'user'
@@ -191,8 +191,8 @@ export async function categorize(
 ): Promise<CategorizationResult> {
   const categories = await getCategories()
 
-  function findCatId(name: string): string {
-    return categories.find(c => c.name === name)?.id || categories.find(c => c.name === 'Other')!.id
+  function findCatId(name: string): string | undefined {
+    return categories.find(c => c.name === name)?.id ?? categories.find(c => c.name === 'Other')?.id
   }
 
   // Positive amounts might be income — check before rules
