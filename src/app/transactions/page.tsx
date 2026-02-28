@@ -182,7 +182,7 @@ export default function TransactionsPage() {
     <AppShell>
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24 space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-black text-slate-800">Transactions</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
           <div className="flex items-center gap-2">
             <span className="text-sm text-slate-400 font-medium">{total.toLocaleString()} total</span>
             <button
@@ -371,7 +371,7 @@ function TransactionRow({
             >
               {tx.merchantNormalized || tx.description}
             </Link>
-            <span className={clsx('font-bold text-sm flex-shrink-0', tx.amount >= 0 ? 'text-green-600' : 'text-red-600')}>
+            <span className={clsx('font-bold text-sm flex-shrink-0 num', tx.amount >= 0 ? 'text-green-700' : 'text-red-700')}>
               {tx.amount >= 0 ? '+' : '-'}{fmtAmt(tx.amount)}
             </span>
           </div>
@@ -465,7 +465,7 @@ function TransactionRow({
               Apply to all &quot;{tx.merchantNormalized}&quot; transactions
             </label>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
             {categories.map((c) => (
               <button
                 key={c.id}
