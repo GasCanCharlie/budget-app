@@ -1,0 +1,399 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  accounts         Account[]
+  categories       Category[]
+  categoryRules    CategoryRule[]
+  monthSummaries   MonthSummary[]
+  monthCatTotals   MonthCategoryTotal[]
+  uploads          Upload[]
+
+  @@map("users")
+}
+
+model Account {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  institution String    @default("")
+  accountType String    @default("checking")
+  currency    String    @default("USD")
+  createdAt   DateTime  @default(now())
+  archivedAt  DateTime?
+
+  user         User          @relation(fields: [userId], references: [id])
+  uploads      Upload[]
+  transactions Transaction[]
+  rawTxs       TransactionRaw[]
+
+  @@map("accounts")
+}
+
+// ─── Upload ──────────────────────────────────────────────────────────────────
+// reconciliationStatus values: PENDING | PASS | PASS_WITH_WARNINGS | FAIL | UNVERIFIABLE
+
+model Upload {
+  id               String   @id @default(cuid())
+  userId           String
+  accountId        String
+  filename         String
+  fileHash         String
+  formatDetected   String   @default("")
+  rowCountRaw      Int      @default(0)
+  rowCountParsed   Int      @default(0)
+  rowCountAccepted Int      @default(0)
+  rowCountRejected Int      @default(0)
+  dateRangeStart   DateTime?
+  dateRangeEnd     DateTime?
+  status           String   @default("processing")
+  warnings         String   @default("[]")
+  createdAt        DateTime @default(now())
+
+  // ── Milestone 1: ingestion pipeline fields ─────────────────────────────────
+  // reconciliationStatus: PENDING | PASS | PASS_WITH_WARNINGS | FAIL | UNVERIFIABLE
+  reconciliationStatus   String    @default("PENDING")
+  // reconciliationReport: JSON string — ReconciliationReport struct
+  reconciliationReport   String?
+  // parserVersion stored for determinism: same file + same parserVersion = identical output
+  parserVersion          String    @default("1.0.0")
+  // parserConfig: JSON string — CsvParserConfig | XlsxParserConfig | PdfParserConfig
+  parserConfig           String?
+  // Statement-level totals extracted from bank export (stored as decimal strings, e.g. "1234.56")
+  statementOpenBalance   String?
+  statementCloseBalance  String?
+  statementTotalCredits  String?
+  statementTotalDebits   String?
+  // Row counts broken out by ingestion result
+  totalRowsUnresolved    Int       @default(0)
+  // Timestamp when pipeline finished (null = still processing)
+  completedAt            DateTime?
+
+  user            User             @relation(fields: [userId], references: [id])
+  account         Account          @relation(fields: [accountId], references: [id])
+  rawTxs          TransactionRaw[]
+  transactions    Transaction[]
+  auditLogEntries AuditLogEntry[]
+  ingestionIssues IngestionIssue[]
+
+  @@map("uploads")
+}
+
+// ─── TransactionRaw ───────────────────────────────────────────────────────────
+
+model TransactionRaw {
+  id             String   @id @default(cuid())
+  uploadId       String
+  accountId      String
+  rawDate        String
+  rawDescription String
+  rawAmount      String
+  rawCredit      String   @default("")
+  rawDebit       String   @default("")
+  rawBalance     String   @default("")
+  sourceRowHash  String
+  createdAt      DateTime @default(now())
+
+  // ── Milestone 1: lineage + parse fields ────────────────────────────────────
+  // sourceLocator: JSON string — CsvXlsxSourceLocator | PdfSourceLocator
+  // e.g. {"type":"CSV","sheetName":null,"rowIndex":5,"dataRowIndex":3}
+  sourceLocator  String   @default("{}")
+  // rawLine: the literal text of this row as it appeared in the source file
+  rawLine        String?
+  // parseOrder: 0-based position in the file; never reordered (preserves source order)
+  parseOrder     Int      @default(0)
+  // rawFields: JSON string — all raw column values as { headerName: rawStringValue }
+  rawFields      String   @default("{}")
+
+  upload      Upload      @relation(fields: [uploadId], references: [id])
+  account     Account     @relation(fields: [accountId], references: [id])
+  transaction Transaction?
+
+  @@unique([sourceRowHash])
+  @@map("transactions_raw")
+}
+
+// ─── Transaction ─────────────────────────────────────────────────────────────
+// ingestionStatus values: VALID | WARNING | UNRESOLVED | REJECTED
+// dateAmbiguity values:   RESOLVED | AMBIGUOUS_MMDD_DDMM | UNPARSEABLE
+
+model Transaction {
+  id                     String    @id @default(cuid())
+  rawId                  String    @unique
+  accountId              String
+  uploadId               String
+  date                   DateTime
+  description            String
+  merchantNormalized     String    @default("")
+  amount                 Float
+  categoryId             String?
+  userOverrideCategoryId String?
+  categorizationSource   String    @default("rule")
+  confidenceScore        Float     @default(0)
+  isTransfer             Boolean   @default(false)
+  isDuplicate            Boolean   @default(false)
+  isExcluded             Boolean   @default(false)
+  isForeignCurrency      Boolean   @default(false)
+  foreignAmount          String?
+  foreignCurrency        String?
+  reviewedByUser         Boolean   @default(false)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // ── Milestone 1: ingestion lineage fields ──────────────────────────────────
+
+  // Dates — both nullable; if only one date column exists, it goes in postedDate
+  postedDate             DateTime?
+  transactionDate        DateTime?
+  // Original date string from source before any parsing
+  dateRaw                String?
+  // dateAmbiguity: RESOLVED | AMBIGUOUS_MMDD_DDMM | UNPARSEABLE
+  dateAmbiguity          String    @default("RESOLVED")
+  // When ambiguous, both interpretations are stored for user resolution
+  dateInterpretationA    DateTime? // MM/DD reading
+  dateInterpretationB    DateTime? // DD/MM reading
+
+  // Amount lineage
+  amountRaw              String?   // original string e.g. "(12.34)" or "12.34-"
+  currencyCode           String    @default("USD")
+  currencyDetected       Boolean   @default(false)
+
+  // Description lineage
+  descriptionRaw         String    @default("") // raw before any normalization
+  descriptionNormalized  String?                // after trim/collapse; null = same as raw
+  // transformations: JSON string — ordered array of TransformationStep objects
+  // e.g. [{"field":"amount","rule":"PARSE_PARENTHETICAL_NEGATIVE","before":"(12.34)","after":"-12.34","timestamp":"..."}]
+  transformations        String    @default("[]")
+
+  // Running balance (stored as decimal string for precision, e.g. "2587.53")
+  runningBalance         String?
+  runningBalanceRaw      String?
+
+  // Additional metadata
+  checkNumber            String?
+  // Bank-provided unique transaction ID (strongest dedup key when present)
+  bankTransactionId      String?
+  pendingFlag            Boolean   @default(false)
+
+  // Deduplication
+  // bankFingerprint: deterministic SHA-256 of (postedDate|amount|descriptionRaw|runningBalance)
+  bankFingerprint        String    @default("")
+  // duplicateGroupId links rows that are possible duplicates of each other
+  duplicateGroupId       String?
+  isPossibleDuplicate    Boolean   @default(false)
+
+  // Ingestion status — ingestionStatus: VALID | WARNING | UNRESOLVED | REJECTED
+  ingestionStatus        String    @default("VALID")
+
+  // Balance chain validation (populated during Stage 4 reconciliation)
+  balanceChainValid      Boolean?  // null = not yet checked
+  // Stored as decimal strings for exact comparison
+  balanceChainExpected   String?   // what running balance should be
+  balanceChainActual     String?   // what it actually is in the source
+
+  raw             TransactionRaw  @relation(fields: [rawId], references: [id])
+  account         Account         @relation(fields: [accountId], references: [id])
+  upload          Upload          @relation(fields: [uploadId], references: [id])
+  category        Category?       @relation("CurrentCategory", fields: [categoryId], references: [id])
+  overrideCategory Category?      @relation("OverrideCategory", fields: [userOverrideCategoryId], references: [id])
+  historyEntries  CategoryHistory[]
+  linksAsA        TransactionLink[] @relation("LinkA")
+  linksAsB        TransactionLink[] @relation("LinkB")
+  ingestionIssues IngestionIssue[]
+
+  @@index([accountId, date])
+  @@index([bankFingerprint])
+  @@index([uploadId, ingestionStatus])
+  @@map("transactions")
+}
+
+model TransactionLink {
+  id              String   @id @default(cuid())
+  transactionAId  String
+  transactionBId  String
+  linkType        String
+  confidence      Float    @default(0)
+  confirmedByUser Boolean  @default(false)
+
+  transactionA Transaction @relation("LinkA", fields: [transactionAId], references: [id])
+  transactionB Transaction @relation("LinkB", fields: [transactionBId], references: [id])
+
+  @@map("transaction_links")
+}
+
+// ─── AuditLogEntry ────────────────────────────────────────────────────────────
+// Append-only log of every pipeline action (PARSE, NORMALIZE, DEDUP, RECONCILE).
+// stage values: PARSE | NORMALIZE | DEDUP | RECONCILE
+// level values: INFO | WARN | ERROR
+
+model AuditLogEntry {
+  id        String   @id @default(cuid())
+  uploadId  String
+  timestamp DateTime @default(now())
+  // stage: PARSE | NORMALIZE | DEDUP | RECONCILE
+  stage     String
+  // level: INFO | WARN | ERROR
+  level     String
+  message   String
+  // context: JSON string — { rowIndex?, field?, before?, after?, rule? }
+  context   String?
+
+  upload Upload @relation(fields: [uploadId], references: [id])
+
+  @@index([uploadId])
+  @@map("audit_log_entries")
+}
+
+// ─── IngestionIssue ───────────────────────────────────────────────────────────
+// One row per issue requiring attention or user action.
+// issueType values: DATE_AMBIGUOUS | AMOUNT_PARSE_FAIL | BALANCE_CHAIN_BREAK |
+//                   POSSIBLE_DUPLICATE | MERGED_CELL | HEADER_AMBIGUOUS |
+//                   TRUNCATED_FILE | OCR_CONFIDENCE_LOW | COLUMN_COUNT_MISMATCH
+// severity values:  ERROR | WARNING | INFO
+
+model IngestionIssue {
+  id              String    @id @default(cuid())
+  uploadId        String
+  transactionId   String?
+  // issueType: DATE_AMBIGUOUS | AMOUNT_PARSE_FAIL | BALANCE_CHAIN_BREAK | POSSIBLE_DUPLICATE | ...
+  issueType       String
+  // severity: ERROR | WARNING | INFO
+  severity        String
+  description     String
+  suggestedAction String?
+  resolved        Boolean   @default(false)
+  // resolvedBy: USER | AUTO
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  // resolution: JSON string — what the user chose or what AUTO did
+  resolution      String?
+
+  upload      Upload       @relation(fields: [uploadId], references: [id])
+  transaction Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@index([uploadId, resolved])
+  @@map("ingestion_issues")
+}
+
+model Category {
+  id         String    @id @default(cuid())
+  userId     String?
+  name       String
+  parentId   String?
+  color      String    @default("#6366f1")
+  icon       String    @default("💳")
+  isIncome   Boolean   @default(false)
+  isTransfer Boolean   @default(false)
+  isSystem   Boolean   @default(true)
+  sortOrder  Int       @default(0)
+
+  user              User?            @relation(fields: [userId], references: [id])
+  rules             CategoryRule[]
+  transactions      Transaction[]    @relation("CurrentCategory")
+  overrideTxs       Transaction[]    @relation("OverrideCategory")
+  historyOld        CategoryHistory[] @relation("OldCategory")
+  historyNew        CategoryHistory[] @relation("NewCategory")
+  monthTotals       MonthCategoryTotal[]
+
+  @@map("categories")
+}
+
+model CategoryRule {
+  id         String   @id @default(cuid())
+  userId     String?
+  categoryId String
+  matchType  String
+  matchValue String
+  priority   Int      @default(0)
+  isSystem   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  user     User?    @relation(fields: [userId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@map("category_rules")
+}
+
+model CategoryHistory {
+  id            String   @id @default(cuid())
+  transactionId String
+  oldCategoryId String?
+  newCategoryId String
+  changedBy     String
+  changedAt     DateTime @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  oldCategory Category?   @relation("OldCategory", fields: [oldCategoryId], references: [id])
+  newCategory Category    @relation("NewCategory", fields: [newCategoryId], references: [id])
+
+  @@map("category_history")
+}
+
+model MonthSummary {
+  id               String   @id @default(cuid())
+  userId           String
+  year             Int
+  month            Int
+  totalIncome      Float    @default(0)
+  totalSpending    Float    @default(0)
+  net              Float    @default(0)
+  transactionCount Int      @default(0)
+  isPartialMonth   Boolean  @default(false)
+  dateRangeStart   DateTime?
+  dateRangeEnd     DateTime?
+  computedAt       DateTime @default(now())
+  isStale          Boolean  @default(false)
+
+  user       User                 @relation(fields: [userId], references: [id])
+  catTotals  MonthCategoryTotal[]
+
+  @@unique([userId, year, month])
+  @@map("month_summaries")
+}
+
+model MonthCategoryTotal {
+  id             String @id @default(cuid())
+  userId         String
+  year           Int
+  month          Int
+  categoryId     String
+  total          Float  @default(0)
+  transactionCount Int  @default(0)
+  pctOfSpending  Float  @default(0)
+  summaryId      String?
+
+  user     User         @relation(fields: [userId], references: [id])
+  category Category     @relation(fields: [categoryId], references: [id])
+  summary  MonthSummary? @relation(fields: [summaryId], references: [id])
+
+  @@unique([userId, year, month, categoryId])
+  @@map("month_category_totals")
+}
+
+model AnomalyAlert {
+  id            String   @id @default(cuid())
+  userId        String
+  year          Int
+  month         Int
+  alertType     String
+  categoryId    String?
+  message       String
+  amount        Float?
+  threshold     Float?
+  isDismissed   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@map("anomaly_alerts")
+}
