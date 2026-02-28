@@ -2,9 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: 248 250 252;
+  --panel: 255 255 255;
+  --text: 15 23 42;
+  --muted: 100 116 139;
+  --border: 226 232 240;
+  --nav: 15 23 42;
+  --nav2: 2 6 23;
+  --primary: 37 99 235;
+  --success: 22 163 74;
+  --warning: 245 158 11;
+  --danger: 220 38 38;
+}
+
+html, body {
+  height: 100%;
+}
+
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    background: rgb(var(--bg));
+    color: rgb(var(--text));
+    @apply antialiased;
   }
 }
 
@@ -13,13 +33,13 @@
     @apply bg-white rounded-lg border border-slate-200 p-4;
   }
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-accent-500 hover:bg-accent-600 text-white font-semibold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
     @apply inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-lg border border-slate-200 transition-all text-sm;
   }
   .input {
-    @apply w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all;
+    @apply w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
   }
   .badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
