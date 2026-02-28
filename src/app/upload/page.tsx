@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
@@ -135,8 +134,8 @@ export default function UploadPage() {
     <AppShell>
       <main className="max-w-2xl mx-auto px-4 py-8 pb-24 space-y-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-800">Upload Statement</h1>
-          <p className="text-slate-500 text-sm mt-1">Supported formats: Chase, BofA, Wells Fargo, Capital One, Citibank, Discover, and most major banks.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Ingest Statement</h1>
+          <p className="text-slate-500 text-sm mt-1">BudgetLens normalizes and reconciles your statement against detected format rules. 40+ bank formats supported.</p>
         </div>
 
         {/* Account selector */}
@@ -335,11 +334,9 @@ export default function UploadPage() {
                 <p className="font-bold text-slate-700">Drop your CSV here</p>
                 <p className="text-sm text-slate-400 mt-1">or click to browse files</p>
               </div>
-              <div className="flex justify-center gap-2">
-                {['Chase', 'BofA', 'Wells Fargo', 'Capital One', 'Discover'].map(b => (
-                  <span key={b} className="badge bg-slate-100 text-slate-600">{b}</span>
-                ))}
-              </div>
+              <p className="text-xs text-slate-400">
+                Chase · BofA · Wells Fargo · Capital One · Discover · <span className="text-accent-500 font-medium">40+ formats</span>
+              </p>
             </div>
           )}
         </div>
@@ -358,9 +355,9 @@ export default function UploadPage() {
               className="btn-primary w-full justify-center py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploadMutation.isPending ? (
-                <><Loader2 size={18} className="animate-spin" /> Processing transactions…</>
+                <><Loader2 size={18} className="animate-spin" /> Running ingestion pipeline…</>
               ) : (
-                <><Upload size={18} /> Upload & Analyze</>
+                <><Upload size={18} /> Begin Ingestion</>
               )}
             </button>
           </>
@@ -376,7 +373,7 @@ export default function UploadPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle size={20} className="text-green-600" />
-                  <h3 className="font-bold text-green-800">Upload successful!</h3>
+                  <h3 className="font-bold text-green-800">Ingestion complete</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {([
@@ -417,7 +414,7 @@ export default function UploadPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="font-bold text-red-800">Upload failed</h3>
+                  <h3 className="font-bold text-red-800">Ingestion failed</h3>
                   <p className="text-red-700 text-sm mt-1">{result.error}</p>
                 </div>
               </div>
@@ -479,42 +476,58 @@ interface UploadRow {
 
 function UploadHistory() {
   const { apiFetch } = useApi()
+  const router = useRouter()
   const { data } = useQuery({ queryKey: ['uploads'], queryFn: () => apiFetch('/api/uploads') })
   const uploads: UploadRow[] = data?.uploads ?? []
   if (uploads.length === 0) return null
 
   return (
-    <div className="card">
-      <h3 className="font-bold text-slate-700 mb-3">Previous Uploads</h3>
-      <div className="space-y-2">
-        {uploads.slice(0, 5).map((u) => (
-          <Link
-            key={u.id}
-            href={`/upload/${u.id}`}
-            className="flex items-center gap-3 text-sm py-2 border-b border-slate-100 last:border-0 hover:bg-slate-50 -mx-1 px-1 rounded-lg transition"
-          >
-            <span className="text-slate-400">📄</span>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-slate-700 truncate">{u.filename}</p>
-              <p className="text-xs text-slate-400">
-                {u.account?.name} · {u.rowCountAccepted} transactions
-                {u.totalRowsUnresolved > 0 && (
-                  <span className="text-amber-500 ml-1">· {u.totalRowsUnresolved} unresolved</span>
-                )}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {u.reconciliationStatus && u.status === 'complete' && (
-                <ReconciliationShield status={u.reconciliationStatus} size="sm" />
-              )}
-              <span className={clsx('badge text-xs', u.status === 'complete' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700')}>
-                {u.status}
-              </span>
-              <ChevronRight size={14} className="text-slate-300"/>
-            </div>
-          </Link>
-        ))}
+    <div className="card p-0 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+        <h3 className="font-semibold text-slate-800 text-sm">Statement History</h3>
+        <span className="text-xs text-slate-400">{uploads.length} statement{uploads.length !== 1 ? 's' : ''}</span>
       </div>
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Statement</th>
+            <th>Account</th>
+            <th>Date</th>
+            <th className="text-right">Rows</th>
+            <th>Reconciliation</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {uploads.slice(0, 8).map((u) => (
+            <tr key={u.id} onClick={() => router.push(`/upload/${u.id}`)}>
+              <td>
+                <p className="font-medium text-slate-800 max-w-[180px] truncate">{u.filename}</p>
+                {u.totalRowsUnresolved > 0 && (
+                  <p className="text-xs text-amber-600 mt-0.5">{u.totalRowsUnresolved} unresolved</p>
+                )}
+              </td>
+              <td className="text-slate-500 whitespace-nowrap">{u.account?.name}</td>
+              <td className="num text-slate-500 whitespace-nowrap">
+                {new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+              </td>
+              <td className="num text-right text-slate-700">{u.rowCountAccepted}</td>
+              <td>
+                {u.reconciliationStatus && u.status === 'complete' && (
+                  <ReconciliationShield status={u.reconciliationStatus} size="sm" />
+                )}
+              </td>
+              <td>
+                <span className={clsx('badge text-xs', u.status === 'complete' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700')}>
+                  {u.status}
+                </span>
+              </td>
+              <td><ChevronRight size={14} className="text-slate-300"/></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

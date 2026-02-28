@@ -442,7 +442,7 @@ export default function UploadDetailPage() {
             onClick={() => router.push('/upload')}
             className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-3 transition"
           >
-            <ArrowLeft size={14}/> Back to uploads
+            <ArrowLeft size={14}/> Back to statements
           </button>
 
           <div className="flex items-start gap-3">

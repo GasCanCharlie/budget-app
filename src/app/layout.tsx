@@ -3,8 +3,8 @@ import './globals.css'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'BudgetLens — Home Budget Analyzer',
-  description: 'Upload your bank statements. See exactly where your money goes — categorized, explained, summarized.',
+  title: 'BudgetLens — Financial Statement Intelligence',
+  description: 'Ingest, reconcile, and audit your bank statements. Privacy-first financial intelligence with automated reconciliation and anomaly detection.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
