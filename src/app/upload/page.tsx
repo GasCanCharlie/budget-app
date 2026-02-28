@@ -10,6 +10,16 @@ import { Upload, CheckCircle, AlertCircle, Loader2, Building2, PlusCircle, MoreH
 import clsx from 'clsx'
 import { ReconciliationShield } from '@/components/ReconciliationShield'
 
+// ─── Pipeline stages ─────────────────────────────────────────────────────────
+
+const PIPELINE_STAGES = [
+  { label: 'File received',          detail: 'SHA-256 fingerprint computed' },
+  { label: 'Format detection',       detail: 'Identifying bank and schema' },
+  { label: 'Parsing & normalizing',  detail: 'Extracting transaction records' },
+  { label: 'Deduplication',          detail: 'Cross-upload hash check' },
+  { label: 'Reconciliation',         detail: 'Verifying statement totals' },
+]
+
 export default function UploadPage() {
   const router     = useRouter()
   const user       = useAuthStore(s => s.user)
@@ -27,6 +37,7 @@ export default function UploadPage() {
   const [menuOpenId,    setMenuOpenId]    = useState<string | null>(null)
   const [confirmState,  setConfirmState]  = useState<{ id: string; action: 'reset' | 'delete' } | null>(null)
   const [confirmReady,  setConfirmReady]  = useState(false)
+  const [pipelineStage, setPipelineStage] = useState(-1)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (!user) router.replace('/') }, [user, router])
@@ -111,6 +122,15 @@ export default function UploadPage() {
       setResult({ success: false, error: e.message })
     },
   })
+
+  // Advance pipeline stages while upload is in flight
+  useEffect(() => {
+    if (!uploadMutation.isPending) { setPipelineStage(-1); return }
+    setPipelineStage(0)
+    const timings = [350, 1050, 1950, 3050, 4250]
+    const timeouts = timings.map((delay, i) => setTimeout(() => setPipelineStage(i + 1), delay))
+    return () => timeouts.forEach(clearTimeout)
+  }, [uploadMutation.isPending])
 
   const handleFile = useCallback((file: File) => {
     if (!file.name.toLowerCase().endsWith('.csv')) {
@@ -363,6 +383,35 @@ export default function UploadPage() {
           </>
         )}
 
+        {/* Pipeline stages — visible while upload is in flight */}
+        {uploadMutation.isPending && pipelineStage >= 0 && (
+          <div className="rounded-lg border border-navy-700 bg-navy-900 px-4 py-4 font-mono text-xs space-y-2.5">
+            {PIPELINE_STAGES.map((stage, i) => {
+              const done   = pipelineStage > i
+              const active = pipelineStage === i
+              return (
+                <div key={i} className={clsx('flex items-start gap-2.5', done || active ? 'opacity-100' : 'opacity-25')}>
+                  {done ? (
+                    <CheckCircle size={12} className="text-green-400 mt-0.5 flex-shrink-0" />
+                  ) : active ? (
+                    <Loader2 size={12} className="animate-spin text-accent-300 mt-0.5 flex-shrink-0" />
+                  ) : (
+                    <div className="w-3 h-3 border border-white/20 rounded-full mt-0.5 flex-shrink-0" />
+                  )}
+                  <span className={done ? 'text-white/40' : active ? 'text-white' : 'text-white/25'}>
+                    {stage.label}
+                    {(done || active) && (
+                      <span className={clsx('ml-2', done ? 'text-white/25' : 'text-white/50')}>
+                        · {stage.detail}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
         {/* Result */}
         {result && (
           <div className={clsx(
@@ -401,6 +450,18 @@ export default function UploadPage() {
                     )
                   })()}
                 </div>
+                {/* File integrity footer */}
+                {Boolean((result.data as Record<string, unknown>).fileHashTruncated) && (
+                  <div className="flex items-center gap-2 pt-1 border-t border-green-200/60">
+                    <span className="text-xs text-green-600/70 font-mono">SHA-256</span>
+                    <code className="text-xs font-mono text-green-700/80 flex-1 truncate">
+                      {String((result.data as Record<string, unknown>).fileHashTruncated)}
+                    </code>
+                    <span className="text-xs text-green-600/50 font-mono flex-shrink-0">
+                      {String((result.data as Record<string, unknown>).parserVersion ?? '')}
+                    </span>
+                  </div>
+                )}
                 {Boolean((result.data as Record<string, unknown>).dateAmbiguous) && (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
                     ⚠️ Date format was ambiguous (MM/DD vs DD/MM). Please verify your transaction dates.

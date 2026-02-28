@@ -348,6 +348,7 @@ export async function POST(req: NextRequest) {
         warnings:         parseResult.warnings.slice(0, 20),
         transactionCount: accepted,
         parserVersion:        PARSER_VERSION,
+        fileHashTruncated:    `${fileHash.slice(0, 8)}…${fileHash.slice(-8)}`,
         reconciliationStatus: reconcileResult.status,
         reconciliationMode:   reconcileResult.mode,
       },
