@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
@@ -64,6 +64,10 @@ interface Transaction {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TransactionsPage() {
+  return <Suspense><TransactionsPageInner /></Suspense>
+}
+
+function TransactionsPageInner() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const user         = useAuthStore(s => s.user)
