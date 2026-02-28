@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
     return res
   } catch (e) {
     if (e instanceof z.ZodError) return NextResponse.json({ error: e.errors[0].message }, { status: 400 })
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    console.error('Register error:', e)
+    return NextResponse.json({ error: 'Server error', detail: String(e) }, { status: 500 })
   }
 }
