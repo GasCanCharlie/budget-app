@@ -45,7 +45,7 @@ export default function DashboardPage() {
 
   const { data: trendsData } = useQuery({
     queryKey: ['trends'],
-    queryFn: () => apiFetch('/api/summaries/trends'),
+    queryFn: () => apiFetch('/api/summaries/trends?months=36'),
     enabled: !!user,
   })
 
