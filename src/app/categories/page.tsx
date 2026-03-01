@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { PlusCircle, Trash2, Loader2, Lock } from 'lucide-react'
 import clsx from 'clsx'
+import { CategoryIcon } from '@/components/CategoryIcon'
 
 interface Category {
   id: string
@@ -207,7 +208,7 @@ export default function CategoriesPage() {
             <div className="space-y-2">
               {userCats.map(cat => (
                 <div key={cat.id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white">
-                  <span className="text-xl">{cat.icon}</span>
+                  <CategoryIcon name={cat.icon} color={cat.color} size={20} />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-slate-800">{cat.name}</p>
                     <p className="text-xs text-slate-400">
@@ -268,7 +269,7 @@ export default function CategoriesPage() {
                   key={cat.id}
                   className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
                 >
-                  <span className="text-base">{cat.icon}</span>
+                  <CategoryIcon name={cat.icon} color={cat.color} size={16} />
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-slate-700 truncate">{cat.name}</p>
                     <p className="text-[10px] text-slate-400">

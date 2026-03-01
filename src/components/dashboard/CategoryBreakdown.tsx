@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { CategoryIcon } from '@/components/CategoryIcon'
 
 const MONTH_NAMES = [
   'January',
@@ -60,9 +61,9 @@ export function CategoryBreakdown({ categories, totalSpending, month, year }: Pr
                 href={'/transactions?category=' + cat.categoryId}
                 className="group flex items-start gap-3"
               >
-                <span className="text-lg w-6 flex-shrink-0 leading-tight">
-                  {cat.categoryIcon}
-                </span>
+                <div className="w-6 flex-shrink-0 flex items-center">
+                  <CategoryIcon name={cat.categoryIcon} color={cat.categoryColor} size={18} />
+                </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">

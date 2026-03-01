@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import Link from 'next/link'
 import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
+import { CategoryIcon } from '@/components/CategoryIcon'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -222,7 +223,7 @@ function TransactionsPageInner() {
           >
             <option value="">All categories</option>
             {categories.map((c: { id: string; name: string; icon: string }) => (
-              <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </div>
@@ -365,7 +366,9 @@ function TransactionRow({
     <div className="px-4 py-3 hover:bg-slate-50 transition-colors">
       <div className="flex items-center gap-3">
         {/* Category icon */}
-        <span className="text-xl w-8 text-center flex-shrink-0">{cat?.icon ?? '📦'}</span>
+        <div className="w-8 flex-shrink-0 flex items-center justify-center">
+          <CategoryIcon name={cat?.icon ?? 'Package'} color={cat?.color} size={20} />
+        </div>
 
         {/* Main info */}
         <div className="flex-1 min-w-0">
@@ -495,7 +498,7 @@ function TransactionRow({
                     : 'hover:bg-white hover:shadow-sm text-slate-700'
                 )}
               >
-                <span>{c.icon}</span>
+                <CategoryIcon name={c.icon} color={cat?.id === c.id ? '#ffffff' : c.color} size={14} />
                 <span className="truncate">{c.name}</span>
               </button>
             ))}

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { CheckCircle2, GripVertical, ArrowRight, Loader2, AlertCircle, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
+import { CategoryIcon } from '@/components/CategoryIcon'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 
@@ -262,7 +263,7 @@ function CategoryBucket({
         <GripVertical size={14} />
       </div>
 
-      <span className="text-lg">{cat.icon}</span>
+      <CategoryIcon name={cat.icon} color={cat.color} size={20} />
       <span className="flex-1 text-sm font-medium text-slate-700">{cat.name}</span>
       {txCount != null && txCount > 0 && (
         <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
@@ -307,8 +308,8 @@ function ConfirmModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
         <div className="mb-4 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-100 text-xl">
-            {state.category.icon}
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-100">
+            <CategoryIcon name={state.category.icon} color={state.category.color} size={20} />
           </span>
           <div>
             <h3 className="font-bold text-slate-900">Move to {state.category.name}?</h3>
@@ -427,9 +428,9 @@ function CategoryTransactionList({
         <div key={tx.id} className="px-3 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
           <div className="flex items-start gap-2.5">
             {/* Category icon */}
-            <span className="text-xl w-7 flex-shrink-0 text-center mt-0.5">
-              {tx.category?.icon ?? '📦'}
-            </span>
+            <div className="w-7 flex-shrink-0 flex items-center justify-center mt-0.5">
+              <CategoryIcon name={tx.category?.icon ?? 'Package'} color={tx.category?.color} size={16} />
+            </div>
 
             {/* Main content */}
             <div className="flex-1 min-w-0">
@@ -468,7 +469,7 @@ function CategoryTransactionList({
                           onClick={() => { onMove(tx.id, c.id); setMovingId(null) }}
                           className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium hover:bg-accent-50 hover:text-accent-700 transition text-slate-700 text-left"
                         >
-                          <span>{c.icon}</span>
+                          <CategoryIcon name={c.icon} color={c.color} size={14} />
                           <span className="truncate">{c.name}</span>
                         </button>
                       ))}

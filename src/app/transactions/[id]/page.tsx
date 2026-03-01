@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ExternalLink } from 'lucide-react'
+import { CategoryIcon } from '@/components/CategoryIcon'
 import { format } from 'date-fns'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
@@ -230,7 +231,7 @@ export default function TransactionDetailPage() {
           </button>
 
           <div className="flex items-start gap-3">
-            <span className="text-3xl">{tx.category?.icon ?? '📦'}</span>
+            <CategoryIcon name={tx.category?.icon ?? 'Package'} color={tx.category?.color} size={32} />
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-black text-slate-800 truncate">
                 {tx.merchantNormalized?.trim() || tx.description?.trim() || <span className="text-slate-400 italic font-normal">No description</span>}
@@ -251,7 +252,10 @@ export default function TransactionDetailPage() {
           <div className="flex flex-wrap gap-1.5 mt-3">
             <span className={clsx('badge text-xs', statusCfg.cls)}>{statusCfg.label}</span>
             {tx.category && (
-              <span className="badge bg-slate-100 text-slate-600 text-xs">{tx.category.icon} {tx.category.name}</span>
+              <span className="badge bg-slate-100 text-slate-600 text-xs flex items-center gap-1">
+                <CategoryIcon name={tx.category.icon} color={tx.category.color} size={12} />
+                {tx.category.name}
+              </span>
             )}
             {tx.isPossibleDuplicate && (
               <span className="badge bg-purple-100 text-purple-700 text-xs">Possible duplicate</span>
@@ -411,7 +415,10 @@ export default function TransactionDetailPage() {
 
         {/* ── Categorization ────────────────────────────────────────────── */}
         <Section title="Categorization">
-          <KV label="Category"   value={tx.category ? `${tx.category.icon} ${tx.category.name}` : 'Uncategorized'} />
+          <KV label="Category"   value={tx.category
+            ? <span className="flex items-center gap-1.5"><CategoryIcon name={tx.category.icon} color={tx.category.color} size={14} />{tx.category.name}</span>
+            : 'Uncategorized'
+          } />
           <KV label="Source"     value={SOURCE_LABELS[tx.categorizationSource] ?? tx.categorizationSource} />
           <KV label="Confidence" value={`${(tx.confidenceScore * 100).toFixed(0)}%`} />
           <KV label="Reviewed"   value={tx.reviewedByUser ? 'Yes' : 'No'} />
@@ -423,9 +430,18 @@ export default function TransactionDetailPage() {
                 <div key={i} className="text-xs text-slate-600 flex items-center gap-2">
                   <span className="text-slate-400">{fmtDateTime(h.changedAt)}</span>
                   {h.oldCategory && (
-                    <><span>{h.oldCategory.icon} {h.oldCategory.name}</span><span className="text-slate-400">→</span></>
+                    <>
+                      <span className="flex items-center gap-1">
+                        <CategoryIcon name={h.oldCategory.icon} color="#94a3b8" size={12} />
+                        {h.oldCategory.name}
+                      </span>
+                      <span className="text-slate-400">→</span>
+                    </>
                   )}
-                  <span className="font-medium">{h.newCategory.icon} {h.newCategory.name}</span>
+                  <span className="font-medium flex items-center gap-1">
+                    <CategoryIcon name={h.newCategory.icon} color="#64748b" size={12} />
+                    {h.newCategory.name}
+                  </span>
                   <span className="badge bg-slate-100 text-slate-500">{h.changedBy}</span>
                 </div>
               ))}

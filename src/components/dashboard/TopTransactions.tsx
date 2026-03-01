@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { format } from 'date-fns'
+import { CategoryIcon } from '@/components/CategoryIcon'
 
 interface TopTx {
   id: string
@@ -83,8 +84,10 @@ export function TopTransactions({ transactions }: Props) {
                   <p className="truncate font-semibold text-sm text-slate-800">
                     {merchant}
                   </p>
-                  <p className="text-xs text-slate-400">
-                    {dateLabel} · {tx.categoryIcon} {tx.categoryName}
+                  <p className="text-xs text-slate-400 flex items-center gap-1">
+                    {dateLabel} ·
+                    <CategoryIcon name={tx.categoryIcon} color={tx.categoryColor} size={12} />
+                    {tx.categoryName}
                   </p>
                 </div>
 
