@@ -78,6 +78,7 @@ const SAVED_SUMMARY_STUB = {
   totalSpending: 0,
   net: 0,
   transactionCount: 0,
+  incomeTxCount: 0,
   isPartialMonth: false,
   dateRangeStart: null,
   dateRangeEnd: null,
@@ -151,7 +152,7 @@ describe('computeMonthSummary', () => {
   // 2. Income vs spending ─────────────────────────────────────────────────────
 
   describe('2. Correctly sums income and spending separately', () => {
-    it('sums isIncome=true categories into totalIncome and isIncome=false into totalSpending', async () => {
+    it('sums positive-amount transactions into totalIncome and negative-amount into totalSpending', async () => {
       const salary = makeTx({
         id: 'tx-income',
         amount: 3000,
@@ -173,6 +174,23 @@ describe('computeMonthSummary', () => {
       expect(result.totalIncome).toBe(3000)
       expect(result.totalSpending).toBe(80)
       expect(result.net).toBe(2920)
+    })
+
+    it('classifies by amount sign regardless of category.isIncome flag', async () => {
+      // amount > 0 → income even if category.isIncome is false
+      const positiveTx = makeTx({
+        id: 'tx-positive',
+        amount: 1000,
+        description: 'REFUND',
+        categoryId: 'cat-food',
+        category: { id: 'cat-food', name: 'Food & Drink', color: '#f97316', icon: '🍔', isIncome: false },
+      })
+      vi.mocked(prisma.transaction.findMany).mockResolvedValue([positiveTx] as never)
+
+      const result = await computeMonthSummary('user-1', 2024, 3)
+
+      expect(result.totalIncome).toBe(1000)
+      expect(result.totalSpending).toBe(0)
     })
 
     it('uses Math.abs so negative spending amounts are still added positively', async () => {
@@ -562,7 +580,9 @@ describe('computeMonthSummary', () => {
       expect(ent?.pctOfSpending).toBeCloseTo(50)
     })
 
-    it('sets pctOfSpending=0 for income categories', async () => {
+    it('sets pctOfSpending=0 for positive-amount (income) transactions', async () => {
+      // A positive-amount transaction goes to totalIncome, leaving totalSpending=0,
+      // so pctOfSpending must be 0 regardless of category.isIncome flag.
       const income = makeTx({
         id: 'tx-income',
         amount: 3000,
@@ -573,8 +593,8 @@ describe('computeMonthSummary', () => {
 
       const result = await computeMonthSummary('user-1', 2024, 3)
 
-      const incomeCat = result.categoryTotals.find(c => c.isIncome)
-      expect(incomeCat?.pctOfSpending).toBe(0)
+      // totalSpending === 0, so every category's pctOfSpending must be 0
+      expect(result.categoryTotals.every(c => c.pctOfSpending === 0)).toBe(true)
     })
   })
 })

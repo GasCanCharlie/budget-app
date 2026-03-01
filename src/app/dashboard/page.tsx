@@ -127,9 +127,8 @@ export default function DashboardPage() {
     pctOfSpending: number; isIncome: boolean;
   }[]
   const spendingCategories = allCategories.filter(c => !c.isIncome)
-  const incomeTxCount      = allCategories
-    .filter(c => c.isIncome)
-    .reduce((s, c) => s + c.transactionCount, 0)
+  const incomeTxCount      = (summary.incomeTxCount as number | undefined) ??
+    allCategories.filter(c => c.isIncome).reduce((s, c) => s + c.transactionCount, 0)
 
   const topTransactions = (summary.topTransactions ?? []) as {
     id: string; date: string; description: string; merchantNormalized: string;

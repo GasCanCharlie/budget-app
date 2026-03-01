@@ -69,6 +69,7 @@ const MONTH_SUMMARY_FIXTURE = {
   totalSpending:    1800,
   net:              2700,
   transactionCount: 42,
+  incomeTxCount:    8,
   isPartialMonth:   false,
   dateRangeStart:   '2024-03-01T00:00:00.000Z',
   dateRangeEnd:     '2024-03-31T00:00:00.000Z',
@@ -176,69 +177,31 @@ describe('GET /api/summaries/[year]/[month]', () => {
 
   // ── 2. Cached month — non-stale existing summary ───────────────────────────
 
-  it('cached month: returns from DB without calling computeMonthSummary', async () => {
+  it('existing (non-stale) month: always calls computeMonthSummary for accuracy', async () => {
+    // Route now always recomputes — no cache path — to ensure income/spending
+    // are always based on the sign-based classification logic.
     vi.mocked(prisma.monthSummary.findUnique).mockResolvedValue(EXISTING_SUMMARY_ROW as never)
-
-    // The cached path assembles the summary from several DB queries.
-    // Provide minimal but realistic fixture data for each.
-    const mockCatTotals = [
-      {
-        categoryId:       'cat-food',
-        total:            620,
-        transactionCount: 18,
-        pctOfSpending:    34.4,
-        category: {
-          id:       'cat-food',
-          name:     'Food & Drink',
-          color:    '#f97316',
-          icon:     '🍔',
-          isIncome: false,
-        },
-      },
-    ]
-    vi.mocked(prisma.monthCategoryTotal.findMany).mockResolvedValue(mockCatTotals as never)
-
-    const mockTopTxs = [
-      {
-        id:                 'tx-1',
-        date:               new Date('2024-03-15'),
-        description:        'WHOLE FOODS MARKET',
-        merchantNormalized: 'Whole Foods',
-        amount:             -210,
-        category: { name: 'Food & Drink', color: '#f97316', icon: '🍔' },
-      },
-    ]
-    vi.mocked(prisma.transaction.findMany).mockResolvedValue(mockTopTxs as never)
-    vi.mocked(prisma.anomalyAlert.findMany).mockResolvedValue([])
 
     const req = makeReq('http://localhost/api/summaries/2024/3')
     const res = await getMonthSummary(req, { params: { year: '2024', month: '3' } })
 
     expect(res.status).toBe(200)
-    expect(computeMonthSummary).not.toHaveBeenCalled()
+    expect(computeMonthSummary).toHaveBeenCalledWith('user_1', 2024, 3)
 
     const body = await res.json()
-    expect(body.summary.totalIncome).toBe(EXISTING_SUMMARY_ROW.totalIncome)
-    expect(body.summary.totalSpending).toBe(EXISTING_SUMMARY_ROW.totalSpending)
-    expect(body.summary.categoryTotals).toHaveLength(1)
-    expect(body.summary.categoryTotals[0].categoryName).toBe('Food & Drink')
+    expect(body.summary.totalIncome).toBe(MONTH_SUMMARY_FIXTURE.totalIncome)
+    expect(body.summary.totalSpending).toBe(MONTH_SUMMARY_FIXTURE.totalSpending)
   })
 
   // ── 3. Stale summary — recomputes ──────────────────────────────────────────
 
-  it('stale summary: marks not-stale then calls computeMonthSummary', async () => {
+  it('stale summary: calls computeMonthSummary (route always recomputes)', async () => {
     vi.mocked(prisma.monthSummary.findUnique).mockResolvedValue(STALE_SUMMARY_ROW as never)
 
     const req = makeReq('http://localhost/api/summaries/2024/3')
     const res = await getMonthSummary(req, { params: { year: '2024', month: '3' } })
 
     expect(res.status).toBe(200)
-
-    // Optimistic lock: update isStale → false before computing
-    expect(prisma.monthSummary.update).toHaveBeenCalledWith({
-      where: { id: STALE_SUMMARY_ROW.id },
-      data:  { isStale: false },
-    })
     expect(computeMonthSummary).toHaveBeenCalledWith('user_1', 2024, 3)
 
     const body = await res.json()

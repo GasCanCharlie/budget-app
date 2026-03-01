@@ -25,6 +25,7 @@ export interface MonthlySummary {
   totalSpending: number
   net: number
   transactionCount: number
+  incomeTxCount: number
   isPartialMonth: boolean
   dateRangeStart: Date | null
   dateRangeEnd:   Date | null
@@ -107,6 +108,7 @@ export async function computeMonthSummary(
       year, month,
       totalIncome: 0, totalSpending: 0, net: 0,
       transactionCount: 0,
+      incomeTxCount: 0,
       isPartialMonth: false,
       dateRangeStart: null, dateRangeEnd: null,
       categoryTotals: [], topTransactions: [], alerts: [],
@@ -121,24 +123,28 @@ export async function computeMonthSummary(
   const daysCovered    = Math.ceil((dateRangeEnd.getTime() - dateRangeStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
   const isPartialMonth = daysCovered < daysInMonth * 0.9
 
-  // Issue 2: classify income vs spending via category.isIncome, not tx sign
   let totalIncome   = 0
   let totalSpending = 0
+  let incomeTxCount = 0
 
   const categoryMap: Map<string, { total: number; count: number; cat: typeof FALLBACK_CAT }> = new Map()
 
   for (const tx of transactions) {
-    // Issue 1: prefer override category metadata
     const cat   = tx.overrideCategory ?? tx.category ?? FALLBACK_CAT
     const catId = tx.userOverrideCategoryId ?? tx.categoryId ?? 'other'
 
-    if (cat.isIncome) {
-      totalIncome += Math.abs(tx.amount)
+    // Classify by amount sign — the only reliable signal from bank statements.
+    // positive = credit (income/deposit/refund), negative = debit (spending).
+    // Category.isIncome is decorative and unreliable (uncategorized paychecks would
+    // fall into "Other" and inflate spending under the old category-based approach).
+    if (tx.amount > 0) {
+      totalIncome += tx.amount
+      incomeTxCount++
     } else {
       totalSpending += Math.abs(tx.amount)
     }
 
-    // Issue 4: use fallback object instead of skipping uncategorized transactions
+    // Category breakdown always uses absolute amounts
     const existing = categoryMap.get(catId)
     if (existing) {
       existing.total += Math.abs(tx.amount)
@@ -222,6 +228,7 @@ export async function computeMonthSummary(
   return {
     year, month, totalIncome, totalSpending, net,
     transactionCount: transactions.length,
+    incomeTxCount,
     isPartialMonth, dateRangeStart, dateRangeEnd,
     categoryTotals, topTransactions, alerts,
   }
