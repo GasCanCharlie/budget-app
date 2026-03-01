@@ -518,12 +518,12 @@ export async function POST(req: NextRequest) {
         hashMismatches: 0,
       },
       issues: parseResult.errors.reduce((acc, err) => {
-        const existing = acc.find(i => i.type === (err.code ?? 'UNKNOWN'))
+        const existing = acc.find(i => i.type === err.severity)
         if (existing) {
           existing.count++
           if (existing.samples.length < 3) existing.samples.push(err.message.slice(0, 80))
         } else {
-          acc.push({ type: err.code ?? 'UNKNOWN', count: 1, samples: [err.message.slice(0, 80)] })
+          acc.push({ type: err.severity, count: 1, samples: [err.message.slice(0, 80)] })
         }
         return acc
       }, [] as ImportReport['issues']),
