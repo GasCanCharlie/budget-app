@@ -358,25 +358,38 @@ function TouchGhost({ tx, pos }: { tx: Transaction | null; pos: { x: number; y: 
 function CategoryTransactionList({
   catId,
   catName,
-  transactions,
+  apiFetch,
   categories,
   onMove,
 }: {
   catId: string
   catName: string
-  transactions: Transaction[]
+  apiFetch: (url: string, opts?: RequestInit) => Promise<unknown>
   categories: Category[]
   onMove: (txId: string, newCatId: string) => void
 }) {
   const [movingId, setMovingId] = useState<string | null>(null)
-  const txs = transactions
-    .filter(t => (t.category?.id ?? 'other') === catId)
-    .slice(0, 12)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['cat-transactions', catId],
+    queryFn: () => apiFetch('/api/transactions?category=' + catId + '&limit=100'),
+  })
+
+  const txs: Transaction[] = (data as { transactions?: Transaction[] })?.transactions ?? []
+
+  if (isLoading) {
+    return (
+      <div className="mt-1 mb-1 ml-8 px-3 py-2 flex items-center gap-1.5 text-xs text-slate-400">
+        <Loader2 size={12} className="animate-spin" />
+        Loading…
+      </div>
+    )
+  }
 
   if (txs.length === 0) {
     return (
       <div className="mt-1 mb-1 ml-8 px-3 py-2 text-xs text-slate-400 italic">
-        No transactions in {catName}
+        No transactions assigned to {catName} yet
       </div>
     )
   }
@@ -825,7 +838,7 @@ export default function CategorizePage() {
                       <CategoryTransactionList
                         catId={cat.id}
                         catName={cat.name}
-                        transactions={allTxs}
+                        apiFetch={apiFetch}
                         categories={categories}
                         onMove={(txId, newCatId) => {
                           updateMutation.mutate({ id: txId, categoryId: newCatId, applyToAll: false })
