@@ -181,7 +181,7 @@ export interface CategorizationResult {
   categoryId: string | undefined
   categoryName: string
   confidence: number
-  source: 'rule' | 'ai' | 'user'
+  source: 'rule' | 'ai' | 'user' | 'bank'
 }
 
 export async function categorize(

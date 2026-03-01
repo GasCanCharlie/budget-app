@@ -314,6 +314,14 @@ const HEADER_PATTERNS: Record<keyof ColumnMapping, RegExp[]> = {
     /^ref[\s._-]?no\.?$/i,
     /^seq(uence)?[\s._-]?no\.?$/i,
   ],
+  bankCategory: [
+    /^transaction[\s._-]?category$/i,
+    /^category$/i,
+    /^bank[\s._-]?category$/i,
+    /^tx[\s._-]?category$/i,
+    /^spending[\s._-]?category$/i,
+    /^merchant[\s._-]?category$/i,
+  ],
 }
 
 /**

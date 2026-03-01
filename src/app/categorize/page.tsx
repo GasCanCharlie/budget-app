@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
+import { CheckCircle2, GripVertical, ArrowRight, Loader2, AlertCircle, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
@@ -33,7 +33,7 @@ interface Transaction {
   merchantNormalized: string
   amount: number
   isTransfer: boolean
-  categorizationSource: 'rule' | 'ai' | 'user'
+  categorizationSource: 'rule' | 'ai' | 'user' | 'bank'
   confidenceScore: number
   reviewedByUser: boolean
   category: TxCategory | null
@@ -86,7 +86,13 @@ function TxCard({
   onDragEnd: () => void
   onTouchStart: (tx: Transaction, e: React.TouchEvent) => void
 }) {
-  const srcIcon = tx.categorizationSource === 'user' ? '✏️' : tx.categorizationSource === 'rule' ? '⚙️' : '🤖'
+  const srcIcon = tx.categorizationSource === 'user'
+    ? '✏️'
+    : tx.categorizationSource === 'bank'
+      ? '🏦'
+      : tx.categorizationSource === 'rule'
+        ? '⚙️'
+        : '🤖'
   const lowConf  = tx.categorizationSource === 'ai' && tx.confidenceScore < 0.75
 
   return (
@@ -120,6 +126,11 @@ function TxCard({
 
         <div className="mt-1.5 flex items-center gap-1.5">
           <span className="text-xs">{srcIcon}</span>
+          {tx.categorizationSource === 'bank' && (
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600">
+              Bank
+            </span>
+          )}
           <span className={clsx(
             'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
             tx.category ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'
@@ -164,6 +175,7 @@ function CategoryBucket({
   onReorderDragOver,
   onReorderDrop,
   onReorderDragEnd,
+  txCount,
 }: {
   cat: Category
   index: number
@@ -184,6 +196,7 @@ function CategoryBucket({
   onReorderDragOver: (id: string) => void
   onReorderDrop: (id: string) => void
   onReorderDragEnd: () => void
+  txCount?: number
 }) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -255,13 +268,24 @@ function CategoryBucket({
 
       <span className="text-lg">{cat.icon}</span>
       <span className="flex-1 text-sm font-medium text-slate-700">{cat.name}</span>
+      {txCount != null && txCount > 0 && (
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+          {txCount}
+        </span>
+      )}
       {index < 9 && (
         <kbd className="hidden rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 sm:inline-block">
           {index + 1}
         </kbd>
       )}
       {!isDragging && (
-        <span className={clsx('text-slate-300 transition-transform text-xs', isExpanded ? 'rotate-90' : '')}>▶</span>
+        <ChevronRight
+          size={14}
+          className={clsx(
+            'flex-shrink-0 text-slate-300 transition-transform duration-150',
+            isExpanded ? 'rotate-90' : ''
+          )}
+        />
       )}
       {isDragging && isHovered && <ArrowRight size={14} className="animate-pulse text-accent-500" />}
     </div>
@@ -435,6 +459,16 @@ function CategoryTransactionList({
           )}
         </div>
       ))}
+      {txs.length >= 10 && (
+        <div className="px-3 py-2 border-t border-slate-100">
+          <a
+            href={`/transactions?category=${catId}`}
+            className="text-[11px] text-accent-600 hover:text-accent-700 font-medium"
+          >
+            View all in Transactions →
+          </a>
+        </div>
+      )}
     </div>
   )
 }
@@ -528,6 +562,15 @@ export default function CategorizePage() {
     if (t.categorizationSource === 'ai' && t.confidenceScore < 0.75) return true
     return false
   }).length, [allTxs])
+
+  const txCountByCat = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const tx of allTxs) {
+      const catId = tx.category?.id
+      if (catId) map.set(catId, (map.get(catId) ?? 0) + 1)
+    }
+    return map
+  }, [allTxs])
 
   // ── Mutation ──
   const updateMutation = useMutation({
@@ -757,7 +800,8 @@ export default function CategorizePage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Categorize</h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              Drag transactions into a category on the left, or select one and press a number key.
+              We import your bank&apos;s categories automatically. Use Categorize to refine by dragging
+              transactions or expanding a category to review what&apos;s inside.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -807,7 +851,7 @@ export default function CategorizePage() {
             {/* LEFT (mobile: top): Category drop targets */}
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Drop categories here
+                Categories · click to expand
                 {selectedId && ' · or click to assign selected'}
               </p>
               <div className="space-y-1 max-h-[calc(100vh-240px)] overflow-y-auto pr-1">
@@ -833,6 +877,7 @@ export default function CategorizePage() {
                       onReorderDragOver={handleCatReorderOver}
                       onReorderDrop={handleCatReorderDrop}
                       onReorderDragEnd={handleCatReorderEnd}
+                      txCount={txCountByCat.get(cat.id) ?? 0}
                     />
                     {expandedCatId === cat.id && (
                       <CategoryTransactionList

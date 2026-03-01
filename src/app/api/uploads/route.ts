@@ -5,6 +5,7 @@ import prisma from '@/lib/db'
 import { categorizeBatch } from '@/lib/categorization/engine'
 import { isTransferDescription } from '@/lib/intelligence/transfers'
 import { normalizeMerchant } from '@/lib/categorization/engine'
+import { mapBankCategory, normalizeBankCategory } from '@/lib/categorization/bank-category-map'
 import { computeMonthSummary, getAvailableMonths } from '@/lib/intelligence/summaries'
 import { acceptFile } from '@/lib/ingestion/stage0-acceptance'
 import { parseCsvStage1, PARSER_VERSION } from '@/lib/ingestion/stage1-parse-csv'
@@ -243,13 +244,27 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // ── Load system categories for bank category mapping ─────────────────────
+    const systemCategories = await prisma.category.findMany({
+      where: { isSystem: true },
+      select: { id: true, name: true },
+    })
+
     // ── Batch categorise ──────────────────────────────────────────────────────
     const categories = await categorizeBatch(txInputs, payload.userId)
 
     // ── Persist TransactionRaw + Transaction + IngestionIssues ───────────────
     for (let i = 0; i < validEntries.length; i++) {
       const { nt, sourceRowHash, parsedDate, rawFields } = validEntries[i]
-      const cat = categories[i]
+      let cat = categories[i]
+
+      // ── Bank category override ─────────────────────────────────────────────
+      if (nt.bankCategory) {
+        const bankResult = mapBankCategory(nt.bankCategory, systemCategories)
+        if (bankResult.categoryId !== null) {
+          cat = { categoryId: bankResult.categoryId, categoryName: '', confidence: 1.0, source: 'bank' as const }
+        }
+      }
 
       const merchantNorm = normalizeMerchant(nt.descriptionNormalized || nt.descriptionRaw)
       const isTransfer   = isTransferDescription(nt.descriptionRaw)
@@ -325,6 +340,8 @@ export async function POST(req: NextRequest) {
             pendingFlag:          nt.pendingFlag,
             bankFingerprint:      nt.bankFingerprint,
             ingestionStatus:      nt.ingestionStatus,
+            bankCategoryRaw:        nt.bankCategory ?? null,
+            bankCategoryNormalized: nt.bankCategory ? normalizeBankCategory(nt.bankCategory) : null,
           },
         })
 

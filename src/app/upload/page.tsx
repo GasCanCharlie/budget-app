@@ -361,6 +361,11 @@ export default function UploadPage() {
           )}
         </div>
 
+        {/* Bank category info */}
+        <p className="text-sm text-slate-500 text-center">
+          If your bank provides categories, BudgetLens imports them automatically.
+        </p>
+
         {/* Privacy commitment */}
         <p className="text-xs text-center text-slate-400">
           Parsed in-session · SHA-256 fingerprinted · Raw file not retained

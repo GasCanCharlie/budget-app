@@ -514,6 +514,7 @@ export function normalizeRow(
   const rawBankTxId   = getField(fields, mapping, 'bankTransactionId')
   const rawPending    = getField(fields, mapping, 'pending')
   const rawCurrency   = getField(fields, mapping, 'currency')
+  const rawBankCategory = getField(fields, mapping, 'bankCategory')
 
   // ── Normalize dates ────────────────────────────────────────────────────────
   const postedDate      = rawPostedDate ? normalizeDate(rawPostedDate, 'postedDate',      formatHint, dateOrder) : null
@@ -723,6 +724,7 @@ export function normalizeRow(
     issues,
     bankFingerprint,
     currencyCode,
+    bankCategory: rawBankCategory || undefined,
   }
 }
 

@@ -189,6 +189,8 @@ export interface ColumnMapping {
   transactionType?: string
   /** Reference / sequence number for stable same-day ordering */
   referenceNumber?: string
+  /** Bank-provided transaction category (from "Transaction Category" column) */
+  bankCategory?: string
 }
 
 export interface HeaderDetectionResult {
@@ -329,6 +331,9 @@ export interface NormalizedTransaction {
 
   ingestionStatus: IngestionStatus
   issues: PendingIssue[]
+
+  /** Bank-provided category string from the CSV (pass-through from Stage 1) */
+  bankCategory?: string
 }
 
 /** An issue detected during normalization, before DB write */
