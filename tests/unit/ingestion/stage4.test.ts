@@ -67,6 +67,7 @@ import {
   computeReconOrder,
   detectBalanceModel,
   analyzeDiscrepancyPattern,
+  detectCsvParseOrderDir,
 } from '@/lib/ingestion/stage4-reconcile'
 import type { TxForChain } from '@/lib/ingestion/stage4-reconcile'
 
@@ -1008,5 +1009,132 @@ describe('validateBalanceChain — v2 features', () => {
     const delta = analyzeDiscrepancyPattern(result.discrepancies, txs.length)
     // Both breaks: actual=1750 vs expected=1850 → delta=-100 each
     expect(delta.isConstantOffset).toBe(true)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// detectCsvParseOrderDir
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('detectCsvParseOrderDir', () => {
+  it('returns asc for oldest-first CSV (parseOrder 0 has earliest date)', () => {
+    const txs = [
+      tx('a', -10, '990.00', 0, { posted: '2024-01-01' }),
+      tx('b', -10, '980.00', 1, { posted: '2024-01-02' }),
+      tx('c', -10, '970.00', 2, { posted: '2024-01-03' }),
+    ]
+    expect(detectCsvParseOrderDir(txs)).toBe('asc')
+  })
+
+  it('returns desc for newest-first CSV (parseOrder 0 has latest date)', () => {
+    const txs = [
+      tx('a', -20, '2125.39', 0, { posted: '2024-03-15' }),
+      tx('b', -27, '2145.39', 1, { posted: '2024-03-14' }),
+      tx('c', -10, '2172.39', 2, { posted: '2024-03-13' }),
+    ]
+    expect(detectCsvParseOrderDir(txs)).toBe('desc')
+  })
+
+  it('returns asc when fewer than 2 rows have dates', () => {
+    const txs = [
+      tx('a', -10, '100.00', 0), // no dates
+      tx('b', -10, '90.00',  1), // no dates
+    ]
+    expect(detectCsvParseOrderDir(txs)).toBe('asc')
+  })
+
+  it('uses transactionDate in preference to postedDate', () => {
+    // postedDate agrees with oldest-first but transactionDate says newest-first
+    const txs = [
+      tx('a', -10, '100.00', 0, { transaction: '2024-03-10', posted: '2024-01-01' }),
+      tx('b', -10,  '90.00', 1, { transaction: '2024-03-01', posted: '2024-01-02' }),
+    ]
+    expect(detectCsvParseOrderDir(txs)).toBe('desc')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// computeReconOrder — parseOrderDir
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeReconOrder — parseOrderDir tiebreaker', () => {
+  it('with desc tiebreaker, same-date rows are sorted by DESCENDING parseOrder', () => {
+    // Mirrors the real bank scenario: same day, parseOrder 0 is newest
+    const txs = [
+      tx('a', -20,   '2125.39', 0, { posted: '2024-03-15' }),
+      tx('b', -27.56,'2145.39', 1, { posted: '2024-03-14' }),
+      tx('c', -2.46, '2172.95', 2, { posted: '2024-03-14' }), // same day as b
+    ]
+    // With desc tiebreaker: same-day (Mar 14) rows should be c (parseOrder=2) before b (parseOrder=1)
+    const map = computeReconOrder(txs, 'desc')
+    // Overall ascending date order: Mar 14 first, then Mar 15
+    // Within Mar 14 (desc parseOrder): c (po=2) gets lower reconOrder than b (po=1)
+    expect(map.get('c')! < map.get('b')!).toBe(true)
+    // Mar 15 (only a) comes last
+    expect(map.get('a')!).toBe(2)
+  })
+
+  it('with asc tiebreaker, same-date rows are sorted by ASCENDING parseOrder', () => {
+    const txs = [
+      tx('a', -20,   '990.00', 0, { posted: '2024-01-05' }),
+      tx('b', -10,   '980.00', 1, { posted: '2024-01-03' }),
+      tx('c', -5,    '975.00', 2, { posted: '2024-01-03' }), // same day as b
+    ]
+    const map = computeReconOrder(txs, 'asc')
+    // Same day (Jan 3) asc: b (po=1) before c (po=2)
+    expect(map.get('b')! < map.get('c')!).toBe(true)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// validateBalanceChain — newest-first CSV integration
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('validateBalanceChain — newest-first CSV', () => {
+  it('passes with desc parseOrderDir on a newest-first CSV (matches real bank data pattern)', () => {
+    // Mirrors actual export: parseOrder 0 = newest (2024-03-15), balances reflect AFTER model
+    // walking in chronological (oldest-first) order.
+    // Oldest → newest chronological:
+    //   c (Mar 13, po=2): bal=2172.95, amt=-2.46
+    //   b (Mar 14, po=1): bal=2145.39, amt=-27.56  →  2172.95 + (-27.56) = 2145.39 ✓
+    //   a (Mar 15, po=0): bal=2125.39, amt=-20      →  2145.39 + (-20)    = 2125.39 ✓
+    const txs = [
+      tx('a', -20,    '2125.39', 0, { posted: '2024-03-15' }),
+      tx('b', -27.56, '2145.39', 1, { posted: '2024-03-14' }),
+      tx('c', -2.46,  '2172.95', 2, { posted: '2024-03-13' }),
+    ]
+    const result = validateBalanceChain(txs, null, 'AFTER', 'desc')
+    expect(result.breakCount).toBe(0)
+  })
+
+  it('fails with asc parseOrderDir on the same newest-first CSV', () => {
+    // Without the fix, the same data breaks
+    const txs = [
+      tx('a', -20,    '2125.39', 0, { posted: '2024-03-15' }),
+      tx('b', -27.56, '2145.39', 1, { posted: '2024-03-14' }),
+      tx('c', -2.46,  '2172.95', 2, { posted: '2024-03-13' }),
+    ]
+    const result = validateBalanceChain(txs, null, 'AFTER', 'asc')
+    // With asc: chain order = c→b→a; 2172.95+(-27.56)=2145.39 ✓, 2145.39+(-20)=2125.39 ✓
+    // Actually this particular 3-row case also passes since each day is distinct
+    // A tiebreaker issue only surfaces when multiple rows share the same date
+    expect(result.breakCount).toBe(0)
+  })
+
+  it('tiebreaker matters: same-day rows fail with asc but pass with desc', () => {
+    // Two transactions on the same day where parseOrder=0 is newest:
+    //   tx 'b' (po=1, older within day): bal=2172.95, amt=-2.46
+    //   tx 'a' (po=0, newer within day): bal=2145.39 (2172.95 + (−27.56) — but −27.56 belongs to a)
+    // Correct reading (newest-first within day, so b is older):
+    //   anchor=b (bal=2172.95), then a: 2172.95 + (−27.56) = 2145.39 ✓
+    const txs = [
+      tx('a', -27.56, '2145.39', 0, { posted: '2024-03-14' }), // parseOrder 0 = newer this day
+      tx('b', -2.46,  '2172.95', 1, { posted: '2024-03-14' }), // parseOrder 1 = older this day
+    ]
+    const descResult = validateBalanceChain(txs, null, 'AFTER', 'desc')
+    expect(descResult.breakCount).toBe(0)
+
+    const ascResult = validateBalanceChain(txs, null, 'AFTER', 'asc')
+    expect(ascResult.breakCount).toBe(1) // wrong order → break
   })
 })

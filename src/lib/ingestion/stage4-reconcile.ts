@@ -176,17 +176,53 @@ export interface DeltaStats {
 }
 
 /**
+ * Detect whether the CSV export is ordered newest-first or oldest-first by
+ * comparing the date of the row with the smallest parseOrder against the row
+ * with the largest parseOrder.
+ *
+ *   Newest-first: parseOrder 0 has the latest date  → use DESC parseOrder tiebreaker
+ *   Oldest-first: parseOrder 0 has the earliest date → use ASC  parseOrder tiebreaker
+ *
+ * The tiebreaker controls how same-date transactions are sequenced within a day.
+ * Most banks that export newest-first also sequence same-day transactions newest-
+ * first, so within a day we must sort by descending parseOrder to get chronological
+ * (oldest-first) order for the AFTER model check.
+ */
+export function detectCsvParseOrderDir(txs: TxForChain[]): 'asc' | 'desc' {
+  const withDates = txs.filter(t => (t.transactionDate ?? t.postedDate) !== null)
+  if (withDates.length < 2) return 'asc'
+
+  const sorted = [...withDates].sort((a, b) => a.parseOrder - b.parseOrder)
+  const first = sorted[0]
+  const last  = sorted[sorted.length - 1]
+
+  const firstDate = first.transactionDate ?? first.postedDate ?? ''
+  const lastDate  = last.transactionDate  ?? last.postedDate  ?? ''
+
+  // If the first CSV row has a later date, the export is newest-first
+  return firstDate > lastDate ? 'desc' : 'asc'
+}
+
+/**
  * Build a deterministic chronological ordering map for the given transactions.
  *
- * Sort precedence (all ascending):
- *   1. transactionDate (effective / value date)
- *   2. postedDate
- *   3. referenceNumber (bankTransactionId) — lexicographic
- *   4. parseOrder (CSV row order — final tie-breaker)
+ * Sort precedence (dates ascending, tiebreaker direction configurable):
+ *   1. transactionDate (effective / value date) — ascending
+ *   2. postedDate — ascending
+ *   3. referenceNumber (bankTransactionId) — lexicographic ascending
+ *   4. parseOrder — ascending (oldest-first CSV) or descending (newest-first CSV)
  *
+ * Use {@link detectCsvParseOrderDir} to determine the correct `parseOrderDir`.
+ *
+ * @param txs           Transactions to order
+ * @param parseOrderDir Tiebreaker direction when all date/ref keys are equal.
+ *                      'asc' for oldest-first CSVs (default), 'desc' for newest-first.
  * @returns Map<txId, reconOrder> where reconOrder is 0-based position.
  */
-export function computeReconOrder(txs: TxForChain[]): Map<string, number> {
+export function computeReconOrder(
+  txs: TxForChain[],
+  parseOrderDir: 'asc' | 'desc' = 'asc',
+): Map<string, number> {
   const sorted = [...txs].sort((a, b) => {
     // 1. transactionDate
     const tdA = a.transactionDate ?? ''
@@ -206,8 +242,10 @@ export function computeReconOrder(txs: TxForChain[]): Map<string, number> {
     if (rnA < rnB) return -1
     if (rnA > rnB) return  1
 
-    // 4. parseOrder (original CSV row order)
-    return a.parseOrder - b.parseOrder
+    // 4. parseOrder tiebreaker — direction depends on CSV sort order
+    return parseOrderDir === 'asc'
+      ? a.parseOrder - b.parseOrder
+      : b.parseOrder - a.parseOrder
   })
 
   const map = new Map<string, number>()
@@ -348,9 +386,10 @@ export function validateBalanceChain(
   txs: TxForChain[],
   openingBalance?: string | null,
   model: BalanceModel = 'AFTER',
+  parseOrderDir: 'asc' | 'desc' = 'asc',
 ): ChainCheckResult {
   // Build the deterministic chronological ordering
-  const reconOrderMap = computeReconOrder(txs)
+  const reconOrderMap = computeReconOrder(txs, parseOrderDir)
 
   // Sort by reconOrder
   const sorted = [...txs].sort(
@@ -573,7 +612,11 @@ export async function runReconciliation(
   const totalDebits  = fromCents(totalDebitsCents)
   const netChange    = fromCents(netChangeCents)
 
-  // ── 4. Detect mode ─────────────────────────────────────────────────────────
+  // ── 4. Detect CSV sort direction + mode ───────────────────────────────────
+  // Newest-first CSVs require DESC parseOrder as the same-day tiebreaker so
+  // that within-day transactions are visited oldest-first during chain validation.
+  const csvParseOrderDir = detectCsvParseOrderDir(txs)
+
   const balanceCount = txs.filter((t) => t.runningBalance !== null).length
   const mode = detectMode(
     {
@@ -655,8 +698,8 @@ export async function runReconciliation(
   } else if (mode === 'RUNNING_BALANCE') {
     // Mode B: detect balance model, then validate the chain chronologically
 
-    // Sort txs by reconOrder for model detection
-    const reconOrderMap = computeReconOrder(txs)
+    // Sort txs by reconOrder (with the detected CSV direction) for model detection
+    const reconOrderMap = computeReconOrder(txs, csvParseOrderDir)
     const sortedForDetection = [...txs].sort(
       (a, b) => (reconOrderMap.get(a.id) ?? 0) - (reconOrderMap.get(b.id) ?? 0),
     )
@@ -667,6 +710,7 @@ export async function runReconciliation(
       txs,
       upload.statementOpenBalance ?? null,
       detectedModel.model,
+      csvParseOrderDir,
     )
     discrepancies.push(...chainResult.discrepancies)
 
@@ -830,6 +874,7 @@ export async function runReconciliation(
         balanceModel:        mode === 'RUNNING_BALANCE' ? detectedModel.model       : undefined,
         needsReview:         mode === 'RUNNING_BALANCE' ? detectedModel.needsReview : undefined,
         rowsReordered:       chainResult?.rowsReordered ?? 0,
+        csvParseOrderDir,
       }),
     },
   })
