@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const now = new Date()
   const [year,  setYear]  = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
+  const autoNavigated = useRef(false)
 
   useEffect(() => {
     if (!user) router.replace('/')
@@ -82,6 +83,22 @@ export default function DashboardPage() {
   const availableMonths = data?.availableMonths ?? []
   const rolling         = data?.rolling ?? null
   const trendMonths     = trendsData?.months ?? []
+
+  // Auto-jump to the most recent month with data on first load
+  // (avoids showing an empty current month when data lives in a past month)
+  useEffect(() => {
+    if (autoNavigated.current || isLoading || !data) return
+    if ((summary?.transactionCount ?? 0) === 0 && availableMonths.length > 0) {
+      const latest = availableMonths[0]
+      if (latest && (latest.year !== year || latest.month !== month)) {
+        autoNavigated.current = true
+        setYear(latest.year)
+        setMonth(latest.month)
+      }
+    } else if ((summary?.transactionCount ?? 0) > 0) {
+      autoNavigated.current = true
+    }
+  }, [data, isLoading, summary, availableMonths, year, month])
 
   const handleMonthChange = useCallback((y: number, m: number) => {
     setYear(y); setMonth(m)
