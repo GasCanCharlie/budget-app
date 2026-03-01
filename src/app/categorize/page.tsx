@@ -150,24 +150,40 @@ function CategoryBucket({
   isDragging,
   isHovered,
   hasSelected,
+  isExpanded,
+  isReorderDragging,
+  isReorderOver,
   onDragOver,
   onDragEnter,
   onDragLeave,
   onDrop,
   onRegisterRef,
   onClickAssign,
+  onToggleExpand,
+  onReorderDragStart,
+  onReorderDragOver,
+  onReorderDrop,
+  onReorderDragEnd,
 }: {
   cat: Category
   index: number
   isDragging: boolean
   isHovered: boolean
   hasSelected: boolean
+  isExpanded: boolean
+  isReorderDragging: boolean
+  isReorderOver: boolean
   onDragOver: (e: React.DragEvent) => void
   onDragEnter: (id: string) => void
   onDragLeave: () => void
   onDrop: (id: string) => void
   onRegisterRef: (cat: Category, el: HTMLDivElement | null) => void
   onClickAssign: (id: string) => void
+  onToggleExpand: (id: string) => void
+  onReorderDragStart: (id: string) => void
+  onReorderDragOver: (id: string) => void
+  onReorderDrop: (id: string) => void
+  onReorderDragEnd: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -179,11 +195,37 @@ function CategoryBucket({
   return (
     <div
       ref={ref}
-      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver(e) }}
-      onDragEnter={e => { e.preventDefault(); onDragEnter(cat.id) }}
+      onDragOver={e => {
+        e.preventDefault()
+        if (isReorderDragging) {
+          e.dataTransfer.dropEffect = 'move'
+          onReorderDragOver(cat.id)
+        } else {
+          e.dataTransfer.dropEffect = 'move'
+          onDragOver(e)
+        }
+      }}
+      onDragEnter={e => {
+        e.preventDefault()
+        if (!isReorderDragging) onDragEnter(cat.id)
+      }}
       onDragLeave={onDragLeave}
-      onDrop={e => { e.preventDefault(); onDrop(cat.id) }}
-      onClick={() => { if (hasSelected) onClickAssign(cat.id) }}
+      onDrop={e => {
+        e.preventDefault()
+        const data = e.dataTransfer.getData('text/plain')
+        if (data.startsWith('reorder:')) {
+          onReorderDrop(cat.id)
+        } else {
+          onDrop(cat.id)
+        }
+      }}
+      onClick={() => {
+        if (hasSelected && !isDragging) {
+          onClickAssign(cat.id)
+        } else if (!isDragging) {
+          onToggleExpand(cat.id)
+        }
+      }}
       className={clsx(
         'flex items-center gap-2 rounded-lg border-2 border-dashed px-3 py-2.5 transition-all',
         isHovered && isDragging
@@ -191,15 +233,35 @@ function CategoryBucket({
           : isDragging
             ? 'border-slate-200 bg-slate-50'
             : 'border-transparent bg-white hover:bg-slate-50',
-        hasSelected && !isDragging ? 'cursor-pointer hover:border-slate-300' : ''
+        hasSelected && !isDragging ? 'cursor-pointer hover:border-slate-300' : !isDragging ? 'cursor-pointer' : '',
+        isReorderOver && isReorderDragging ? 'border-dashed border-2 border-accent-400 bg-accent-50' : ''
       )}
     >
+      {/* Reorder grip */}
+      <div
+        draggable
+        onDragStart={e => {
+          e.stopPropagation()
+          e.dataTransfer.setData('text/plain', 'reorder:' + cat.id)
+          e.dataTransfer.effectAllowed = 'move'
+          onReorderDragStart(cat.id)
+        }}
+        onDragEnd={e => { e.stopPropagation(); onReorderDragEnd() }}
+        className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 flex-shrink-0 px-0.5 touch-none"
+        title="Drag to reorder"
+      >
+        <GripVertical size={14} />
+      </div>
+
       <span className="text-lg">{cat.icon}</span>
       <span className="flex-1 text-sm font-medium text-slate-700">{cat.name}</span>
       {index < 9 && (
         <kbd className="hidden rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 sm:inline-block">
           {index + 1}
         </kbd>
+      )}
+      {!isDragging && (
+        <span className={clsx('text-slate-300 transition-transform text-xs', isExpanded ? 'rotate-90' : '')}>▶</span>
       )}
       {isDragging && isHovered && <ArrowRight size={14} className="animate-pulse text-accent-500" />}
     </div>
@@ -291,6 +353,79 @@ function TouchGhost({ tx, pos }: { tx: Transaction | null; pos: { x: number; y: 
   )
 }
 
+// ─── Category Transaction List ────────────────────────────────────────────────
+
+function CategoryTransactionList({
+  catId,
+  catName,
+  transactions,
+  categories,
+  onMove,
+}: {
+  catId: string
+  catName: string
+  transactions: Transaction[]
+  categories: Category[]
+  onMove: (txId: string, newCatId: string) => void
+}) {
+  const [movingId, setMovingId] = useState<string | null>(null)
+  const txs = transactions
+    .filter(t => (t.category?.id ?? 'other') === catId)
+    .slice(0, 12)
+
+  if (txs.length === 0) {
+    return (
+      <div className="mt-1 mb-1 ml-8 px-3 py-2 text-xs text-slate-400 italic">
+        No transactions in {catName}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-1 mb-1 ml-2 mr-1 rounded-lg border border-slate-100 bg-slate-50 divide-y divide-slate-100 max-h-52 overflow-y-auto">
+      {txs.map(tx => (
+        <div key={tx.id} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+          <div className="flex-1 min-w-0">
+            <span className="font-medium text-slate-700 truncate block">
+              {tx.merchantNormalized || tx.description}
+            </span>
+            <span className="text-slate-400">
+              {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+          </div>
+          <span className={clsx('flex-shrink-0 font-semibold tabular-nums', tx.amount < 0 ? 'text-red-600' : 'text-green-600')}>
+            {tx.amount < 0 ? '-' : '+'}{Math.abs(tx.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+          </span>
+          {movingId === tx.id ? (
+            <div className="flex flex-wrap gap-1 ml-1">
+              {categories
+                .filter(c => c.id !== catId)
+                .slice(0, 6)
+                .map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => { onMove(tx.id, c.id); setMovingId(null) }}
+                    className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 hover:border-accent-400 hover:text-accent-600 text-[10px] font-medium transition"
+                  >
+                    {c.icon} {c.name}
+                  </button>
+                ))}
+              <button onClick={() => setMovingId(null)} className="px-1.5 py-0.5 rounded text-slate-400 hover:text-slate-600 text-[10px]">✕</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setMovingId(tx.id)}
+              className="flex-shrink-0 px-2 py-0.5 rounded border border-slate-200 text-[10px] font-medium text-slate-500 hover:border-accent-400 hover:text-accent-600 bg-white transition"
+            >
+              Move
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CategorizePage() {
@@ -306,12 +441,17 @@ export default function CategorizePage() {
   const [dragging,     setDragging]     = useState<Transaction | null>(null)
   const [hoveredCatId, setHoveredCatId] = useState<string | null>(null)
   const [confirm,      setConfirm]      = useState<ConfirmState | null>(null)
+  const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
 
   // Touch drag state
   const [touchTx,  setTouchTx]  = useState<Transaction | null>(null)
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null)
   const [touchCatId, setTouchCatId] = useState<string | null>(null)
   const catRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+
+  // Reorder drag state
+  const [reorderDragId, setReorderDragId] = useState<string | null>(null)
+  const [reorderOverId, setReorderOverId] = useState<string | null>(null)
 
   // ── Data ──
   const { data: txData, isLoading: txLoading, error: txError } = useQuery({
@@ -328,7 +468,8 @@ export default function CategorizePage() {
 
   const allTxs: Transaction[] = txData?.transactions ?? []
 
-  const categories: Category[] = useMemo(() => {
+  // Build sorted categories (initial order from CATEGORY_ORDER or localStorage)
+  const rawCategories: Category[] = useMemo(() => {
     const cats: Category[] = catData?.categories ?? []
     return [...cats].sort((a, b) => {
       const ai = CATEGORY_ORDER.indexOf(a.name)
@@ -336,6 +477,26 @@ export default function CategorizePage() {
       return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
     })
   }, [catData])
+
+  // Category order — persisted to localStorage
+  const [catOrder, setCatOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('budgetlens:cat-order')
+      if (saved) return JSON.parse(saved) as string[]
+    } catch { /* ignore */ }
+    return []
+  })
+
+  const categories: Category[] = useMemo(() => {
+    if (catOrder.length === 0) return rawCategories
+    // Apply saved order: known IDs first (in saved order), then any new ones appended
+    const idToPos = new Map(catOrder.map((id, i) => [id, i]))
+    return [...rawCategories].sort((a, b) => {
+      const ai = idToPos.get(a.id) ?? 9999
+      const bi = idToPos.get(b.id) ?? 9999
+      return ai - bi
+    })
+  }, [rawCategories, catOrder])
 
   const queueTxs: Transaction[] = useMemo(() => {
     if (filterMode === 'all') return allTxs.filter(t => !t.isTransfer)
@@ -429,6 +590,37 @@ export default function CategorizePage() {
     const tx = queueTxs.find(t => t.id === selectedId)
     if (tx) initiateAssign(tx, categoryId)
   }, [selectedId, queueTxs, initiateAssign])
+
+  // ── Reorder handlers ──
+  const handleCatReorderStart = useCallback((catId: string) => {
+    setReorderDragId(catId)
+  }, [])
+
+  const handleCatReorderOver = useCallback((catId: string) => {
+    setReorderOverId(catId)
+  }, [])
+
+  const handleCatReorderDrop = useCallback((targetId: string) => {
+    if (!reorderDragId || reorderDragId === targetId) {
+      setReorderDragId(null); setReorderOverId(null); return
+    }
+    setCatOrder(prev => {
+      const order = prev.length > 0 ? prev : categories.map(c => c.id)
+      const from = order.indexOf(reorderDragId)
+      const to   = order.indexOf(targetId)
+      if (from === -1 || to === -1) return prev
+      const next = [...order]
+      next.splice(from, 1)
+      next.splice(to, 0, reorderDragId)
+      localStorage.setItem('budgetlens:cat-order', JSON.stringify(next))
+      return next
+    })
+    setReorderDragId(null); setReorderOverId(null)
+  }, [reorderDragId, categories])
+
+  const handleCatReorderEnd = useCallback(() => {
+    setReorderDragId(null); setReorderOverId(null)
+  }, [])
 
   // ── Touch drag ──
   const registerCatRef = useCallback((cat: Category, el: HTMLDivElement | null) => {
@@ -607,20 +799,41 @@ export default function CategorizePage() {
               </p>
               <div className="space-y-1 max-h-[calc(100vh-240px)] overflow-y-auto pr-1">
                 {categories.map((cat, i) => (
-                  <CategoryBucket
-                    key={cat.id}
-                    cat={cat}
-                    index={i}
-                    isDragging={!!dragging}
-                    isHovered={hoveredCatId === cat.id}
-                    hasSelected={!!selectedId}
-                    onDragOver={() => {}}
-                    onDragEnter={setHoveredCatId}
-                    onDragLeave={() => setHoveredCatId(null)}
-                    onDrop={handleDrop}
-                    onRegisterRef={registerCatRef}
-                    onClickAssign={handleClickAssign}
-                  />
+                  <div key={cat.id}>
+                    <CategoryBucket
+                      cat={cat}
+                      index={i}
+                      isDragging={!!dragging}
+                      isHovered={hoveredCatId === cat.id}
+                      hasSelected={!!selectedId}
+                      isExpanded={expandedCatId === cat.id}
+                      isReorderDragging={!!reorderDragId}
+                      isReorderOver={reorderOverId === cat.id}
+                      onDragOver={() => {}}
+                      onDragEnter={setHoveredCatId}
+                      onDragLeave={() => setHoveredCatId(null)}
+                      onDrop={handleDrop}
+                      onRegisterRef={registerCatRef}
+                      onClickAssign={handleClickAssign}
+                      onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
+                      onReorderDragStart={handleCatReorderStart}
+                      onReorderDragOver={handleCatReorderOver}
+                      onReorderDrop={handleCatReorderDrop}
+                      onReorderDragEnd={handleCatReorderEnd}
+                    />
+                    {expandedCatId === cat.id && (
+                      <CategoryTransactionList
+                        catId={cat.id}
+                        catName={cat.name}
+                        transactions={allTxs}
+                        categories={categories}
+                        onMove={(txId, newCatId) => {
+                          updateMutation.mutate({ id: txId, categoryId: newCatId, applyToAll: false })
+                          // Don't close expand — user may want to move more
+                        }}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
