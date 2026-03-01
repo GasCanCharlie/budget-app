@@ -7,13 +7,22 @@ import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { AlertTriangle, Info, X } from 'lucide-react'
 import { DashboardKPIs } from '@/components/dashboard/DashboardKPIs'
-import { SpendingCharts } from '@/components/dashboard/SpendingCharts'
-import { TrendChart } from '@/components/dashboard/TrendChart'
 import { TopTransactions } from '@/components/dashboard/TopTransactions'
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown'
 import { StatementStatus } from '@/components/dashboard/StatementStatus'
+
+// Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
+const SpendingCharts = dynamic(
+  () => import('@/components/dashboard/SpendingCharts').then(m => m.SpendingCharts),
+  { ssr: false }
+)
+const TrendChart = dynamic(
+  () => import('@/components/dashboard/TrendChart').then(m => m.TrendChart),
+  { ssr: false }
+)
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
