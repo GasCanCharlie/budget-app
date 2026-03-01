@@ -121,6 +121,7 @@ export function normalizeDate(
   raw: string,
   fieldName = 'date',
   formatHint: 'MM/DD' | 'DD/MM' | null = null,
+  dateOrder: 'MDY' | 'DMY' | 'YMD' | null = null,
 ): NormalizedDate {
   const steps: TransformationStep[] = []
   const trimmed = raw.trim()
@@ -234,7 +235,18 @@ export function normalizeDate(
       return { resolved: isoA, ambiguity: 'RESOLVED', interpretationA: null, interpretationB: null, raw, steps }
     }
 
-    // Both valid and different → check for a file-level format hint first
+    // Both valid and different → check dateOrder (upload-level) first, then hint (file-level)
+    if (dateOrder === 'MDY') {
+      steps.push(makeStep(fieldName, 'DATE_FORMAT_HINT_APPLIED', raw, isoA!))
+      return { resolved: isoA, ambiguity: 'RESOLVED', interpretationA: null, interpretationB: null, raw, steps }
+    }
+
+    if (dateOrder === 'DMY') {
+      steps.push(makeStep(fieldName, 'DATE_FORMAT_HINT_APPLIED', raw, isoB!))
+      return { resolved: isoB, ambiguity: 'RESOLVED', interpretationA: null, interpretationB: null, raw, steps }
+    }
+
+    // Fall through to legacy formatHint
     if (formatHint === 'MM/DD') {
       // Interpretation A is MM/DD
       steps.push(makeStep(fieldName, 'DATE_FORMAT_HINT_APPLIED', raw, isoA!))
@@ -462,6 +474,7 @@ export function normalizeRow(
   row: RawParsedRow,
   mapping: ColumnMapping,
   formatHint: 'MM/DD' | 'DD/MM' | null = null,
+  dateOrder: 'MDY' | 'DMY' | 'YMD' | null = null,
 ): NormalizedRow {
   const { fields, sourceLocator, rawLine, rowHash } = row
   const allTransformations: TransformationStep[] = []
@@ -481,8 +494,8 @@ export function normalizeRow(
   const rawCurrency   = getField(fields, mapping, 'currency')
 
   // ── Normalize dates ────────────────────────────────────────────────────────
-  const postedDate      = rawPostedDate ? normalizeDate(rawPostedDate, 'postedDate',      formatHint) : null
-  const transactionDate = rawTransDate  ? normalizeDate(rawTransDate,  'transactionDate', formatHint) : null
+  const postedDate      = rawPostedDate ? normalizeDate(rawPostedDate, 'postedDate',      formatHint, dateOrder) : null
+  const transactionDate = rawTransDate  ? normalizeDate(rawTransDate,  'transactionDate', formatHint, dateOrder) : null
   if (postedDate)      allTransformations.push(...postedDate.steps)
   if (transactionDate) allTransformations.push(...transactionDate.steps)
 

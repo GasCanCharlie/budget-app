@@ -357,6 +357,7 @@ export type IngestionIssueType =
   | 'COLUMN_COUNT_MISMATCH'
   | 'MULTI_CURRENCY'            // row has a non-default currency, user should confirm
   | 'PENDING_TRANSACTION'       // bank marked as pending — amount may change
+  | 'DATE_FORMAT_CONFIRMATION_NEEDED'  // upload-level, replaces per-row DATE_AMBIGUOUS spam
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DEDUPLICATION
@@ -595,3 +596,87 @@ export const RECONCILIATION_TOLERANCE = 'EXACT' as const
  * individual component, preventing cross-component collisions.
  */
 export const FINGERPRINT_SEPARATOR = '|||' as const
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DATE ORDER SELECTION
+// Upload-level date format detection result.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * MDY = Month/Day/Year (e.g. 02/12/2026 = Feb 12)
+ * DMY = Day/Month/Year (e.g. 02/12/2026 = Dec 2)
+ * YMD = Year/Month/Day (ISO-like, unambiguous)
+ */
+export type DateOrder = 'MDY' | 'DMY' | 'YMD'
+
+/** How the dateOrderUsed was determined */
+export type DateOrderSource = 'bank_default' | 'auto_scored' | 'user_confirmed'
+
+/** A single bank's detection profile */
+export interface BankProfile {
+  /** Machine key for this bank/format, e.g. "chase_checking_v1" */
+  bankKey: string
+  /** Human-readable name, e.g. "Chase Checking" */
+  bankDisplayName: string
+  /**
+   * Default date order for this bank's exports.
+   * MDY for US banks, DMY for European/Australian.
+   */
+  defaultDateOrder: DateOrder
+  /**
+   * Which date column is authoritative for this bank.
+   * 'posting' = posting/settlement date  'effective' = transaction/effective date
+   */
+  authoritativeDateColumn: 'posting' | 'effective'
+  /**
+   * How confident we are in this detection.
+   * High = unambiguous header match; Medium = partial match; Low = heuristic only
+   */
+  detectionConfidence: 'High' | 'Medium' | 'Low'
+  /** Header strings that must appear for this profile to match */
+  headerPatterns: string[]
+}
+
+/** Result of bank detection for a given upload's headers */
+export interface BankDetectionResult {
+  /** The matched bank profile, null if no profile matched */
+  bankProfile: BankProfile | null
+  /** True if a bank profile was successfully identified */
+  matched: boolean
+  /** Which header patterns were matched */
+  matchedPatterns: string[]
+  /** Confidence level from the matched profile, or 'Low' if no match */
+  detectionConfidence: 'High' | 'Medium' | 'Low'
+}
+
+/** Score for a candidate date order against the upload's data */
+export interface DateOrderScore {
+  order: 'MDY' | 'DMY'
+  /** Ambiguous dates that fail to parse with this order */
+  invalidDateCount: number
+  /** Backward date jumps between adjacent ambiguous rows (in parseOrder) */
+  monotonicityPenalty: number
+  /** Composite score: lower = better */
+  totalScore: number
+}
+
+/** Result of the upload-level date order selection algorithm */
+export interface DateOrderSelectionResult {
+  /** The chosen date order */
+  selectedOrder: DateOrder
+  /** How it was determined */
+  source: DateOrderSource
+  /** 0-100, higher = more certain */
+  confidence: number
+  /**
+   * True = scores are too close to decide; user must confirm.
+   * When true, a DATE_FORMAT_CONFIRMATION_NEEDED issue is created.
+   */
+  needsUserConfirmation: boolean
+  /** MDY score (only set when both orders were compared) */
+  scoreA?: DateOrderScore
+  /** DMY score (only set when both orders were compared) */
+  scoreB?: DateOrderScore
+  /** The matched bank profile used in selection */
+  bankResult?: BankDetectionResult
+}

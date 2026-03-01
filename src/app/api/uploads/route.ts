@@ -9,6 +9,9 @@ import { computeMonthSummary, getAvailableMonths } from '@/lib/intelligence/summ
 import { acceptFile } from '@/lib/ingestion/stage0-acceptance'
 import { parseCsvStage1, PARSER_VERSION } from '@/lib/ingestion/stage1-parse-csv'
 import { normalizeRow, detectDateFormatHint } from '@/lib/ingestion/stage2-normalize'
+import { detectBank } from '@/lib/ingestion/bank-detector'
+import { selectDateOrder } from '@/lib/ingestion/date-order-scoring'
+import type { DateOrderSelectionResult } from '@/types/ingestion'
 import { runDedup } from '@/lib/ingestion/stage3-dedup'
 import { runReconciliation } from '@/lib/ingestion/stage4-reconcile'
 import type { CsvXlsxSourceLocator } from '@/types/ingestion'
@@ -96,19 +99,32 @@ export async function POST(req: NextRequest) {
 
     const formatDetected = deriveFormatName(mapping, headerDetection.columns)
 
-    // ── Holistic date format detection (file-level, before per-row normalization) ──
-    // Extract raw date strings from every data row using the detected date column.
-    // detectDateFormatHint inspects unambiguous dates (day > 12 or month > 12) to
-    // determine whether the file uses MM/DD or DD/MM ordering. The hint is then
-    // passed to every normalizeRow call so ambiguous dates (e.g. "4/5/2024") are
-    // resolved without creating DATE_AMBIGUOUS issues.
+    // ── Date order selection (bank detection + scoring) ───────────────────────
+    // Step 1: Detect the bank to get its preferred date order
+    const bankDetection = detectBank(headerDetection.columns, mapping)
+
+    // Step 2: Build scoring rows from the date column
     const dateColumnKey = mapping.postedDate ?? mapping.date ?? mapping.transactionDate ?? null
     const rawDatesForHint: string[] = dateColumnKey
-      ? parseResult.rows
-          .map((r) => r.fields[dateColumnKey] ?? '')
-          .filter(Boolean)
+      ? parseResult.rows.map((r) => r.fields[dateColumnKey] ?? '').filter(Boolean)
       : []
-    const dateFormatHint = detectDateFormatHint(rawDatesForHint)
+
+    const scoringRows = dateColumnKey
+      ? parseResult.rows.map((r, idx) => ({
+          rawDate: r.fields[dateColumnKey] ?? '',
+          parseOrder: idx,
+        })).filter((r) => r.rawDate !== '')
+      : []
+
+    // Step 3: Run the selection algorithm (bank default + scoring + confidence check)
+    const dateOrderSelection: DateOrderSelectionResult = selectDateOrder(scoringRows, bankDetection)
+
+    // Legacy hint for backward-compat with normalizeRow (null when dateOrder covers it)
+    const dateFormatHint = null
+    // The upload-level date order (null if user confirmation is needed)
+    const resolvedDateOrder = dateOrderSelection.needsUserConfirmation
+      ? null
+      : (dateOrderSelection.selectedOrder === 'YMD' ? null : dateOrderSelection.selectedOrder as 'MDY' | 'DMY')
 
     // ── Reprocessing: version-stamp + supersede previous upload ───────────────
     let uploadVersion = 1
@@ -142,6 +158,10 @@ export async function POST(req: NextRequest) {
         parserVersion:       PARSER_VERSION,
         parserConfig:        JSON.stringify(parserConfig),
         reconciliationStatus: 'PENDING',
+        dateOrderUsed:           dateOrderSelection.needsUserConfirmation ? null : dateOrderSelection.selectedOrder,
+        dateOrderSource:         dateOrderSelection.needsUserConfirmation ? null : dateOrderSelection.source,
+        dateOrderConfidence:     dateOrderSelection.needsUserConfirmation ? 0    : dateOrderSelection.confidence,
+        authoritativeDateColumn: bankDetection.bankProfile?.authoritativeDateColumn ?? null,
         statementOpenBalance:  openingBalance,
         statementCloseBalance: closingBalance,
         statementTotalCredits,
@@ -179,7 +199,7 @@ export async function POST(req: NextRequest) {
 
       // Stage 2: normalize — pass the file-level format hint so ambiguous dates
       // (e.g. "4/5/2024") are resolved holistically rather than flagged per-row.
-      const nt = normalizeRow(row, mapping, dateFormatHint)
+      const nt = normalizeRow(row, mapping, dateFormatHint, resolvedDateOrder)
 
       if (nt.ingestionStatus === 'REJECTED') {
         rejected++
@@ -329,6 +349,58 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Create upload-level DATE_FORMAT_CONFIRMATION_NEEDED issue (if needed) ─
+    // When scoring can't determine the date format, create ONE upload-level issue
+    // instead of per-row DATE_AMBIGUOUS spam.
+    if (dateOrderSelection.needsUserConfirmation) {
+      const ambigCount = validEntries.filter((e) =>
+        (e.nt.postedDate?.ambiguity === 'AMBIGUOUS_MMDD_DDMM') ||
+        (e.nt.transactionDate?.ambiguity === 'AMBIGUOUS_MMDD_DDMM')
+      ).length
+
+      if (ambigCount > 0) {
+        const scoreA = dateOrderSelection.scoreA
+        const scoreB = dateOrderSelection.scoreB
+        const scoreDetail = scoreA && scoreB
+          ? ` (MDY score: ${scoreA.totalScore}, DMY score: ${scoreB.totalScore})`
+          : ''
+        await prisma.ingestionIssue.create({
+          data: {
+            uploadId:       upload.id,
+            transactionId:  null,
+            issueType:      'DATE_FORMAT_CONFIRMATION_NEEDED',
+            severity:       'ERROR',
+            description:    `${ambigCount} ambiguous date${ambigCount !== 1 ? 's' : ''} detected — please confirm whether this file uses MM/DD/YYYY (US) or DD/MM/YYYY (European) format${scoreDetail}`,
+            suggestedAction: 'Click "Use MM/DD" or "Use DD/MM" to apply the correct format to all transactions',
+            resolved:       false,
+          },
+        })
+      }
+    }
+
+    // ── Audit log: date order selection ───────────────────────────────────────
+    await prisma.auditLogEntry.create({
+      data: {
+        uploadId: upload.id,
+        stage:    'NORMALIZE',
+        level:    dateOrderSelection.needsUserConfirmation ? 'WARN' : 'INFO',
+        message:  dateOrderSelection.needsUserConfirmation
+          ? `Date format ambiguous — user confirmation required`
+          : `Date order selected: ${dateOrderSelection.selectedOrder} (source: ${dateOrderSelection.source}, confidence: ${dateOrderSelection.confidence})`,
+        context: JSON.stringify({
+          bankKey:           dateOrderSelection.bankResult?.bankProfile?.bankKey ?? null,
+          bankDetected:      dateOrderSelection.bankResult?.matched ?? false,
+          selectedOrder:     dateOrderSelection.selectedOrder,
+          source:            dateOrderSelection.source,
+          confidence:        dateOrderSelection.confidence,
+          needsConfirmation: dateOrderSelection.needsUserConfirmation,
+          ambiguousDates:    rawDatesForHint.length,
+          scoreA:            dateOrderSelection.scoreA ?? null,
+          scoreB:            dateOrderSelection.scoreB ?? null,
+        }),
+      },
+    })
+
     // ── Stage 3: Dedup ────────────────────────────────────────────────────────
     const dedupResult = await runDedup(upload.id, accountId)
 
@@ -378,6 +450,12 @@ export async function POST(req: NextRequest) {
         fileHashTruncated:    `${fileHash.slice(0, 8)}…${fileHash.slice(-8)}`,
         reconciliationStatus: reconcileResult.status,
         reconciliationMode:   reconcileResult.mode,
+        dateOrderUsed:     dateOrderSelection.selectedOrder,
+        dateOrderSource:   dateOrderSelection.source,
+        dateOrderConfidence: dateOrderSelection.confidence,
+        bankDetected:      bankDetection.matched,
+        bankKey:           bankDetection.bankProfile?.bankKey ?? null,
+        dateOrderNeedsConfirmation: dateOrderSelection.needsUserConfirmation,
       },
       { status: 201 },
     )
