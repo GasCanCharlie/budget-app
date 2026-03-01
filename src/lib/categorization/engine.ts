@@ -19,18 +19,34 @@ function getOpenAI(): OpenAI {
 export function normalizeMerchant(description: string): string {
   let s = description.toLowerCase().trim()
 
-  // Strip common bank noise
+  // ── Strip credit card statement bank metadata ─────────────────────────────
+  // Bank of Hawaii (Bankoh) / many issuers append: "CITY STATE Date X Xx X CARDNO Card NN TXID"
+  // Examples:
+  //   "Anthropic San Francisc Ca Date X Xx X 734 Card 25 G0a3lmse"
+  //   "Elevenlabs.io New York Ny Date X Xx X 734 Card 25 U7b8stp1"
+  //   "650 Industries (expo) Palo Alto Ca Date 02/13/26 X Xx X 734 C"
+  // Strip " [state] Date ..." — two-letter word then "date" then the rest
+  s = s.replace(/\s+[a-z]{2}\s+date[\s\S]*/i, '').trim()
+  // Fallback: strip " Date X Xx X..." without the state prefix
+  s = s.replace(/\s+date\s+[\dx/]+\s+xx\s+x[\s\S]*/i, '').trim()
+  // Strip ACH/wire structured fields: " Type: ... Co: ... Id: ..."
+  s = s.replace(/\s+(type|co|id\d*):\s+[\s\S]*/i, '').trim()
+  // Strip " Card NN [txid]" leftover
+  s = s.replace(/\s+card\s+\d+[\s\S]*/i, '').trim()
+
+  // ── Strip common bank noise ───────────────────────────────────────────────
   s = s
     .replace(/\*+/g, ' ')
-    .replace(/#\d+/g, '')           // branch numbers like #422
+    .replace(/#\s*\d+/g, '')        // branch/check numbers like #422 or # 144
     .replace(/\d{4,}/g, '')         // long digit strings (card numbers, etc.)
     .replace(/\b(debit|credit|purchase|pos|sq\s*\*|tst\*|ach|www\.)\b/gi, '')
     .replace(/\s+/g, ' ')
     .trim()
 
-  // Strip trailing location info (city ST patterns)
-  s = s.replace(/\s+[A-Z]{2}\s*$/, '').trim()
-  s = s.replace(/,\s*[a-z\s]+$/, '').trim()
+  // ── Strip trailing location info ──────────────────────────────────────────
+  // Bug fix: string is already lowercase, so must use [a-z]{2} not [A-Z]{2}
+  s = s.replace(/\s+[a-z]{2}\s*$/, '').trim()   // trailing two-letter state code
+  s = s.replace(/,\s*[a-z\s]+$/, '').trim()      // trailing ", city" patterns
 
   // Title case
   return s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
@@ -188,7 +204,10 @@ const MERCHANT_KEYWORDS: Array<[string, string]> = [
   ['twitch', 'Entertainment'], ['youtube premium', 'Entertainment'],
   ['siriusxm', 'Entertainment'], ['pandora', 'Entertainment'],
   ['audible', 'Entertainment'],
-  // Subscriptions
+  // Subscriptions — streaming, SaaS, AI services
+  ['elevenlabs', 'Subscriptions'], ['eleven labs', 'Subscriptions'],
+  ['midjourney', 'Subscriptions'], ['runway', 'Subscriptions'],
+  ['notion', 'Subscriptions'], ['figma', 'Subscriptions'],
   ['spotify', 'Subscriptions'], ['apple.com/bill', 'Subscriptions'],
   ['google play', 'Subscriptions'], ['microsoft', 'Subscriptions'],
   ['adobe', 'Subscriptions'], ['dropbox', 'Subscriptions'],
@@ -251,7 +270,8 @@ const MERCHANT_KEYWORDS: Array<[string, string]> = [
   ['southwest air', 'Travel'], ['jetblue', 'Travel'], ['spirit air', 'Travel'],
   ['frontier air', 'Travel'], ['alaska air', 'Travel'],
   ['amtrak', 'Travel'], ['greyhound', 'Travel'],
-  // Insurance
+  // Insurance — includes USAA (primary insurance + financial services)
+  ['usaa', 'Insurance'],
   ['geico', 'Insurance'], ['state farm', 'Insurance'], ['allstate', 'Insurance'],
   ['progressive', 'Insurance'], ['farmers insurance', 'Insurance'],
   ['usaa insurance', 'Insurance'], ['nationwide', 'Insurance'],
@@ -270,6 +290,17 @@ const MERCHANT_KEYWORDS: Array<[string, string]> = [
   ['direct dep', 'Income'], ['payroll', 'Income'],
   ['zelle payment', 'Transfer'], ['venmo payment', 'Transfer'],
   ['paypal transfer', 'Transfer'], ['cash app', 'Transfer'],
+  // Bank checks and loan payments
+  ['check #', 'Transfer'], ['check number', 'Transfer'],
+  ['loan pymt', 'Transfer'], ['loan payment', 'Transfer'],
+  ['loan pmt', 'Transfer'], ['mortgage pymt', 'Transfer'],
+  ['bankoh', 'Transfer'], ['bank of hawaii', 'Transfer'],
+  ['bank of america', 'Transfer'], ['wells fargo bank', 'Transfer'],
+  // Food & Dining — regional / Hawaii chains
+  ['aloha', 'Food & Dining'],
+  // Entertainment — expo / trade shows
+  ['expo palo alto', 'Entertainment'], ['tech expo', 'Entertainment'],
+  ['trade show', 'Entertainment'], ['conference reg', 'Entertainment'],
 ]
 
 interface KeywordMatch {

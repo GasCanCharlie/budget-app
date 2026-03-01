@@ -294,16 +294,14 @@ describe('normalizeMerchant()', () => {
     })
   })
 
-  it('returns title-cased output for a merchant with a trailing state abbreviation', () => {
-    // The state-strip regex runs on the lowercased string so it does not fire
-    // for "tx" (only [A-Z]{2} would match, which is uppercase only).
-    // The result is title-cased, leaving "Tx" at the end.
+  it('strips trailing two-letter state abbreviation from merchant name', () => {
+    // The state-strip regex correctly strips trailing two-letter state codes
+    // (bug fix: was using [A-Z]{2} on an already-lowercased string; now uses [a-z]{2}).
     const result = normalizeMerchant('SHELL OIL TX')
-    // The merchant name itself is preserved in title case
     expect(result).toContain('Shell')
     expect(result).toContain('Oil')
-    // Confirm the whole string is title-cased (no uppercase-only words)
-    expect(result).toBe('Shell Oil Tx')
+    // "TX" (Texas) is stripped as a trailing state code
+    expect(result).toBe('Shell Oil')
   })
 
   it('strips known noise keywords like TST*', () => {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
-import { categorize } from '@/lib/categorization/engine'
+import { categorize, normalizeMerchant } from '@/lib/categorization/engine'
 
 /**
  * POST /api/categorize/rerun
@@ -60,9 +60,11 @@ export async function POST(req: NextRequest) {
 
     for (const tx of candidates) {
       try {
-        // Prefer merchantNormalized (cleaner, noise-stripped) for best keyword matching.
-        // Fall back to description if merchantNormalized is empty.
-        const descForCat = tx.merchantNormalized?.trim() || tx.description
+        // Re-apply the improved normalizeMerchant on the stored description.
+        // This strips Bank of Hawaii credit card metadata ("Date X Xx X 734 Card 25...")
+        // that was stored verbatim when the transaction was originally imported.
+        const freshMerchant = normalizeMerchant(tx.description).trim()
+        const descForCat = freshMerchant || tx.merchantNormalized?.trim() || tx.description
 
         const result = await categorize(descForCat, userId, tx.amount)
 
@@ -80,6 +82,8 @@ export async function POST(req: NextRequest) {
         await prisma.transaction.update({
           where: { id: tx.id },
           data: {
+            // Also update merchantNormalized so the UI displays the clean name
+            merchantNormalized:   freshMerchant || undefined,
             categoryId:           result.categoryId ?? null,
             categorizationSource: result.source,
             confidenceScore:      result.confidence,
