@@ -1065,64 +1065,73 @@ export default function CategorizePage() {
                 </button>
               </div>
 
-              {/* 2-column grid — scrollable, constrained height */}
+              {/* Category rows — grouped into pairs so the accordion expands inline under its row */}
               <div className="max-h-[calc(100vh-270px)] overflow-y-auto pr-1">
-                <div className="grid grid-cols-2 gap-1.5">
-                  {categories.map((cat) => (
-                    <CategoryBucket
-                      key={cat.id}
-                      cat={cat}
-                      isDragging={!!dragging}
-                      isHovered={hoveredCatId === cat.id}
-                      hasSelected={selectedIds.size > 0}
-                      isExpanded={expandedCatId === cat.id}
-                      isReorderDragging={!!reorderDragId}
-                      isReorderOver={reorderOverId === cat.id}
-                      onDragOver={() => {}}
-                      onDragEnter={setHoveredCatId}
-                      onDragLeave={() => setHoveredCatId(null)}
-                      onDrop={handleDrop}
-                      onRegisterRef={registerCatRef}
-                      onClickAssign={handleClickAssign}
-                      onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
-                      onReorderDragStart={handleCatReorderStart}
-                      onReorderDragOver={handleCatReorderOver}
-                      onReorderDrop={handleCatReorderDrop}
-                      onReorderDragEnd={handleCatReorderEnd}
-                      txCount={txCountByCat.get(cat.name) ?? 0}
-                    />
-                  ))}
-                </div>
-              </div>
+                {Array.from({ length: Math.ceil(categories.length / 2) }, (_, rowIdx) => {
+                  const row = categories.slice(rowIdx * 2, rowIdx * 2 + 2)
+                  const expandedCat = row.find(c => c.id === expandedCatId)
+                    ? categories.find(c => c.id === expandedCatId)!
+                    : null
+                  return (
+                    <div key={rowIdx}>
+                      <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                        {row.map(cat => (
+                          <CategoryBucket
+                            key={cat.id}
+                            cat={cat}
+                            isDragging={!!dragging}
+                            isHovered={hoveredCatId === cat.id}
+                            hasSelected={selectedIds.size > 0}
+                            isExpanded={expandedCatId === cat.id}
+                            isReorderDragging={!!reorderDragId}
+                            isReorderOver={reorderOverId === cat.id}
+                            onDragOver={() => {}}
+                            onDragEnter={setHoveredCatId}
+                            onDragLeave={() => setHoveredCatId(null)}
+                            onDrop={handleDrop}
+                            onRegisterRef={registerCatRef}
+                            onClickAssign={handleClickAssign}
+                            onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
+                            onReorderDragStart={handleCatReorderStart}
+                            onReorderDragOver={handleCatReorderOver}
+                            onReorderDrop={handleCatReorderDrop}
+                            onReorderDragEnd={handleCatReorderEnd}
+                            txCount={txCountByCat.get(cat.name) ?? 0}
+                          />
+                        ))}
+                        {/* Fill empty cell if odd number of categories */}
+                        {row.length === 1 && <div />}
+                      </div>
 
-              {/* Expanded transaction list — OUTSIDE the scroll container so it's always visible */}
-              {expandedCatId && (() => {
-                const cat = categories.find(c => c.id === expandedCatId)
-                return cat ? (
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between mb-1 px-1">
-                      <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-                        <CategoryIcon name={cat.icon} color={cat.color} size={14} />
-                        {cat.name}
-                      </span>
-                      <button
-                        onClick={() => setExpandedCatId(null)}
-                        className="text-xs text-slate-400 hover:text-slate-600 transition"
-                      >
-                        ✕ close
-                      </button>
+                      {/* Inline accordion — spans full width, appears directly under this row */}
+                      {expandedCat && (
+                        <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 shadow-inner overflow-hidden">
+                          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 bg-white">
+                            <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                              <CategoryIcon name={expandedCat.icon} color={expandedCat.color} size={14} />
+                              {expandedCat.name}
+                            </span>
+                            <button
+                              onClick={() => setExpandedCatId(null)}
+                              className="text-xs text-slate-400 hover:text-slate-600 transition"
+                            >
+                              ✕ close
+                            </button>
+                          </div>
+                          <CategoryTransactionList
+                            catName={expandedCat.name}
+                            txs={allTxs.filter(t => t.appCategory === expandedCat.name)}
+                            categories={categories}
+                            onMove={(txId, newCatName, applyToAll) => {
+                              updateMutation.mutate({ id: txId, appCategory: newCatName, applyToAll })
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
-                    <CategoryTransactionList
-                      catName={cat.name}
-                      txs={allTxs.filter(t => t.appCategory === cat.name)}
-                      categories={categories}
-                      onMove={(txId, newCatName, applyToAll) => {
-                        updateMutation.mutate({ id: txId, appCategory: newCatName, applyToAll })
-                      }}
-                    />
-                  </div>
-                ) : null
-              })()}
+                  )
+                })}
+              </div>
             </div>
 
             {/* RIGHT: Transaction queue */}
