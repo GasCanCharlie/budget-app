@@ -746,7 +746,20 @@ export async function runReconciliation(
     }
   }
 
-  // ── 7. Update Transaction balance chain fields (Mode B) ─────────────────────
+  // ── 7. Clean up stale balance-chain data from any previous run ────────────
+  //  Ensures runReconciliation is idempotent: delete old BALANCE_CHAIN_BREAK
+  //  issues and reset per-transaction fields before writing new results.
+  if (chainResult) {
+    await prisma.ingestionIssue.deleteMany({
+      where: { uploadId, issueType: 'BALANCE_CHAIN_BREAK' },
+    })
+    await prisma.transaction.updateMany({
+      where: { uploadId },
+      data: { balanceChainValid: null, balanceChainExpected: null, balanceChainActual: null },
+    })
+  }
+
+  // ── 8. Update Transaction balance chain fields (Mode B) ─────────────────────
   if (chainResult) {
     for (const row of chainResult.rows) {
       if (row.valid === null) continue // anchor or no-balance row — skip
@@ -776,7 +789,7 @@ export async function runReconciliation(
     }
   }
 
-  // ── 8. Build ReconciliationReport ─────────────────────────────────────────
+  // ── 9. Build ReconciliationReport ─────────────────────────────────────────
   const unresolvedIssues = await prisma.ingestionIssue.findMany({
     where: { uploadId, resolved: false, severity: 'ERROR' },
     select: { id: true, transactionId: true, issueType: true, description: true, suggestedAction: true },
@@ -842,7 +855,7 @@ export async function runReconciliation(
     processedAt:       new Date().toISOString(),
   }
 
-  // ── 9. Persist: update Upload + write AuditLogEntry ───────────────────────
+  // ── 10. Persist: update Upload + write AuditLogEntry ──────────────────────
   await prisma.upload.update({
     where: { id: uploadId },
     data: {

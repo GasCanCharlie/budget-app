@@ -8,7 +8,7 @@ import { normalizeMerchant } from '@/lib/categorization/engine'
 import { computeMonthSummary, getAvailableMonths } from '@/lib/intelligence/summaries'
 import { acceptFile } from '@/lib/ingestion/stage0-acceptance'
 import { parseCsvStage1, PARSER_VERSION } from '@/lib/ingestion/stage1-parse-csv'
-import { normalizeRow } from '@/lib/ingestion/stage2-normalize'
+import { normalizeRow, detectDateFormatHint } from '@/lib/ingestion/stage2-normalize'
 import { runDedup } from '@/lib/ingestion/stage3-dedup'
 import { runReconciliation } from '@/lib/ingestion/stage4-reconcile'
 import type { CsvXlsxSourceLocator } from '@/types/ingestion'
@@ -96,6 +96,20 @@ export async function POST(req: NextRequest) {
 
     const formatDetected = deriveFormatName(mapping, headerDetection.columns)
 
+    // ── Holistic date format detection (file-level, before per-row normalization) ──
+    // Extract raw date strings from every data row using the detected date column.
+    // detectDateFormatHint inspects unambiguous dates (day > 12 or month > 12) to
+    // determine whether the file uses MM/DD or DD/MM ordering. The hint is then
+    // passed to every normalizeRow call so ambiguous dates (e.g. "4/5/2024") are
+    // resolved without creating DATE_AMBIGUOUS issues.
+    const dateColumnKey = mapping.postedDate ?? mapping.date ?? mapping.transactionDate ?? null
+    const rawDatesForHint: string[] = dateColumnKey
+      ? parseResult.rows
+          .map((r) => r.fields[dateColumnKey] ?? '')
+          .filter(Boolean)
+      : []
+    const dateFormatHint = detectDateFormatHint(rawDatesForHint)
+
     // ── Reprocessing: version-stamp + supersede previous upload ───────────────
     let uploadVersion = 1
     if (acceptance.isDuplicate && acceptance.previousUploadId) {
@@ -163,8 +177,9 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      // Stage 2: normalize
-      const nt = normalizeRow(row, mapping)
+      // Stage 2: normalize — pass the file-level format hint so ambiguous dates
+      // (e.g. "4/5/2024") are resolved holistically rather than flagged per-row.
+      const nt = normalizeRow(row, mapping, dateFormatHint)
 
       if (nt.ingestionStatus === 'REJECTED') {
         rejected++

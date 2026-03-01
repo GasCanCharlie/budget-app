@@ -108,13 +108,20 @@ const MONTH_NAMES: Record<string, number> = {
  *   4. Month-name formats: "Jan 15, 2024", "January 15, 2024", "15-Jan-2024", "15 Jan 2024"
  *   5. Ambiguous numeric: MM/DD/YYYY vs DD/MM/YYYY (separator: / - .)
  *      - If only one interpretation produces a valid calendar date → resolve it
- *      - If both produce valid but different dates → AMBIGUOUS_MMDD_DDMM
+ *      - If both produce valid but different dates:
+ *          - If formatHint is provided → resolve using hint, set ambiguity 'RESOLVED'
+ *          - Otherwise → AMBIGUOUS_MMDD_DDMM
  *      - If neither is valid → UNPARSEABLE
  *
- * @param raw       Raw string from the source file
- * @param fieldName Label for transformation steps (e.g. "postedDate")
+ * @param raw        Raw string from the source file
+ * @param fieldName  Label for transformation steps (e.g. "postedDate")
+ * @param formatHint Optional file-level format hint derived from unambiguous dates
  */
-export function normalizeDate(raw: string, fieldName = 'date'): NormalizedDate {
+export function normalizeDate(
+  raw: string,
+  fieldName = 'date',
+  formatHint: 'MM/DD' | 'DD/MM' | null = null,
+): NormalizedDate {
   const steps: TransformationStep[] = []
   const trimmed = raw.trim()
 
@@ -227,7 +234,20 @@ export function normalizeDate(raw: string, fieldName = 'date'): NormalizedDate {
       return { resolved: isoA, ambiguity: 'RESOLVED', interpretationA: null, interpretationB: null, raw, steps }
     }
 
-    // Both valid and different → genuine ambiguity
+    // Both valid and different → check for a file-level format hint first
+    if (formatHint === 'MM/DD') {
+      // Interpretation A is MM/DD
+      steps.push(makeStep(fieldName, 'DATE_FORMAT_HINT_APPLIED', raw, isoA!))
+      return { resolved: isoA, ambiguity: 'RESOLVED', interpretationA: null, interpretationB: null, raw, steps }
+    }
+
+    if (formatHint === 'DD/MM') {
+      // Interpretation B is DD/MM
+      steps.push(makeStep(fieldName, 'DATE_FORMAT_HINT_APPLIED', raw, isoB!))
+      return { resolved: isoB, ambiguity: 'RESOLVED', interpretationA: null, interpretationB: null, raw, steps }
+    }
+
+    // No hint available → genuine ambiguity, surface to user
     return {
       resolved: null,
       ambiguity: 'AMBIGUOUS_MMDD_DDMM',
@@ -434,10 +454,15 @@ export interface NormalizedRow extends NormalizedTransaction {
 /**
  * Normalize a single RawParsedRow into a NormalizedRow.
  *
- * @param row     Output row from Stage 1
- * @param mapping Column mapping detected by Stage 1 header detection
+ * @param row        Output row from Stage 1
+ * @param mapping    Column mapping detected by Stage 1 header detection
+ * @param formatHint Optional file-level date format hint from detectDateFormatHint()
  */
-export function normalizeRow(row: RawParsedRow, mapping: ColumnMapping): NormalizedRow {
+export function normalizeRow(
+  row: RawParsedRow,
+  mapping: ColumnMapping,
+  formatHint: 'MM/DD' | 'DD/MM' | null = null,
+): NormalizedRow {
   const { fields, sourceLocator, rawLine, rowHash } = row
   const allTransformations: TransformationStep[] = []
   const issues: PendingIssue[] = []
@@ -456,8 +481,8 @@ export function normalizeRow(row: RawParsedRow, mapping: ColumnMapping): Normali
   const rawCurrency   = getField(fields, mapping, 'currency')
 
   // ── Normalize dates ────────────────────────────────────────────────────────
-  const postedDate      = rawPostedDate ? normalizeDate(rawPostedDate, 'postedDate') : null
-  const transactionDate = rawTransDate  ? normalizeDate(rawTransDate,  'transactionDate') : null
+  const postedDate      = rawPostedDate ? normalizeDate(rawPostedDate, 'postedDate',      formatHint) : null
+  const transactionDate = rawTransDate  ? normalizeDate(rawTransDate,  'transactionDate', formatHint) : null
   if (postedDate)      allTransformations.push(...postedDate.steps)
   if (transactionDate) allTransformations.push(...transactionDate.steps)
 
@@ -664,4 +689,66 @@ export function normalizeRow(row: RawParsedRow, mapping: ColumnMapping): Normali
     bankFingerprint,
     currencyCode,
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DATE FORMAT HINT DETECTION (file-level holistic pass)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Detect whether a collection of raw date strings uses MM/DD or DD/MM ordering.
+ *
+ * Algorithm:
+ *   1. For each raw date string, attempt to match the ambiguous numeric pattern
+ *      (D{1,2}/D{1,2}/YYYY with separator / - .).
+ *   2. If the first component (aNum) > 12 → that date can only be DD/MM.
+ *      Increment ddmmVotes.
+ *   3. If the second component (bNum) > 12 → that date can only be MM/DD.
+ *      Increment mmddVotes.
+ *   4. If both components ≤ 12 (genuinely ambiguous) → skip (no vote cast).
+ *   5. Non-matching strings (ISO, month-name, etc.) are ignored.
+ *   6. After scanning all dates:
+ *      - If ddmmVotes > 0 and mmddVotes === 0 → return 'DD/MM'
+ *      - If mmddVotes > 0 and ddmmVotes === 0 → return 'MM/DD'
+ *      - If both > 0 (conflicting signals) → return majority; tie → null
+ *      - If neither > 0 (all genuinely ambiguous or no matches) → return null
+ *
+ * @param rawDates Array of raw date strings extracted from the date column
+ * @returns 'MM/DD' | 'DD/MM' | null
+ */
+export function detectDateFormatHint(rawDates: string[]): 'MM/DD' | 'DD/MM' | null {
+  if (rawDates.length === 0) return null
+
+  const AMBIG_RE = /^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/
+
+  let mmddVotes = 0
+  let ddmmVotes = 0
+
+  for (const raw of rawDates) {
+    const trimmed = raw.trim()
+    const m = trimmed.match(AMBIG_RE)
+    if (!m) continue // ISO, month-name, compact — format is unambiguous; skip for voting
+
+    const aNum = +m[1]
+    const bNum = +m[2]
+
+    if (aNum > 12 && bNum > 12) continue // neither interpretation is valid; skip
+    if (aNum > 12) {
+      // First component cannot be a month → must be DD/MM
+      ddmmVotes++
+    } else if (bNum > 12) {
+      // Second component cannot be a month → must be MM/DD
+      mmddVotes++
+    }
+    // aNum ≤ 12 && bNum ≤ 12 → genuinely ambiguous; cast no vote
+  }
+
+  if (mmddVotes === 0 && ddmmVotes === 0) return null
+  if (ddmmVotes > 0 && mmddVotes === 0) return 'DD/MM'
+  if (mmddVotes > 0 && ddmmVotes === 0) return 'MM/DD'
+
+  // Conflicting signals — return majority; exact tie → null (can't determine)
+  if (mmddVotes > ddmmVotes) return 'MM/DD'
+  if (ddmmVotes > mmddVotes) return 'DD/MM'
+  return null
 }

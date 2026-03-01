@@ -20,18 +20,22 @@ const {
   mockFindManyTransactionRaw,
   mockFindManyTransaction,
   mockUpdateTransaction,
+  mockUpdateManyTransaction,
   mockFindManyIngestionIssue,
   mockCreateIngestionIssue,
+  mockDeleteManyIngestionIssue,
   mockCreateAuditLogEntry,
 } = vi.hoisted(() => ({
-  mockFindUniqueOrThrow:      vi.fn(),
-  mockUpdateUpload:           vi.fn(),
-  mockFindManyTransactionRaw: vi.fn(),
-  mockFindManyTransaction:    vi.fn(),
-  mockUpdateTransaction:      vi.fn(),
-  mockFindManyIngestionIssue: vi.fn(),
-  mockCreateIngestionIssue:   vi.fn(),
-  mockCreateAuditLogEntry:    vi.fn(),
+  mockFindUniqueOrThrow:         vi.fn(),
+  mockUpdateUpload:              vi.fn(),
+  mockFindManyTransactionRaw:    vi.fn(),
+  mockFindManyTransaction:       vi.fn(),
+  mockUpdateTransaction:         vi.fn(),
+  mockUpdateManyTransaction:     vi.fn(),
+  mockFindManyIngestionIssue:    vi.fn(),
+  mockCreateIngestionIssue:      vi.fn(),
+  mockDeleteManyIngestionIssue:  vi.fn(),
+  mockCreateAuditLogEntry:       vi.fn(),
 }))
 
 vi.mock('@/lib/db', () => ({
@@ -44,12 +48,14 @@ vi.mock('@/lib/db', () => ({
       findMany: mockFindManyTransactionRaw,
     },
     transaction: {
-      findMany: mockFindManyTransaction,
-      update:   mockUpdateTransaction,
+      findMany:   mockFindManyTransaction,
+      update:     mockUpdateTransaction,
+      updateMany: mockUpdateManyTransaction,
     },
     ingestionIssue: {
-      create:   mockCreateIngestionIssue,
-      findMany: mockFindManyIngestionIssue,
+      create:     mockCreateIngestionIssue,
+      findMany:   mockFindManyIngestionIssue,
+      deleteMany: mockDeleteManyIngestionIssue,
     },
     auditLogEntry: {
       create: mockCreateAuditLogEntry,
@@ -492,7 +498,9 @@ describe('runReconciliation', () => {
     mockFindManyIngestionIssue.mockResolvedValue([])
     mockUpdateUpload.mockResolvedValue({})
     mockUpdateTransaction.mockResolvedValue({})
+    mockUpdateManyTransaction.mockResolvedValue({ count: 0 })
     mockCreateIngestionIssue.mockResolvedValue({})
+    mockDeleteManyIngestionIssue.mockResolvedValue({ count: 0 })
     mockCreateAuditLogEntry.mockResolvedValue({})
   })
 

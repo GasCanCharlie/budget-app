@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, Calendar } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
@@ -467,6 +467,7 @@ export default function UploadDetailPage() {
 
   const [tab, setTab] = useState<'open' | 'resolved'>('open')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [pendingFormat, setPendingFormat] = useState<'MM/DD' | 'DD/MM' | null>(null)
 
   const deleteMutation = useMutation({
     mutationFn: () => apiFetch(`/api/uploads/${id}`, { method: 'DELETE' }),
@@ -494,6 +495,23 @@ export default function UploadDetailPage() {
   const resolvedIssues = allIssues.filter(i =>  i.resolved)
 
   const [resolvingId, setResolvingId] = useState<string | null>(null)
+
+  const resolveDateFormatMutation = useMutation({
+    mutationFn: (dateFormat: 'MM/DD' | 'DD/MM') =>
+      apiFetch(`/api/uploads/${id}/issues/resolve-all`, {
+        method: 'POST',
+        body: JSON.stringify({ issueType: 'DATE_AMBIGUOUS', dateFormat }),
+      }),
+    onSuccess: () => {
+      setPendingFormat(null)
+      qc.invalidateQueries({ queryKey: ['upload-issues', id] })
+      qc.invalidateQueries({ queryKey: ['upload', id] })
+      qc.invalidateQueries({ queryKey: ['uploads'] })
+    },
+    onError: () => {
+      setPendingFormat(null)
+    },
+  })
 
   const resolveMutation = useMutation({
     mutationFn: ({ issueId, resolved }: { issueId: string; resolved: boolean }) =>
@@ -534,6 +552,16 @@ export default function UploadDetailPage() {
 
   const reconStatus = upload.reconciliationStatus
   const displayIssues = tab === 'open' ? openIssues : resolvedIssues
+
+  const ambiguousIssues = (issuesData?.issues ?? []).filter(
+    (i: Issue) => i.issueType === 'DATE_AMBIGUOUS' && !i.resolved
+  )
+  const ambiguousCount = ambiguousIssues.length
+  const sampleIssue: Issue | undefined = ambiguousIssues[0]
+  const sampleA = sampleIssue?.transaction?.dateInterpretationA
+  const sampleB = sampleIssue?.transaction?.dateInterpretationB
+  const sampleAFormatted = sampleA ? (() => { try { return format(new Date(sampleA), 'MMM d, yyyy') } catch { return sampleA } })() : 'Feb 12, 2026'
+  const sampleBFormatted = sampleB ? (() => { try { return format(new Date(sampleB), 'MMM d, yyyy') } catch { return sampleB } })() : 'Dec 2, 2026'
 
   return (
     <AppShell>
@@ -583,6 +611,52 @@ export default function UploadDetailPage() {
         {/* ── Issues ─────────────────────────────────────────────────────── */}
         {allIssues.length > 0 || loadingIssues ? (
           <section className="card space-y-3">
+
+            {/* ── Date Format Confirmation Banner ─────────────────────────── */}
+            {ambiguousCount > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Calendar size={16} className="text-amber-600 flex-shrink-0" />
+                  <p className="text-sm font-semibold text-amber-800">
+                    {ambiguousCount} ambiguous date{ambiguousCount !== 1 ? 's' : ''} detected
+                  </p>
+                </div>
+                <p className="text-sm text-amber-700">
+                  This file contains {ambiguousCount} ambiguous date{ambiguousCount !== 1 ? 's' : ''}{' '}
+                  (e.g. &ldquo;2/12/2026&rdquo; could be Feb 12 or Dec 2).
+                  Please confirm which format this bank uses:
+                </p>
+                <div className="flex gap-3 flex-wrap">
+                  <button
+                    disabled={resolveDateFormatMutation.isPending}
+                    onClick={() => {
+                      setPendingFormat('MM/DD')
+                      resolveDateFormatMutation.mutate('MM/DD')
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition"
+                  >
+                    {resolveDateFormatMutation.isPending && pendingFormat === 'MM/DD'
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : null}
+                    Use MM/DD &ndash; American (e.g. {sampleAFormatted})
+                  </button>
+                  <button
+                    disabled={resolveDateFormatMutation.isPending}
+                    onClick={() => {
+                      setPendingFormat('DD/MM')
+                      resolveDateFormatMutation.mutate('DD/MM')
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 disabled:opacity-60 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg transition"
+                  >
+                    {resolveDateFormatMutation.isPending && pendingFormat === 'DD/MM'
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : null}
+                    Use DD/MM &ndash; European (e.g. {sampleBFormatted})
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-slate-700">Issues</h2>
               <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5 text-xs">
