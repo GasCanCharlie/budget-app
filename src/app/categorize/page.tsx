@@ -233,11 +233,7 @@ function CategoryBucket({
         }
       }}
       onClick={() => {
-        if (hasSelected && !isDragging) {
-          onClickAssign(cat.id)
-        } else if (!isDragging) {
-          onToggleExpand(cat.id)
-        }
+        if (!isDragging) onToggleExpand(cat.id)
       }}
       className={clsx(
         'flex items-center gap-2 rounded-lg border-2 border-dashed px-3 py-2.5 transition-all',
@@ -888,8 +884,7 @@ export default function CategorizePage() {
             {/* LEFT (mobile: top): Category drop targets */}
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Categories · click to expand
-                {selectedId && ' · or click to assign selected'}
+                Categories · click to expand · drag or press 1–9 to assign
               </p>
               <div className="space-y-1 max-h-[calc(100vh-240px)] overflow-y-auto pr-1">
                 {categories.map((cat, i) => (
