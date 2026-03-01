@@ -100,3 +100,89 @@ export async function GET(
     },
   })
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /api/uploads/[id]
+// Deletes an upload and all dependent records in the correct FK order.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const payload = getUserFromRequest(req)
+  if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Verify ownership via userId on Upload
+  const upload = await prisma.upload.findFirst({
+    where: { id: params.id, userId: payload.userId },
+    select: { id: true, accountId: true },
+  })
+  if (!upload) return NextResponse.json({ error: 'Upload not found' }, { status: 404 })
+
+  const result = await prisma.$transaction(async tx => {
+    // 1. Get all transaction IDs for this upload
+    const txRows = await tx.transaction.findMany({
+      where: { uploadId: params.id },
+      select: { id: true, date: true },
+    })
+    const txIds = txRows.map(t => t.id)
+
+    // 2. Delete CategoryHistory (depends on transactionId)
+    if (txIds.length > 0) {
+      await tx.categoryHistory.deleteMany({ where: { transactionId: { in: txIds } } })
+    }
+
+    // 3. Delete TransactionLinks (both directions)
+    if (txIds.length > 0) {
+      await tx.transactionLink.deleteMany({ where: { transactionAId: { in: txIds } } })
+      await tx.transactionLink.deleteMany({ where: { transactionBId: { in: txIds } } })
+    }
+
+    // 4. Delete IngestionIssues (depends on uploadId and transactionId)
+    await tx.ingestionIssue.deleteMany({ where: { uploadId: params.id } })
+
+    // 5. Delete AuditLogEntries (depends on uploadId)
+    await tx.auditLogEntry.deleteMany({ where: { uploadId: params.id } })
+
+    // 6. Delete Transactions (depends on categoryId, uploadId)
+    const { count: deletedTransactions } = await tx.transaction.deleteMany({ where: { uploadId: params.id } })
+
+    // 7. Delete TransactionRaw (depends on uploadId)
+    await tx.transactionRaw.deleteMany({ where: { uploadId: params.id } })
+
+    // 8. Delete the Upload record itself
+    await tx.upload.delete({ where: { id: params.id } })
+
+    // 9. Recompute or clean up monthly summaries for affected months
+    // If no other transactions remain for a given month/user, remove the summary
+    const months = new Set(txRows.map(t => {
+      const d = new Date(t.date)
+      return `${d.getFullYear()}-${d.getMonth() + 1}`
+    }))
+    for (const key of Array.from(months)) {
+      const [y, m] = key.split('-').map(Number)
+      const remaining = await tx.transaction.count({
+        where: {
+          account: { userId: payload.userId },
+          date: { gte: new Date(y, m - 1, 1), lt: new Date(y, m, 1) },
+          isExcluded: false,
+        },
+      })
+      if (remaining === 0) {
+        await tx.monthCategoryTotal.deleteMany({ where: { userId: payload.userId, year: y, month: m } })
+        await tx.monthSummary.deleteMany({ where: { userId: payload.userId, year: y, month: m } })
+      } else {
+        // Mark stale so next dashboard load recomputes
+        await tx.monthSummary.updateMany({
+          where: { userId: payload.userId, year: y, month: m },
+          data: { isStale: true },
+        })
+      }
+    }
+
+    return { deletedTransactions }
+  })
+
+  return NextResponse.json({ success: true, ...result })
+}

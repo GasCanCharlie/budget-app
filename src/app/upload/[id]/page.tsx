@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
@@ -373,6 +373,16 @@ export default function UploadDetailPage() {
   const qc           = useQueryClient()
 
   const [tab, setTab] = useState<'open' | 'resolved'>('open')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const deleteMutation = useMutation({
+    mutationFn: () => apiFetch(`/api/uploads/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['uploads'] })
+      qc.invalidateQueries({ queryKey: ['summary'] })
+      router.push('/upload')
+    },
+  })
 
   const { data: uploadData, isLoading: loadingUpload } = useQuery({
     queryKey: ['upload', id],
@@ -554,7 +564,70 @@ export default function UploadDetailPage() {
           </div>
         </details>
 
+        {/* ── Danger Zone ──────────────────────────────────────────────────── */}
+        <section className="border border-red-200 rounded-xl p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-red-600 uppercase tracking-wide">Danger Zone</h2>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-slate-800">Delete this upload</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Permanently removes this upload and all {upload.transactionCount} associated transactions.
+                Month summaries will be recomputed. This cannot be undone.
+              </p>
+            </div>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white border border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg text-sm transition"
+            >
+              <Trash2 size={14} /> Delete
+            </button>
+          </div>
+        </section>
+
       </main>
+
+      {/* ── Delete confirmation modal ─────────────────────────────────── */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 size={18} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900">Delete upload?</h3>
+                <p className="text-sm text-slate-500">{upload.filename}</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600">
+              This will permanently delete <strong>{upload.transactionCount} transactions</strong> and all
+              associated reconciliation data. Month summaries will be updated. This cannot be undone.
+            </p>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {deleteMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete permanently'}
+              </button>
+            </div>
+            {deleteMutation.isError && (
+              <p className="text-xs text-red-600 text-center">
+                Delete failed — please try again.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </AppShell>
   )
 }
