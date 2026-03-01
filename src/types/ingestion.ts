@@ -76,6 +76,7 @@ export type TransformationRule =
   | 'DATE_RESOLVED_YYYY_MM_DD'
   | 'MERGE_LINE_WRAP'
   | 'STRIP_PENDING_FLAG'
+  | 'TRANSACTION_TYPE_SIGN_ENFORCE'
   | (string & {}) // allow extension without breaking existing code
 
 export interface TransformationStep {
@@ -183,6 +184,10 @@ export interface ColumnMapping {
   currency?: string
   /** Pending / posted status indicator */
   pending?: string
+  /** Transaction type indicator column (values: "Debit" | "Credit" | "DR" | "CR") */
+  transactionType?: string
+  /** Reference / sequence number for stable same-day ordering */
+  referenceNumber?: string
 }
 
 export interface HeaderDetectionResult {
@@ -445,6 +450,19 @@ export interface ReconciliationResult {
   checks: ReconciliationCheck[]
   discrepancies: Discrepancy[]
   summary: ReconciliationSummary
+  /** v2: Which balance model was auto-detected (AFTER = balance after tx; BEFORE = balance before tx) */
+  balanceModel?: 'AFTER' | 'BEFORE'
+  /** v2: True if balance model detection was ambiguous and should be reviewed */
+  needsReview?: boolean
+  /** v2: Constant-offset analysis for discrepancy grouping */
+  deltaStats?: {
+    isConstantOffset: boolean
+    offsetValue: string | null
+    offsetCount: number
+    coveragePercent: number
+  }
+  /** v2: Number of rows reordered from CSV order for chronological chain validation */
+  rowsReordered?: number
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

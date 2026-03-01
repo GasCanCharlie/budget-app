@@ -234,18 +234,19 @@ describe('acceptFile', () => {
   it('detects a duplicate when prisma returns an existing upload', async () => {
     findFirstMock.mockResolvedValue({
       id: 'upload-abc-123',
-      filename: 'original-statement.csv',
+      version: 1,
       createdAt: new Date('2024-01-01T00:00:00Z'),
     })
 
     const buf = csvBuffer(VALID_CSV)
     const result = await acceptFile(buf, 'statement.csv', 'text/csv')
 
-    expect(result.accepted).toBe(false)
+    // Reprocessing is intentionally allowed — duplicate does NOT reject the file.
+    expect(result.accepted).toBe(true)
     expect(result.isDuplicate).toBe(true)
     expect(result.existingUploadId).toBe('upload-abc-123')
-    expect(result.rejectionReason).toMatch(/duplicate/i)
-    expect(result.rejectionReason).toContain('original-statement.csv')
+    // No rejection reason set for duplicates (file is accepted for re-processing).
+    expect(result.rejectionReason).toBeNull()
   })
 
   it('queries prisma with the correct SHA-256 hash', async () => {

@@ -284,6 +284,19 @@ const HEADER_PATTERNS: Record<keyof ColumnMapping, RegExp[]> = {
     /^type$/i,
     /^state$/i,
   ],
+  transactionType: [
+    /^transaction[\s._-]?type$/i,
+    /^trans(action)?[\s._-]?type$/i,
+    /^txn[\s._-]?type$/i,
+    /^debit[\s._-]?\/[\s._-]?credit$/i,
+    /^dr[\s._-]?\/[\s._-]?cr$/i,
+  ],
+  referenceNumber: [
+    /^ref(erence)?[\s._-]?num(ber)?$/i,
+    /^reference[\s._-]?#$/i,
+    /^ref[\s._-]?no\.?$/i,
+    /^seq(uence)?[\s._-]?no\.?$/i,
+  ],
 }
 
 /**

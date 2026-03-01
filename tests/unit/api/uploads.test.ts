@@ -7,18 +7,37 @@ vi.mock('@/lib/auth', () => ({
   getUserFromRequest: vi.fn(),
 }))
 
-vi.mock('@/lib/db', () => ({
-  default: {
-    upload: {
-      findMany:  vi.fn(),
-      findFirst: vi.fn(),
-      delete:    vi.fn(),
+vi.mock('@/lib/db', () => {
+  const upload = {
+    findMany:  vi.fn(),
+    findFirst: vi.fn(),
+    delete:    vi.fn(),
+  }
+
+  // txMock shares the same upload fns so prisma.upload.delete assertions still pass
+  const txMock = {
+    upload,
+    transaction:      { findMany: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
+    categoryHistory:  { deleteMany: vi.fn() },
+    transactionLink:  { deleteMany: vi.fn() },
+    ingestionIssue:   { deleteMany: vi.fn() },
+    auditLogEntry:    { deleteMany: vi.fn() },
+    transactionRaw:   { deleteMany: vi.fn() },
+    monthCategoryTotal: { deleteMany: vi.fn() },
+    monthSummary:     { deleteMany: vi.fn() },
+  }
+
+  const $transaction = vi.fn(async (cb: (tx: typeof txMock) => unknown) => cb(txMock))
+
+  return {
+    default: {
+      upload,
+      ingestionIssue: { groupBy: vi.fn() },
+      $transaction,
+      _txMock: txMock,
     },
-    ingestionIssue: {
-      groupBy: vi.fn(),
-    },
-  },
-}))
+  }
+})
 
 // ─── Imports (after vi.mock calls) ───────────────────────────────────────────
 
@@ -312,11 +331,30 @@ describe('GET /api/uploads/[id]', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('DELETE /api/uploads/[id]', () => {
+  const txMock = (prisma as any)._txMock
+
   beforeEach(async () => {
     vi.resetAllMocks()
     vi.mocked(getUserFromRequest).mockReturnValue(MOCK_USER)
     vi.mocked(prisma.upload.findFirst).mockResolvedValue(UPLOAD_DETAIL_ROW as never)
     vi.mocked(prisma.upload.delete).mockResolvedValue(UPLOAD_LIST_ROW as never)
+
+    // Restore $transaction after vi.resetAllMocks() clears it.
+    ;(prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      async (cb: (tx: typeof txMock) => unknown) => cb(txMock),
+    )
+
+    // Default tx sub-mock return values.
+    txMock.transaction.findMany.mockResolvedValue([])
+    txMock.transaction.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.transaction.count.mockResolvedValue(0)
+    txMock.categoryHistory.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.transactionLink.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.ingestionIssue.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.auditLogEntry.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.transactionRaw.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.monthCategoryTotal.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.monthSummary.deleteMany.mockResolvedValue({ count: 0 })
 
     // Dynamically load the DELETE export on each test so changes to the module
     // are picked up without re-running the full test file.

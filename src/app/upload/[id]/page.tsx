@@ -47,6 +47,16 @@ interface ReconciliationResult {
   checks:        ReconciliationCheck[]
   discrepancies: Discrepancy[]
   summary:       ReconciliationSummary
+  // v2 fields
+  balanceModel?:  'AFTER' | 'BEFORE'
+  needsReview?:   boolean
+  deltaStats?: {
+    isConstantOffset: boolean
+    offsetValue:      string | null
+    offsetCount:      number
+    coveragePercent:  number
+  }
+  rowsReordered?:  number
 }
 
 interface ReconciliationReport {
@@ -145,6 +155,14 @@ function fmtDate(s: string | null | undefined) {
   try { return format(new Date(s), 'MMM d, yyyy') } catch { return s }
 }
 
+/** Format a check expected/actual value — only currency-format if it's a pure number string */
+function fmtCheckValue(s: string | null | undefined): string {
+  if (s == null) return '—'
+  const n = Number(s)
+  if (!isNaN(n) && s.trim() !== '') return fmtAmt(n)
+  return s
+}
+
 const ISSUE_SEVERITY: Record<string, { cls: string; icon: React.ReactNode }> = {
   ERROR:   { cls: 'bg-red-100 text-red-700',    icon: <AlertCircle size={12}/> },
   WARNING: { cls: 'bg-yellow-100 text-yellow-700', icon: <AlertTriangle size={12}/> },
@@ -184,7 +202,13 @@ function StatChip({ label, value, accent }: { label: string; value: string | num
 }
 
 function ReconciliationPanel({ report, status }: { report: ReconciliationReport | null; status: string }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen]             = useState(true)
+  const [showAllBreaks, setShowAll] = useState(false)
+
+  const recon   = report?.reconciliation
+  const delta   = recon?.deltaStats
+  const breaks  = recon?.discrepancies.filter(d => d.type === 'BALANCE_CHAIN_BREAK') ?? []
+  const PREVIEW = 5
 
   return (
     <section className="card space-y-3">
@@ -193,23 +217,47 @@ function ReconciliationPanel({ report, status }: { report: ReconciliationReport 
         className="w-full flex items-center justify-between"
       >
         <h2 className="font-bold text-slate-700 flex items-center gap-2">
-          Reconciliation
+          Statement Integrity
           <ReconciliationShield status={status} size="sm" />
         </h2>
         {open ? <ChevronDown size={16} className="text-slate-400"/> : <ChevronRight size={16} className="text-slate-400"/>}
       </button>
 
-      {open && report && (
+      {open && report && recon && (
         <div className="space-y-4">
-          {/* Mode + period */}
-          <div className="flex flex-wrap gap-3 text-sm text-slate-500">
-            <span>Mode: <strong className="text-slate-700">{MODE_LABEL[report.reconciliation.mode] ?? report.reconciliation.mode}</strong></span>
+
+          {/* ── Summary strip ───────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+            <div className="bg-slate-50 rounded-lg px-3 py-2">
+              <p className="text-slate-500 uppercase font-semibold tracking-wide text-[10px]">Mode</p>
+              <p className="font-bold text-slate-700 mt-0.5">{MODE_LABEL[recon.mode] ?? recon.mode}</p>
+            </div>
+            {recon.balanceModel && (
+              <div className={clsx('rounded-lg px-3 py-2', recon.needsReview ? 'bg-amber-50' : 'bg-slate-50')}>
+                <p className="text-slate-500 uppercase font-semibold tracking-wide text-[10px]">Balance Model</p>
+                <p className={clsx('font-bold mt-0.5', recon.needsReview ? 'text-amber-700' : 'text-slate-700')}>
+                  {recon.balanceModel === 'AFTER' ? 'After transaction' : 'Before transaction'}
+                  {recon.needsReview && ' ⚠'}
+                </p>
+              </div>
+            )}
+            {typeof recon.rowsReordered === 'number' && (
+              <div className="bg-slate-50 rounded-lg px-3 py-2">
+                <p className="text-slate-500 uppercase font-semibold tracking-wide text-[10px]">Reordered</p>
+                <p className="font-bold text-slate-700 mt-0.5">
+                  {recon.rowsReordered === 0 ? 'No (already sorted)' : `${recon.rowsReordered} rows`}
+                </p>
+              </div>
+            )}
             {report.periodStart && report.periodEnd && (
-              <span>Period: <strong className="text-slate-700">{fmtDate(report.periodStart)} – {fmtDate(report.periodEnd)}</strong></span>
+              <div className="bg-slate-50 rounded-lg px-3 py-2 col-span-2 sm:col-span-1">
+                <p className="text-slate-500 uppercase font-semibold tracking-wide text-[10px]">Period</p>
+                <p className="font-bold text-slate-700 mt-0.5">{fmtDate(report.periodStart)} – {fmtDate(report.periodEnd)}</p>
+              </div>
             )}
           </div>
 
-          {/* Sums */}
+          {/* ── Sums ────────────────────────────────────────────────────── */}
           <div className="grid grid-cols-3 gap-3 text-sm">
             {([
               ['Credits', report.sums.totalCredits,  'text-green-700'],
@@ -223,12 +271,12 @@ function ReconciliationPanel({ report, status }: { report: ReconciliationReport 
             ))}
           </div>
 
-          {/* Balance range (Mode A) */}
-          {(report.reconciliation.summary.startBalance || report.reconciliation.summary.endBalance) && (
+          {/* ── Balance range (Mode A) ───────────────────────────────────── */}
+          {(recon.summary.startBalance || recon.summary.endBalance) && (
             <div className="grid grid-cols-2 gap-3 text-sm">
               {[
-                ['Opening Balance', report.reconciliation.summary.startBalance],
-                ['Closing Balance', report.reconciliation.summary.endBalance],
+                ['Opening Balance', recon.summary.startBalance],
+                ['Closing Balance', recon.summary.endBalance],
               ].map(([label, val]) => val && (
                 <div key={label} className="bg-slate-50 rounded-lg p-3">
                   <p className="text-xs uppercase text-slate-500 font-semibold">{label}</p>
@@ -238,11 +286,11 @@ function ReconciliationPanel({ report, status }: { report: ReconciliationReport 
             </div>
           )}
 
-          {/* Checks */}
-          {report.reconciliation.checks.length > 0 && (
+          {/* ── Checks ──────────────────────────────────────────────────── */}
+          {recon.checks.length > 0 && (
             <div className="space-y-1.5">
               <p className="text-xs font-semibold uppercase text-slate-500">Checks</p>
-              {report.reconciliation.checks.map((c, i) => (
+              {recon.checks.map((c, i) => (
                 <div key={i} className={clsx('flex items-start gap-2 text-sm rounded-lg px-3 py-2',
                   c.passed ? 'bg-green-50' : 'bg-red-50'
                 )}>
@@ -254,7 +302,7 @@ function ReconciliationPanel({ report, status }: { report: ReconciliationReport 
                     <p className={clsx('font-medium', c.passed ? 'text-green-800' : 'text-red-800')}>{c.name}</p>
                     {!c.passed && c.expected != null && c.actual != null && (
                       <p className="text-xs text-red-600 mt-0.5">
-                        Expected {fmtAmt(c.expected)} · Got {fmtAmt(c.actual)}
+                        Expected {fmtCheckValue(c.expected)} · Got {fmtCheckValue(c.actual)}
                       </p>
                     )}
                     {c.details && <p className="text-xs text-slate-500 mt-0.5">{c.details}</p>}
@@ -264,23 +312,68 @@ function ReconciliationPanel({ report, status }: { report: ReconciliationReport 
             </div>
           )}
 
-          {/* Discrepancies */}
-          {report.reconciliation.discrepancies.length > 0 && (
+          {/* ── Constant-offset banner ──────────────────────────────────── */}
+          {delta?.isConstantOffset && delta.offsetValue && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-amber-600 flex-shrink-0" />
+                <p className="text-sm font-semibold text-amber-800">Constant offset detected</p>
+              </div>
+              <p className="text-sm text-amber-700">
+                All {delta.offsetCount} balance breaks share the same delta ({fmtAmt(delta.offsetValue)}).
+                This usually means the statement export started mid-period — transactions before the
+                export window are missing, causing a systematic offset.
+              </p>
+              <p className="text-xs text-amber-600 font-medium">
+                To resolve: re-export starting from an earlier date, or set the opening balance below.
+              </p>
+            </div>
+          )}
+
+          {/* ── Discrepancy list ────────────────────────────────────────── */}
+          {breaks.length > 0 && !delta?.isConstantOffset && (
             <div className="space-y-1.5">
               <p className="text-xs font-semibold uppercase text-red-500">
-                {report.reconciliation.discrepancies.length} Discrepanc{report.reconciliation.discrepancies.length === 1 ? 'y' : 'ies'}
+                {breaks.length} Balance Break{breaks.length !== 1 ? 's' : ''}
               </p>
-              {report.reconciliation.discrepancies.map((d, i) => (
+              {(showAllBreaks ? breaks : breaks.slice(0, PREVIEW)).map((d, i) => (
                 <div key={i} className="bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-sm text-red-800">
                   <p className="font-medium">{d.description}</p>
                   <p className="text-xs text-red-600 mt-0.5">
-                    Expected {fmtAmt(d.expected)} · Got {fmtAmt(d.actual)}
-                    {d.rowIndex != null && ` · Row ${d.rowIndex + 1}`}
+                    Expected {fmtAmt(d.expected)} · Got {fmtAmt(d.actual)} · delta {fmtAmt(d.magnitude)}
+                    {d.rowIndex != null && ` · Position ${d.rowIndex + 1}`}
                   </p>
+                </div>
+              ))}
+              {breaks.length > PREVIEW && (
+                <button
+                  onClick={() => setShowAll(s => !s)}
+                  className="text-xs text-slate-500 hover:text-slate-700 underline transition"
+                >
+                  {showAllBreaks ? 'Show fewer' : `Show all ${breaks.length} breaks`}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ── All-constant-offset: collapsed discrepancy list ─────────── */}
+          {breaks.length > 0 && delta?.isConstantOffset && (
+            <div className="space-y-1.5">
+              <button
+                onClick={() => setShowAll(s => !s)}
+                className="text-xs text-slate-500 hover:text-slate-700 underline transition"
+              >
+                {showAllBreaks ? 'Hide individual breaks' : `Show all ${breaks.length} breaks (same delta)`}
+              </button>
+              {showAllBreaks && (showAllBreaks ? breaks : breaks.slice(0, PREVIEW)).map((d, i) => (
+                <div key={i} className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-xs text-amber-800">
+                  <span className="font-mono">pos {(d.rowIndex ?? 0) + 1}</span>{' '}
+                  {fmtAmt(d.expected)} → {fmtAmt(d.actual)}
                 </div>
               ))}
             </div>
           )}
+
         </div>
       )}
 

@@ -46,8 +46,10 @@ vi.mock('@/lib/db', () => {
     },
     categoryHistory: { deleteMany: vi.fn() },
     transactionLink: { deleteMany: vi.fn() },
+    ingestionIssue: { deleteMany: vi.fn() },
+    auditLogEntry: { deleteMany: vi.fn() },
     transactionRaw: { deleteMany: vi.fn() },
-    upload: { deleteMany: vi.fn() },
+    upload: { findMany: vi.fn(), deleteMany: vi.fn() },
     monthCategoryTotal: { deleteMany: vi.fn() },
     monthSummary: { deleteMany: vi.fn() },
     account: {
@@ -123,7 +125,10 @@ beforeEach(() => {
   txMock.transaction.count.mockResolvedValue(0)
   txMock.categoryHistory.deleteMany.mockResolvedValue({ count: 0 })
   txMock.transactionLink.deleteMany.mockResolvedValue({ count: 0 })
+  txMock.ingestionIssue.deleteMany.mockResolvedValue({ count: 0 })
+  txMock.auditLogEntry.deleteMany.mockResolvedValue({ count: 0 })
   txMock.transactionRaw.deleteMany.mockResolvedValue({ count: 0 })
+  txMock.upload.findMany.mockResolvedValue([])
   txMock.upload.deleteMany.mockResolvedValue({ count: 0 })
   txMock.monthCategoryTotal.deleteMany.mockResolvedValue({ count: 0 })
   txMock.monthSummary.deleteMany.mockResolvedValue({ count: 0 })

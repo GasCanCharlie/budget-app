@@ -529,6 +529,31 @@ export function normalizeRow(row: RawParsedRow, mapping: ColumnMapping): Normali
     amount = { value: null, raw: '', currencyDetected: null, steps: [] }
   }
 
+  // ── Transaction Type sign enforcement ─────────────────────────────────────
+  // If a Transaction Type column is present (e.g., "Debit" / "Credit"),
+  // use it to enforce the sign of the amount — overrides the raw sign.
+  // This handles banks that export unsigned amounts with a separate type column.
+  const rawTransType = getField(fields, mapping, 'transactionType')
+  if (rawTransType && amount.value !== null) {
+    const typeNorm = rawTransType.trim().toLowerCase()
+    if (/^(debit|dr|d)$/.test(typeNorm)) {
+      const absVal    = amount.value.replace(/^-/, '')
+      const enforced  = `-${absVal}`
+      if (enforced !== amount.value) {
+        const step = makeStep('amount', 'TRANSACTION_TYPE_SIGN_ENFORCE', amount.value, enforced)
+        allTransformations.push(step)
+        amount = { ...amount, value: enforced, steps: [...amount.steps, step] }
+      }
+    } else if (/^(credit|cr|c)$/.test(typeNorm)) {
+      const absVal   = amount.value.replace(/^-/, '')
+      if (absVal !== amount.value) {
+        const step = makeStep('amount', 'TRANSACTION_TYPE_SIGN_ENFORCE', amount.value, absVal)
+        allTransformations.push(step)
+        amount = { ...amount, value: absVal, steps: [...amount.steps, step] }
+      }
+    }
+  }
+
   // ── Normalize description ──────────────────────────────────────────────────
   const { normalized: descriptionNormalized, steps: descSteps } = normalizeDescription(rawDesc)
   allTransformations.push(...descSteps)

@@ -20,6 +20,8 @@
  *   - Writes one AuditLogEntry (stage = RECONCILE) per upload
  *   - Stores ReconciliationReport as JSON in Upload.reconciliationReport
  *   - Idempotent: can be rerun without creating duplicate data
+ *   - Chronological sort (transactionDate → postedDate → referenceNumber →
+ *     parseOrder) used for chain validation, not raw CSV row order
  */
 
 import prisma from '@/lib/db'
@@ -117,98 +119,390 @@ export function detectMode(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Balance model detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Whether the bank's running balance column reflects the balance AFTER or
+ * BEFORE the current transaction is applied.
+ *
+ * AFTER:  prevBalance + currAmount = currBalance  (most common)
+ * BEFORE: prevBalance + prevAmount = currBalance  (some European banks)
+ */
+export type BalanceModel = 'AFTER' | 'BEFORE'
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Balance chain logic (exported for testing)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface TxForChain {
-  id:             string
-  amount:         number     // Float from DB
-  runningBalance: string | null
-  parseOrder:     number     // sort key (from raw.parseOrder)
+  id:              string
+  amount:          number        // Float from DB
+  runningBalance:  string | null
+  parseOrder:      number        // sort key (from raw.parseOrder)
+  postedDate:      string | null // ISO date string (Transaction.postedDate)
+  transactionDate: string | null // ISO date string (Transaction.transactionDate = effective date)
+  referenceNumber: string | null // Transaction.bankTransactionId for stable ordering
 }
 
 export interface ChainCheckResult {
-  /** Per-transaction results, in parseOrder order */
+  /** Per-transaction results, in reconOrder order */
   rows: Array<{
     id:             string
+    reconOrder:     number
     valid:          boolean | null   // null = anchor row (no check possible)
     expectedCents:  bigint | null
     actualCents:    bigint | null
   }>
-  discrepancies: Discrepancy[]
-  breakCount: number
+  discrepancies:  Discrepancy[]
+  breakCount:     number
+  reconOrderMap:  Map<string, number>
+  rowsReordered:  number
+}
+
+/**
+ * Delta statistics describing discrepancy patterns.
+ * Used to detect whether a constant balance offset (e.g. an opening balance
+ * included in all running-balance values) explains every chain break.
+ */
+export interface DeltaStats {
+  isConstantOffset: boolean
+  /** fromCents representation of the constant delta; null if not constant */
+  offsetValue:      string | null
+  /** Number of BALANCE_CHAIN_BREAK discrepancies analysed */
+  offsetCount:      number
+  /** breakCount / totalRows * 100, rounded to 1 decimal */
+  coveragePercent:  number
+}
+
+/**
+ * Build a deterministic chronological ordering map for the given transactions.
+ *
+ * Sort precedence (all ascending):
+ *   1. transactionDate (effective / value date)
+ *   2. postedDate
+ *   3. referenceNumber (bankTransactionId) — lexicographic
+ *   4. parseOrder (CSV row order — final tie-breaker)
+ *
+ * @returns Map<txId, reconOrder> where reconOrder is 0-based position.
+ */
+export function computeReconOrder(txs: TxForChain[]): Map<string, number> {
+  const sorted = [...txs].sort((a, b) => {
+    // 1. transactionDate
+    const tdA = a.transactionDate ?? ''
+    const tdB = b.transactionDate ?? ''
+    if (tdA < tdB) return -1
+    if (tdA > tdB) return  1
+
+    // 2. postedDate
+    const pdA = a.postedDate ?? ''
+    const pdB = b.postedDate ?? ''
+    if (pdA < pdB) return -1
+    if (pdA > pdB) return  1
+
+    // 3. referenceNumber (lexicographic)
+    const rnA = a.referenceNumber ?? ''
+    const rnB = b.referenceNumber ?? ''
+    if (rnA < rnB) return -1
+    if (rnA > rnB) return  1
+
+    // 4. parseOrder (original CSV row order)
+    return a.parseOrder - b.parseOrder
+  })
+
+  const map = new Map<string, number>()
+  sorted.forEach((tx, i) => map.set(tx.id, i))
+  return map
+}
+
+/**
+ * Probe the first k rows that have a runningBalance and decide whether the
+ * bank records the balance AFTER or BEFORE each transaction.
+ *
+ * AFTER model: prevBalance + currAmount  === currBalance
+ * BEFORE model: prevBalance + prevAmount === currBalance
+ *
+ * @param sortedTxs Transactions already sorted in reconOrder
+ * @param k         Max sample size (default 20)
+ */
+export function detectBalanceModel(
+  sortedTxs: TxForChain[],
+  k = 20,
+): { model: BalanceModel; needsReview: boolean } {
+  // Collect up to k consecutive pairs where both rows have a runningBalance
+  type Sample = { prevBal: bigint; prevAmt: bigint; currAmt: bigint; currBal: bigint }
+  const samples: Sample[] = []
+
+  let prevIdx: number | null = null
+
+  for (let i = 0; i < sortedTxs.length && samples.length < k; i++) {
+    const tx = sortedTxs[i]
+    if (tx.runningBalance === null) {
+      // Keep prevIdx so we can check the next balance row against it
+      continue
+    }
+
+    if (prevIdx !== null) {
+      const prev = sortedTxs[prevIdx]
+      samples.push({
+        prevBal: toCents(prev.runningBalance!),
+        prevAmt: amountToCents(prev.amount),
+        currAmt: amountToCents(tx.amount),
+        currBal: toCents(tx.runningBalance),
+      })
+    }
+
+    prevIdx = i
+  }
+
+  if (samples.length < 2) {
+    return { model: 'AFTER', needsReview: true }
+  }
+
+  let afterMismatches  = 0
+  let beforeMismatches = 0
+
+  for (const s of samples) {
+    if (s.prevBal + s.currAmt !== s.currBal) afterMismatches++
+    if (s.prevBal + s.prevAmt !== s.currBal) beforeMismatches++
+  }
+
+  const threshold = samples.length * 0.3  // 30% mismatch rate
+
+  if (afterMismatches === beforeMismatches) {
+    // Tie — default to AFTER and flag for review
+    return { model: 'AFTER', needsReview: true }
+  }
+
+  if (afterMismatches < beforeMismatches) {
+    return { model: 'AFTER', needsReview: afterMismatches > threshold }
+  }
+
+  return { model: 'BEFORE', needsReview: beforeMismatches > threshold }
+}
+
+/**
+ * Analyse discrepancy deltas to detect a constant balance offset.
+ *
+ * A constant offset (e.g. the bank includes an opening balance in all running
+ * balances, or the statement uses a different sign convention) will produce
+ * the same signed delta for every break.  If ≥80 % of deltas match the first
+ * delta, we flag it as a constant offset.
+ *
+ * @param discrepancies Full discrepancy list from validateBalanceChain
+ * @param totalRows     Total number of transactions in the upload
+ */
+export function analyzeDiscrepancyPattern(
+  discrepancies: Discrepancy[],
+  totalRows: number,
+): DeltaStats {
+  const breaks = discrepancies.filter((d) => d.type === 'BALANCE_CHAIN_BREAK')
+
+  if (breaks.length === 0) {
+    return {
+      isConstantOffset: false,
+      offsetValue:      null,
+      offsetCount:      0,
+      coveragePercent:  0,
+    }
+  }
+
+  // signed delta = actual - expected (using toCents on the stored strings)
+  const deltas = breaks.map((d) => toCents(d.actual) - toCents(d.expected))
+  const firstDelta = deltas[0]
+
+  const matchCount = deltas.filter((d) => d === firstDelta).length
+  const ratio      = matchCount / deltas.length
+
+  const isConstantOffset = ratio >= 0.8
+  const coveragePercent  = Math.round((breaks.length / Math.max(totalRows, 1)) * 1000) / 10
+
+  return {
+    isConstantOffset,
+    offsetValue:  isConstantOffset ? fromCents(firstDelta) : null,
+    offsetCount:  breaks.length,
+    coveragePercent,
+  }
 }
 
 /**
  * Walk the running-balance chain and return a per-row validity report.
  *
- * Rule: for each consecutive (prev, curr) pair where both have a runningBalance:
- *   toCents(prev.runningBalance) + amountToCents(curr.amount) === toCents(curr.runningBalance)
+ * Supports two balance models:
+ *   AFTER  (default): prevBalance + currAmount = currBalance
+ *   BEFORE:           prevBalance + prevAmount = currBalance
  *
- * The first row with a runningBalance is the chain anchor — it is accepted as-is
- * (we have no prior balance to validate against unless an openingBalance is provided).
+ * Rows are sorted chronologically via computeReconOrder() before validation.
+ * rowsReordered counts how many rows appear in a different position under the
+ * chronological sort versus their original parseOrder.
  *
- * @param txs            Transactions to check (will be sorted by parseOrder internally)
+ * The first row with a runningBalance is the chain anchor — it is accepted
+ * as-is (we have no prior balance to validate against unless an openingBalance
+ * is provided).
+ *
+ * @param txs            Transactions to check
  * @param openingBalance Optional opening balance from the Upload record
+ * @param model          Balance model to apply (default: AFTER)
  */
 export function validateBalanceChain(
   txs: TxForChain[],
   openingBalance?: string | null,
+  model: BalanceModel = 'AFTER',
 ): ChainCheckResult {
-  const sorted = [...txs].sort((a, b) => a.parseOrder - b.parseOrder)
+  // Build the deterministic chronological ordering
+  const reconOrderMap = computeReconOrder(txs)
+
+  // Sort by reconOrder
+  const sorted = [...txs].sort(
+    (a, b) => (reconOrderMap.get(a.id) ?? 0) - (reconOrderMap.get(b.id) ?? 0),
+  )
+
+  // Count rows whose chronological position differs from their parseOrder rank.
+  // We compare reconOrder position to a rank computed from parseOrder.
+  const parseOrderRank = new Map<string, number>()
+  ;[...txs]
+    .sort((a, b) => a.parseOrder - b.parseOrder)
+    .forEach((tx, i) => parseOrderRank.set(tx.id, i))
+
+  let rowsReordered = 0
+  for (const tx of txs) {
+    const recon = reconOrderMap.get(tx.id) ?? 0
+    const parse = parseOrderRank.get(tx.id) ?? 0
+    if (recon !== parse) rowsReordered++
+  }
+
   const discrepancies: Discrepancy[] = []
   let breakCount = 0
 
   const rows: ChainCheckResult['rows'] = []
-  let prevCents: bigint | null = openingBalance ? toCents(openingBalance) : null
 
-  for (let i = 0; i < sorted.length; i++) {
-    const tx = sorted[i]
+  if (model === 'AFTER') {
+    // ── AFTER model ──────────────────────────────────────────────────────────
+    // prevBalance + currAmount = currBalance
+    let prevCents: bigint | null = openingBalance ? toCents(openingBalance) : null
 
-    if (tx.runningBalance === null) {
-      rows.push({ id: tx.id, valid: null, expectedCents: null, actualCents: null })
-      // Don't update prevCents — keep the last known balance
-      continue
-    }
+    for (let i = 0; i < sorted.length; i++) {
+      const tx         = sorted[i]
+      const reconOrder = reconOrderMap.get(tx.id) ?? i
 
-    const actualCents = toCents(tx.runningBalance)
+      if (tx.runningBalance === null) {
+        rows.push({ id: tx.id, reconOrder, valid: null, expectedCents: null, actualCents: null })
+        // Don't update prevCents — keep the last known balance
+        continue
+      }
 
-    if (prevCents === null) {
-      // First row with a balance: accept as anchor
-      rows.push({ id: tx.id, valid: null, expectedCents: null, actualCents })
+      const actualCents = toCents(tx.runningBalance)
+
+      if (prevCents === null) {
+        // First row with a balance: accept as anchor
+        rows.push({ id: tx.id, reconOrder, valid: null, expectedCents: null, actualCents })
+        prevCents = actualCents
+        continue
+      }
+
+      const amtCents      = amountToCents(tx.amount)
+      const expectedCents = prevCents + amtCents
+      const valid         = expectedCents === actualCents
+
+      rows.push({ id: tx.id, reconOrder, valid, expectedCents, actualCents })
+
+      if (!valid) {
+        breakCount++
+        discrepancies.push({
+          type:       'BALANCE_CHAIN_BREAK',
+          rowIndex:   reconOrder,
+          field:      'runningBalance',
+          expected:   fromCents(expectedCents),
+          actual:     fromCents(actualCents),
+          magnitude:  fromCents(
+            actualCents > expectedCents
+              ? actualCents - expectedCents
+              : expectedCents - actualCents,
+          ),
+          description:
+            `Balance break at recon position ${reconOrder + 1}: ` +
+            `expected ${fromCents(expectedCents)}, got ${fromCents(actualCents)}`,
+        })
+      }
+
+      // Always advance prevCents using the ACTUAL balance from the file
+      // (so a single break doesn't cascade to every subsequent row)
       prevCents = actualCents
-      continue
     }
 
-    const amtCents      = amountToCents(tx.amount)
-    const expectedCents = prevCents + amtCents
-    const valid         = expectedCents === actualCents
+  } else {
+    // ── BEFORE model ─────────────────────────────────────────────────────────
+    // prevBalance + prevAmount = currBalance
+    // The current row's balance was set BEFORE the current transaction applied.
+    // That means the previous row's balance + the previous row's amount should
+    // equal the current row's balance.
+    let prevBalCents: bigint | null = openingBalance ? toCents(openingBalance) : null
+    let prevAmtCents: bigint | null = null
+    let anchorSet = false
 
-    rows.push({ id: tx.id, valid, expectedCents, actualCents })
+    for (let i = 0; i < sorted.length; i++) {
+      const tx         = sorted[i]
+      const reconOrder = reconOrderMap.get(tx.id) ?? i
+      const currAmtCents = amountToCents(tx.amount)
 
-    if (!valid) {
-      breakCount++
-      discrepancies.push({
-        type:       'BALANCE_CHAIN_BREAK',
-        rowIndex:   i,
-        field:      'runningBalance',
-        expected:   fromCents(expectedCents),
-        actual:     fromCents(actualCents),
-        magnitude:  fromCents(actualCents > expectedCents
-          ? actualCents - expectedCents
-          : expectedCents - actualCents),
-        description:
-          `Balance chain break at parseOrder ${tx.parseOrder}: ` +
-          `expected ${fromCents(expectedCents)}, got ${fromCents(actualCents)}`,
-      })
+      if (tx.runningBalance === null) {
+        // No balance on this row — update prevAmtCents for BEFORE-model tracking
+        rows.push({ id: tx.id, reconOrder, valid: null, expectedCents: null, actualCents: null })
+        prevAmtCents = currAmtCents
+        continue
+      }
+
+      const actualCents = toCents(tx.runningBalance)
+
+      if (!anchorSet) {
+        // First row with a balance: accept as anchor regardless of openingBalance
+        rows.push({ id: tx.id, reconOrder, valid: null, expectedCents: null, actualCents })
+        prevBalCents = actualCents
+        prevAmtCents = currAmtCents
+        anchorSet    = true
+        continue
+      }
+
+      if (prevBalCents === null || prevAmtCents === null) {
+        // Should not occur after anchor is set, but guard anyway
+        rows.push({ id: tx.id, reconOrder, valid: null, expectedCents: null, actualCents })
+        prevBalCents = actualCents
+        prevAmtCents = currAmtCents
+        continue
+      }
+
+      // BEFORE model: prevBalance + prevAmount = currBalance
+      const expectedCents = prevBalCents + prevAmtCents
+      const valid         = expectedCents === actualCents
+
+      rows.push({ id: tx.id, reconOrder, valid, expectedCents, actualCents })
+
+      if (!valid) {
+        breakCount++
+        discrepancies.push({
+          type:       'BALANCE_CHAIN_BREAK',
+          rowIndex:   reconOrder,
+          field:      'runningBalance',
+          expected:   fromCents(expectedCents),
+          actual:     fromCents(actualCents),
+          magnitude:  fromCents(
+            actualCents > expectedCents
+              ? actualCents - expectedCents
+              : expectedCents - actualCents,
+          ),
+          description:
+            `Balance break at recon position ${reconOrder + 1}: ` +
+            `expected ${fromCents(expectedCents)}, got ${fromCents(actualCents)}`,
+        })
+      }
+
+      // Advance: use actual balance (not expected) to prevent cascade
+      prevBalCents = actualCents
+      prevAmtCents = currAmtCents
     }
-
-    // Always advance prevCents using the ACTUAL balance from the file
-    // (so a single break doesn't cascade to every subsequent row)
-    prevCents = actualCents
   }
 
-  return { rows, discrepancies, breakCount }
+  return { rows, discrepancies, breakCount, reconOrderMap, rowsReordered }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -229,7 +523,7 @@ export async function runReconciliation(
   // ── 1. Fetch Upload ────────────────────────────────────────────────────────
   const upload = await prisma.upload.findUniqueOrThrow({ where: { id: uploadId } })
 
-  // ── 2. Fetch transactions (non-rejected, sorted by raw parseOrder) ─────────
+  // ── 2. Fetch transactions (non-rejected, with all fields needed for chain) ─
   // We need parseOrder from the related TransactionRaw for correct chain ordering.
   const rawTxRows = await prisma.transactionRaw.findMany({
     where: { uploadId },
@@ -240,21 +534,27 @@ export async function runReconciliation(
   const txRows = await prisma.transaction.findMany({
     where: { uploadId, ingestionStatus: { not: 'REJECTED' } },
     select: {
-      id:             true,
-      rawId:          true,
-      amount:         true,
-      runningBalance: true,
-      ingestionStatus: true,
+      id:                  true,
+      rawId:               true,
+      amount:              true,
+      runningBalance:      true,
+      ingestionStatus:     true,
       isPossibleDuplicate: true,
+      postedDate:          true,
+      transactionDate:     true,
+      bankTransactionId:   true,
     },
   })
 
-  // Attach parseOrder (from the raw row)
+  // Attach parseOrder and date fields (convert Date objects to ISO date strings)
   const txs: TxForChain[] = txRows.map((tx) => ({
-    id:             tx.id,
-    amount:         tx.amount,
-    runningBalance: tx.runningBalance,
-    parseOrder:     parseOrderById.get(tx.rawId) ?? 0,
+    id:              tx.id,
+    amount:          tx.amount,
+    runningBalance:  tx.runningBalance,
+    parseOrder:      parseOrderById.get(tx.rawId) ?? 0,
+    postedDate:      tx.postedDate      ? tx.postedDate.toISOString().split('T')[0]      : null,
+    transactionDate: tx.transactionDate ? tx.transactionDate.toISOString().split('T')[0] : null,
+    referenceNumber: tx.bankTransactionId ?? null,
   }))
 
   // ── 3. Compute aggregate totals using BigInt cents ─────────────────────────
@@ -289,6 +589,11 @@ export async function runReconciliation(
   const checks: ReconciliationCheck[] = []
   const discrepancies: Discrepancy[] = []
   let chainResult: ChainCheckResult | null = null
+  let detectedModel: { model: BalanceModel; needsReview: boolean } = {
+    model:       'AFTER',
+    needsReview: false,
+  }
+  let deltaStats: DeltaStats | null = null
 
   if (mode === 'STATEMENT_TOTALS') {
     // Mode A checks
@@ -348,17 +653,37 @@ export async function runReconciliation(
     }
 
   } else if (mode === 'RUNNING_BALANCE') {
-    // Mode B: validate the balance chain
-    chainResult = validateBalanceChain(txs, upload.statementOpenBalance ?? null)
+    // Mode B: detect balance model, then validate the chain chronologically
+
+    // Sort txs by reconOrder for model detection
+    const reconOrderMap = computeReconOrder(txs)
+    const sortedForDetection = [...txs].sort(
+      (a, b) => (reconOrderMap.get(a.id) ?? 0) - (reconOrderMap.get(b.id) ?? 0),
+    )
+
+    detectedModel = detectBalanceModel(sortedForDetection)
+
+    chainResult = validateBalanceChain(
+      txs,
+      upload.statementOpenBalance ?? null,
+      detectedModel.model,
+    )
     discrepancies.push(...chainResult.discrepancies)
 
+    // Analyse discrepancy pattern for constant-offset detection
+    deltaStats = analyzeDiscrepancyPattern(chainResult.discrepancies, txs.length)
+
     checks.push({
-      name:     'Balance chain intact',
-      passed:   chainResult.breakCount === 0,
-      expected: '0',
-      actual:   String(chainResult.breakCount),
+      name:      'Balance chain intact',
+      passed:    chainResult.breakCount === 0,
+      expected:  '0 breaks',
+      actual:    `${chainResult.breakCount} break${chainResult.breakCount === 1 ? '' : 's'}`,
       tolerance: 'EXACT',
-      details:  `${balanceCount} rows with running balance checked`,
+      details:
+        `Model: ${detectedModel.model}` +
+        `${detectedModel.needsReview ? ' (auto-detected, review recommended)' : ''}. ` +
+        `${balanceCount} rows with running balance; ` +
+        `${chainResult.rowsReordered} rows reordered for chronological validation.`,
     })
   }
 
@@ -415,7 +740,12 @@ export async function runReconciliation(
 
   const possibleDuplicateCount = txRows.filter((t) => t.isPossibleDuplicate).length
 
-  const reconciliationResult: ReconciliationResult = {
+  const reconciliationResult: ReconciliationResult & {
+    balanceModel?:  BalanceModel
+    needsReview?:   boolean
+    deltaStats?:    DeltaStats
+    rowsReordered?: number
+  } = {
     mode,
     status,
     checks,
@@ -430,6 +760,11 @@ export async function runReconciliation(
         ? fromCents(toCents(upload.statementOpenBalance) + netChangeCents)
         : null,
     },
+    // Extended fields for v2 UI (only populated in RUNNING_BALANCE mode)
+    balanceModel:  mode === 'RUNNING_BALANCE' ? detectedModel.model         : undefined,
+    needsReview:   mode === 'RUNNING_BALANCE' ? detectedModel.needsReview   : undefined,
+    deltaStats:    mode === 'RUNNING_BALANCE' ? (deltaStats ?? undefined)   : undefined,
+    rowsReordered: mode === 'RUNNING_BALANCE' ? chainResult?.rowsReordered  : undefined,
   }
 
   const report: ReconciliationReport = {
@@ -492,9 +827,28 @@ export async function runReconciliation(
         checksCount:         checks.length,
         discrepanciesCount:  discrepancies.length,
         balanceBreaks:       chainResult?.breakCount ?? 0,
+        balanceModel:        mode === 'RUNNING_BALANCE' ? detectedModel.model       : undefined,
+        needsReview:         mode === 'RUNNING_BALANCE' ? detectedModel.needsReview : undefined,
+        rowsReordered:       chainResult?.rowsReordered ?? 0,
       }),
     },
   })
+
+  // Write a second audit entry if rows were reordered for chronological validation
+  if (chainResult && chainResult.rowsReordered > 0) {
+    await prisma.auditLogEntry.create({
+      data: {
+        uploadId,
+        stage:   'RECONCILE',
+        level:   'INFO',
+        message: `${chainResult.rowsReordered} rows reordered for chronological balance chain validation`,
+        context: JSON.stringify({
+          rowsReordered: chainResult.rowsReordered,
+          model:         detectedModel.model,
+        }),
+      },
+    })
+  }
 
   return { status, mode }
 }
