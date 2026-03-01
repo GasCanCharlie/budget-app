@@ -28,9 +28,13 @@ export async function GET(req: NextRequest) {
   }
 
   if (category) {
+    // Effective category = userOverrideCategoryId when set, otherwise categoryId.
+    // A transaction belongs to this category if:
+    //   • the user explicitly moved it here (userOverrideCategoryId = category), OR
+    //   • it was auto-categorized here AND hasn't been moved (categoryId = category AND no override)
     where['OR'] = [
-      { categoryId: category },
       { userOverrideCategoryId: category },
+      { categoryId: category, userOverrideCategoryId: null },
     ]
   }
 
