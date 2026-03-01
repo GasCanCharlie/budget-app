@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2 } from 'lucide-react'
+import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import clsx from 'clsx'
 import { CategoryIcon } from '@/components/CategoryIcon'
 
@@ -21,6 +21,8 @@ const SOURCE_LABELS: Record<string, string> = {
 }
 
 type IngestionFilter = '' | 'flagged' | 'duplicate'
+type SortBy  = 'date' | 'vendor' | 'amount'
+type SortDir = 'asc' | 'desc'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -31,6 +33,35 @@ function fmtAmt(n: number) {
 function fmtDate(s: string | Date | null | undefined) {
   if (!s) return '—'
   try { return format(new Date(s as string), 'MMM d, yyyy') } catch { return String(s) }
+}
+
+// ─── Sort button ─────────────────────────────────────────────────────────────
+
+function SortBtn({
+  label, field, active, dir,
+  onClick,
+}: {
+  label: string
+  field: SortBy
+  active: boolean
+  dir: SortDir
+  onClick: (f: SortBy) => void
+}) {
+  const Icon = active ? (dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  return (
+    <button
+      onClick={() => onClick(field)}
+      className={clsx(
+        'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition',
+        active
+          ? 'border-accent-400 bg-accent-50 text-accent-700'
+          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-400 hover:text-slate-700'
+      )}
+    >
+      {label}
+      <Icon size={11} />
+    </button>
+  )
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -82,6 +113,8 @@ function TransactionsPageInner() {
   const [category,         setCategory]         = useState(searchParams.get('category') || '')
   const [displayCategory,  setDisplayCategory]  = useState(searchParams.get('displayCategory') || '')
   const [ingestionFilter,  setIngestionFilter]  = useState<IngestionFilter>('')
+  const [sortBy,           setSortBy]           = useState<SortBy>('date')
+  const [sortDir,          setSortDir]          = useState<SortDir>('desc')
   const [page,            setPage]            = useState(1)
   const [editing,         setEditing]         = useState<string | null>(null)
   const [toast,           setToast]           = useState<string | null>(null)
@@ -98,13 +131,15 @@ function TransactionsPageInner() {
   const categories = catData?.categories ?? []
 
   const { data, isLoading } = useQuery({
-    queryKey: ['transactions', search, category, displayCategory, ingestionFilter, page],
+    queryKey: ['transactions', search, category, displayCategory, ingestionFilter, sortBy, sortDir, page],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), limit: '50' })
       if (search)           params.set('search',          search)
       if (category)         params.set('category',        category)
       if (displayCategory)  params.set('displayCategory', displayCategory)
       if (ingestionFilter)  params.set('ingestionFilter', ingestionFilter)
+      params.set('sortBy',  sortBy)
+      params.set('sortDir', sortDir)
       return apiFetch(`/api/transactions?${params}`)
     },
     enabled: !!user,
@@ -186,6 +221,16 @@ function TransactionsPageInner() {
     setEditing(null)
   }
 
+  function handleSort(field: SortBy) {
+    if (sortBy === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortDir(field === 'amount' ? 'desc' : field === 'vendor' ? 'asc' : 'desc')
+    }
+    setPage(1)
+  }
+
   if (!user) return null
 
   return (
@@ -230,6 +275,14 @@ function TransactionsPageInner() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+        </div>
+
+        {/* ── Sort controls ────────────────────────────────────────────── */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400 font-medium">Sort:</span>
+          <SortBtn label="Date"   field="date"   active={sortBy === 'date'}   dir={sortDir} onClick={handleSort} />
+          <SortBtn label="Vendor" field="vendor" active={sortBy === 'vendor'} dir={sortDir} onClick={handleSort} />
+          <SortBtn label="Amount" field="amount" active={sortBy === 'amount'} dir={sortDir} onClick={handleSort} />
         </div>
 
         {/* ── Active display-category filter pill ──────────────────────── */}

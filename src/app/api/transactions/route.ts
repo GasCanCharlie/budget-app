@@ -13,9 +13,18 @@ export async function GET(req: NextRequest) {
   const displayCategory = searchParams.get('displayCategory') || null
   const search          = searchParams.get('search')          || null
   const ingestionFilter = searchParams.get('ingestionFilter') || null   // 'flagged' | 'duplicate'
+  const sortBy          = searchParams.get('sortBy')  || 'date'          // 'date' | 'vendor' | 'amount'
+  const sortDir         = searchParams.get('sortDir') || 'desc'          // 'asc' | 'desc'
   const page            = parseInt(searchParams.get('page')   || '1')
   const limit           = Math.min(parseInt(searchParams.get('limit') || '100'), 500)
   const skip            = (page - 1) * limit
+
+  const safeDir = sortDir === 'asc' ? 'asc' : 'desc'
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orderBy: any =
+    sortBy === 'vendor' ? { merchantNormalized: safeDir } :
+    sortBy === 'amount' ? { amount: safeDir }             :
+    { date: safeDir }
 
   const where: Record<string, unknown> = {
     account: { userId: payload.userId },
@@ -82,7 +91,7 @@ export async function GET(req: NextRequest) {
           }
         },
       },
-      orderBy: { date: 'desc' },
+      orderBy,
       skip,
       take: limit,
     }),
