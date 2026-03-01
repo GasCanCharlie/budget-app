@@ -379,6 +379,13 @@ function TouchGhost({ tx, pos }: { tx: Transaction | null; pos: { x: number; y: 
 
 // ─── Category Transaction List ────────────────────────────────────────────────
 
+const SOURCE_LABELS: Record<string, string> = {
+  rule: '⚙️ Rule',
+  ai:   '🤖 AI',
+  user: '✏️ You',
+  bank: '🏦 Bank',
+}
+
 function CategoryTransactionList({
   catId,
   catName,
@@ -419,51 +426,81 @@ function CategoryTransactionList({
   }
 
   return (
-    <div className="mt-1 mb-1 ml-2 mr-1 rounded-lg border border-slate-100 bg-slate-50 divide-y divide-slate-100 max-h-52 overflow-y-auto">
+    <div className="mt-1.5 mb-1 ml-2 mr-1 rounded-xl border border-slate-100 bg-white shadow-sm overflow-y-auto max-h-72">
       {txs.map(tx => (
-        <div key={tx.id} className="flex items-center gap-2 px-3 py-1.5 text-xs">
-          <div className="flex-1 min-w-0">
-            <span className="font-medium text-slate-700 truncate block">
-              {tx.merchantNormalized || tx.description}
+        <div key={tx.id} className="px-3 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
+          <div className="flex items-start gap-2.5">
+            {/* Category icon */}
+            <span className="text-xl w-7 flex-shrink-0 text-center mt-0.5">
+              {tx.category?.icon ?? '📦'}
             </span>
-            <span className="text-slate-400">
-              {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </span>
-          </div>
-          <span className={clsx('flex-shrink-0 font-semibold tabular-nums', tx.amount < 0 ? 'text-red-600' : 'text-green-600')}>
-            {tx.amount < 0 ? '-' : '+'}{Math.abs(tx.amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-          </span>
-          {movingId === tx.id ? (
-            <div className="flex flex-wrap gap-1 ml-1">
-              {categories
-                .filter(c => c.id !== catId)
-                .slice(0, 6)
-                .map(c => (
+
+            {/* Main content */}
+            <div className="flex-1 min-w-0">
+              {/* Name + amount row */}
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-semibold text-sm text-slate-800 truncate">
+                  {tx.merchantNormalized || tx.description}
+                </span>
+                <span className={clsx('font-bold text-sm flex-shrink-0', tx.amount >= 0 ? 'text-green-700' : 'text-red-700')}>
+                  {tx.amount >= 0 ? '+' : '-'}{fmtAmt(tx.amount)}
+                </span>
+              </div>
+
+              {/* Badge row */}
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                <span className="text-xs text-slate-400">{fmtDate(tx.date)}</span>
+                {tx.category && (
+                  <span className="badge bg-slate-100 text-slate-600 text-xs">
+                    {tx.category.name}
+                  </span>
+                )}
+                <span className="text-xs text-slate-300">
+                  {SOURCE_LABELS[tx.categorizationSource]}
+                </span>
+              </div>
+
+              {/* Move picker or Move button */}
+              {movingId === tx.id ? (
+                <div className="mt-2">
+                  <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto">
+                    {categories
+                      .filter(c => c.id !== catId)
+                      .map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => { onMove(tx.id, c.id); setMovingId(null) }}
+                          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium hover:bg-accent-50 hover:text-accent-700 transition text-slate-700 text-left"
+                        >
+                          <span>{c.icon}</span>
+                          <span className="truncate">{c.name}</span>
+                        </button>
+                      ))}
+                  </div>
                   <button
-                    key={c.id}
-                    onClick={() => { onMove(tx.id, c.id); setMovingId(null) }}
-                    className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 hover:border-accent-400 hover:text-accent-600 text-[10px] font-medium transition"
+                    onClick={() => setMovingId(null)}
+                    className="mt-1 text-xs text-slate-400 hover:text-slate-600 transition"
                   >
-                    {c.icon} {c.name}
+                    ✕ Cancel
                   </button>
-                ))}
-              <button onClick={() => setMovingId(null)} className="px-1.5 py-0.5 rounded text-slate-400 hover:text-slate-600 text-[10px]">✕</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setMovingId(tx.id)}
+                  className="mt-1.5 flex-shrink-0 px-2 py-0.5 rounded border border-slate-200 text-[10px] font-medium text-slate-500 hover:border-accent-400 hover:text-accent-600 bg-white transition"
+                >
+                  Move
+                </button>
+              )}
             </div>
-          ) : (
-            <button
-              onClick={() => setMovingId(tx.id)}
-              className="flex-shrink-0 px-2 py-0.5 rounded border border-slate-200 text-[10px] font-medium text-slate-500 hover:border-accent-400 hover:text-accent-600 bg-white transition"
-            >
-              Move
-            </button>
-          )}
+          </div>
         </div>
       ))}
       {txs.length >= 10 && (
-        <div className="px-3 py-2 border-t border-slate-100">
+        <div className="px-3 py-2 border-t border-slate-100 bg-slate-50">
           <a
             href={`/transactions?category=${catId}`}
-            className="text-[11px] text-accent-600 hover:text-accent-700 font-medium"
+            className="text-xs text-accent-600 hover:text-accent-700 font-semibold"
           >
             View all in Transactions →
           </a>
