@@ -471,7 +471,7 @@ function CategoryTransactionList({
                           key={c.id}
                           onClick={() => {
                             const sameCount = txs.filter(
-                              t => t.merchantNormalized === tx.merchantNormalized
+                              t => t.merchantNormalized === tx.merchantNormalized && t.amount === tx.amount
                             ).length
                             if (sameCount > 1) {
                               setPendingMove({ txId: tx.id, catName: c.name, count: sameCount })
@@ -616,9 +616,10 @@ export default function CategorizePage() {
         if (!old) return old
         const affectedTx = old.transactions.find(t => t.id === id)
         const merchant   = affectedTx?.merchantNormalized
+        const amount     = affectedTx?.amount
         const removeIds  = new Set(
           applyToAll && merchant
-            ? old.transactions.filter(t => t.merchantNormalized === merchant && !t.appCategory).map(t => t.id)
+            ? old.transactions.filter(t => t.merchantNormalized === merchant && t.amount === amount && !t.appCategory).map(t => t.id)
             : [id]
         )
         return { ...old, transactions: old.transactions.filter(t => !removeIds.has(t.id)) }
@@ -636,8 +637,8 @@ export default function CategorizePage() {
   })
 
   // ── Helpers ──
-  const countSimilar = useCallback((merchant: string) =>
-    allTxs.filter(t => t.merchantNormalized === merchant && !t.appCategory).length,
+  const countSimilar = useCallback((merchant: string, amount: number) =>
+    allTxs.filter(t => t.merchantNormalized === merchant && t.amount === amount && !t.appCategory).length,
     [allTxs]
   )
 
@@ -645,7 +646,7 @@ export default function CategorizePage() {
   const initiateAssign = useCallback((tx: Transaction, categoryId: string) => {
     const cat = categories.find(c => c.id === categoryId)
     if (!cat) return
-    const similarCount = countSimilar(tx.merchantNormalized)
+    const similarCount = countSimilar(tx.merchantNormalized, tx.amount)
     if (similarCount <= 1) {
       updateMutation.mutate({ id: tx.id, appCategory: cat.name, applyToAll: false })
       setSelectedId(null)
