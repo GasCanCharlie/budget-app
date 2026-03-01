@@ -127,6 +127,7 @@ export async function acceptFile(
     sourceType: null,
     rejectionReason: null,
     isDuplicate: false,
+    previousUploadId: null,
     existingUploadId: null,
     fileSize: buffer.length,
     encoding: null,
@@ -187,19 +188,19 @@ export async function acceptFile(
   result.fileHash = hash
 
   // ── 5. Global duplicate check ────────────────────────────────────────────
-  //  Same SHA-256 → identical file bytes → exact same upload regardless of
-  //  which account or user uploaded it originally.
-  const existing = await prisma.upload.findFirst({
+  //  Same SHA-256 → identical file bytes. Reprocessing is ALLOWED: we record
+  //  the previous upload id so the route can version-stamp the new record and
+  //  mark the old one as superseded.  We do NOT reject here.
+  const existingUpload = await prisma.upload.findFirst({
     where: { fileHash: hash },
-    select: { id: true, filename: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, version: true },
   })
-  if (existing) {
+  if (existingUpload) {
     result.isDuplicate = true
-    result.existingUploadId = existing.id
-    result.rejectionReason =
-      `Duplicate file. This exact file was already uploaded as ` +
-      `"${existing.filename}" on ${existing.createdAt.toISOString().split('T')[0]}.`
-    return result
+    result.previousUploadId = existingUpload.id
+    result.existingUploadId = existingUpload.id
+    // DO NOT set accepted = false — reprocessing is allowed
   }
 
   // ── 6. Encoding detection + decode ──────────────────────────────────────

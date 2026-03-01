@@ -72,6 +72,12 @@ model Upload {
   parserVersion          String    @default("1.0.0")
   // parserConfig: JSON string — CsvParserConfig | XlsxParserConfig | PdfParserConfig
   parserConfig           String?
+  // version: incremented each time the same file (same SHA-256) is reprocessed
+  version                Int       @default(1)
+  // superseded: true when a newer reprocessed upload has replaced this one
+  superseded             Boolean   @default(false)
+  // reprocessedFromId: id of the previous Upload this was reprocessed from (null for original uploads)
+  reprocessedFromId      String?
   // Statement-level totals extracted from bank export (stored as decimal strings, e.g. "1234.56")
   statementOpenBalance   String?
   statementCloseBalance  String?

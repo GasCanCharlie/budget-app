@@ -66,13 +66,9 @@ export async function POST(req: NextRequest) {
     const acceptance = await acceptFile(buffer, file.name, file.type)
 
     if (!acceptance.accepted) {
-      const status = acceptance.isDuplicate ? 409 : 422
       return NextResponse.json(
-        {
-          error: acceptance.rejectionReason,
-          ...(acceptance.isDuplicate && { uploadId: acceptance.existingUploadId }),
-        },
-        { status },
+        { error: acceptance.rejectionReason },
+        { status: 422 },
       )
     }
 
@@ -100,6 +96,20 @@ export async function POST(req: NextRequest) {
 
     const formatDetected = deriveFormatName(mapping, headerDetection.columns)
 
+    // ── Reprocessing: version-stamp + supersede previous upload ───────────────
+    let uploadVersion = 1
+    if (acceptance.isDuplicate && acceptance.previousUploadId) {
+      const prevUpload = await prisma.upload.findUnique({
+        where: { id: acceptance.previousUploadId },
+        select: { version: true },
+      })
+      uploadVersion = (prevUpload?.version ?? 0) + 1
+      await prisma.upload.update({
+        where: { id: acceptance.previousUploadId },
+        data: { superseded: true },
+      })
+    }
+
     // ── Create Upload record ──────────────────────────────────────────────────
     const upload = await prisma.upload.create({
       data: {
@@ -108,6 +118,8 @@ export async function POST(req: NextRequest) {
         filename:            file.name,
         fileHash,
         formatDetected,
+        version:             uploadVersion,
+        reprocessedFromId:   acceptance.previousUploadId ?? undefined,
         rowCountRaw:         parseResult.rows.length +
                              parseResult.warnings.filter((w) => w.code?.startsWith('COLUMN')).length,
         rowCountParsed:      parseResult.rows.length,

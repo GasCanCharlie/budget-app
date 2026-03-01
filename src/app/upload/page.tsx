@@ -154,7 +154,7 @@ export default function UploadPage() {
     <AppShell>
       <main className="max-w-2xl mx-auto px-4 py-8 pb-24 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Ingest Statement</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Upload Statement</h1>
           <p className="text-slate-500 text-sm mt-1">BudgetLens normalizes and reconciles your statement against detected format rules. 40+ bank formats supported.</p>
         </div>
 
@@ -380,9 +380,9 @@ export default function UploadPage() {
               className="btn-primary w-full justify-center py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploadMutation.isPending ? (
-                <><Loader2 size={18} className="animate-spin" /> Running ingestion pipeline…</>
+                <><Loader2 size={18} className="animate-spin" /> Processing statement…</>
               ) : (
-                <><Upload size={18} /> Begin Ingestion</>
+                <><Upload size={18} /> Upload Statement</>
               )}
             </button>
             {!uploadMutation.isPending && (
@@ -430,7 +430,7 @@ export default function UploadPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle size={20} className="text-green-600" />
-                  <h3 className="font-bold text-green-800">Ingestion complete</h3>
+                  <h3 className="font-bold text-green-800">Upload complete</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {([
@@ -491,7 +491,7 @@ export default function UploadPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="font-bold text-red-800">Ingestion failed</h3>
+                  <h3 className="font-bold text-red-800">Upload failed</h3>
                   <p className="text-red-700 text-sm mt-1">{result.error}</p>
                 </div>
               </div>

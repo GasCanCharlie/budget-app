@@ -9,7 +9,7 @@ const DIFFERENTIATORS = [
   {
     icon: '🔒',
     title: 'Zero Bank Credentials',
-    desc: 'CSV-only ingestion. No OAuth, no API keys, no data-sharing agreements. Your credentials never touch our system.',
+    desc: 'CSV-only uploads. No OAuth, no API keys, no data-sharing agreements. Your credentials never touch our system.',
   },
   {
     icon: '🛡',
@@ -19,7 +19,7 @@ const DIFFERENTIATORS = [
   {
     icon: '🔍',
     title: 'Full Pipeline Transparency',
-    desc: 'Watch the 4-stage ingestion pipeline process each file. SHA-256 fingerprinted before any data is stored.',
+    desc: 'Watch the 4-stage processing pipeline process each file. SHA-256 fingerprinted before any data is stored.',
   },
   {
     icon: '📊',

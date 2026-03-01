@@ -21,7 +21,7 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 
 const navItems = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
-  { href: '/upload',       label: 'Ingest',       icon: Upload },
+  { href: '/upload',       label: 'Upload',       icon: Upload },
   { href: '/transactions', label: 'Transactions', icon: List },
   { href: '/categorize',   label: 'Categorize',   icon: FolderKanban },
   { href: '/categories',   label: 'Categories',   icon: Tags },

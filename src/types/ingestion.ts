@@ -525,8 +525,14 @@ export interface FileAcceptanceResult {
   sourceType: 'CSV' | 'XLSX' | 'PDF' | null
   /** Human-readable rejection reason; null if accepted */
   rejectionReason: string | null
+  /**
+   * true = same SHA-256 was seen before, but processing is still ALLOWED.
+   * A new Upload will be created with an incremented version.
+   */
   isDuplicate: boolean
-  /** DB id of the existing Upload if isDuplicate = true */
+  /** DB id of the previous Upload when isDuplicate = true (reprocessing path) */
+  previousUploadId: string | null
+  /** Kept for backward compatibility — same value as previousUploadId */
   existingUploadId: string | null
   fileSize: number
   /** Detected character encoding (CSV only); null for binary formats */
