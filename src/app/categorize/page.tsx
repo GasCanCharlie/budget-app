@@ -394,9 +394,10 @@ function CategoryTransactionList({
   catName: string
   apiFetch: (url: string, opts?: RequestInit) => Promise<unknown>
   categories: Category[]
-  onMove: (txId: string, newCatId: string) => void
+  onMove: (txId: string, newCatId: string, applyToAll: boolean) => void
 }) {
   const [movingId, setMovingId] = useState<string | null>(null)
+  const [pendingMove, setPendingMove] = useState<{ txId: string; catId: string; count: number; catName: string } | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['cat-transactions', catId],
@@ -457,8 +458,36 @@ function CategoryTransactionList({
                 </span>
               </div>
 
-              {/* Move picker or Move button */}
-              {movingId === tx.id ? (
+              {/* Move picker, confirm prompt, or Move button */}
+              {pendingMove?.txId === tx.id ? (
+                <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs">
+                  <p className="text-amber-800 font-medium mb-2">
+                    {pendingMove.count} transactions from <strong>{tx.merchantNormalized}</strong> at{' '}
+                    <strong>{fmtAmt(tx.amount)}</strong> found. Move all to{' '}
+                    <strong>{pendingMove.catName}</strong>?
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { onMove(pendingMove.txId, pendingMove.catId, false); setPendingMove(null); setMovingId(null) }}
+                      className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 hover:border-slate-400 font-medium transition"
+                    >
+                      Just this one
+                    </button>
+                    <button
+                      onClick={() => { onMove(pendingMove.txId, pendingMove.catId, true); setPendingMove(null); setMovingId(null) }}
+                      className="px-2.5 py-1 rounded bg-accent-500 text-white font-medium hover:bg-accent-600 transition"
+                    >
+                      Move all {pendingMove.count}
+                    </button>
+                    <button
+                      onClick={() => { setPendingMove(null); setMovingId(null) }}
+                      className="px-2 py-1 text-slate-400 hover:text-slate-600 transition"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ) : movingId === tx.id ? (
                 <div className="mt-2">
                   <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto">
                     {categories
@@ -466,7 +495,17 @@ function CategoryTransactionList({
                       .map(c => (
                         <button
                           key={c.id}
-                          onClick={() => { onMove(tx.id, c.id); setMovingId(null) }}
+                          onClick={() => {
+                            const sameCount = txs.filter(
+                              t => t.merchantNormalized === tx.merchantNormalized && t.amount === tx.amount
+                            ).length
+                            if (sameCount > 1) {
+                              setPendingMove({ txId: tx.id, catId: c.id, count: sameCount, catName: c.name })
+                            } else {
+                              onMove(tx.id, c.id, false)
+                              setMovingId(null)
+                            }
+                          }}
                           className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium hover:bg-accent-50 hover:text-accent-700 transition text-slate-700 text-left"
                         >
                           <CategoryIcon name={c.icon} color={c.color} size={14} />
@@ -640,6 +679,7 @@ export default function CategorizePage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+      qc.invalidateQueries({ queryKey: ['cat-transactions'] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
     },
@@ -918,9 +958,8 @@ export default function CategorizePage() {
                         catName={cat.name}
                         apiFetch={apiFetch}
                         categories={categories}
-                        onMove={(txId, newCatId) => {
-                          updateMutation.mutate({ id: txId, categoryId: newCatId, applyToAll: false })
-                          // Don't close expand — user may want to move more
+                        onMove={(txId, newCatId, applyToAll) => {
+                          updateMutation.mutate({ id: txId, categoryId: newCatId, applyToAll })
                         }}
                       />
                     )}
