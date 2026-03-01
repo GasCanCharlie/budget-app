@@ -80,6 +80,9 @@ export async function GET(
       // ── Description lineage ──────────────────────────────────────────────
       descriptionRaw:       tx.descriptionRaw,
       descriptionNormalized: tx.descriptionNormalized,
+      // ── Category fields ──────────────────────────────────────────────────
+      bankCategoryRaw:      tx.bankCategoryRaw,
+      appCategory:          tx.appCategory,
       // ── Ingestion status ─────────────────────────────────────────────────
       ingestionStatus:      tx.ingestionStatus,
       isPossibleDuplicate:  tx.isPossibleDuplicate,
@@ -142,6 +145,8 @@ const patchSchema = z.object({
   resolvedDate:     z.string().optional(),
   // Duplicate dismissal: user confirms this transaction is NOT a duplicate
   dismissDuplicate: z.boolean().optional(),
+  // User's free-text app category (null to clear)
+  appCategory:      z.string().nullable().optional(),
 })
 
 export async function PATCH(
@@ -182,6 +187,12 @@ export async function PATCH(
     if (data.isExcluded  !== undefined) updates['isExcluded']  = data.isExcluded
     if (data.isTransfer  !== undefined) updates['isTransfer']  = data.isTransfer
 
+    // appCategory — free-text label assigned by the user (null clears it)
+    if (data.appCategory !== undefined) {
+      updates['appCategory']    = data.appCategory  // null clears it
+      updates['reviewedByUser'] = true
+    }
+
     // Resolve date ambiguity — user has chosen MM/DD or DD/MM interpretation
     if (data.resolvedDate) {
       const resolvedDateObj = new Date(data.resolvedDate)
@@ -206,6 +217,24 @@ export async function PATCH(
 
     // Apply to all same merchant if requested (user-local Layer 2 mapping)
     let appliedCount = 1
+    if (data.applyToAll && data.appCategory !== undefined && tx.merchantNormalized) {
+      // Apply appCategory to all same-merchant transactions
+      const similar = await prisma.transaction.findMany({
+        where: {
+          account: { userId: payload.userId },
+          merchantNormalized: tx.merchantNormalized,
+          id: { not: tx.id },
+        },
+        select: { id: true },
+      })
+      for (const s of similar) {
+        await prisma.transaction.update({
+          where: { id: s.id },
+          data: { appCategory: data.appCategory ?? null },
+        })
+        appliedCount++
+      }
+    }
     if (data.applyToAll && data.categoryId && tx.merchantNormalized) {
       const similar = await prisma.transaction.findMany({
         where: {

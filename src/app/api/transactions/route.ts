@@ -111,6 +111,7 @@ export async function GET(req: NextRequest) {
       dateInterpretationA:   tx.dateInterpretationA,
       dateInterpretationB:   tx.dateInterpretationB,
       bankCategoryRaw:       tx.bankCategoryRaw,
+      appCategory:           tx.appCategory,
       category: effectiveCat ? {
         id:    effectiveCat.id,
         name:  effectiveCat.name,

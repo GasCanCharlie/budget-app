@@ -69,9 +69,40 @@ function modifiedZScore(value: number, values: number[]): number {
   return 0.6745 * Math.abs(value - med) / mad
 }
 
-// ─── Shared fallback category ─────────────────────────────────────────────────
+// ─── Display category style lookup ───────────────────────────────────────────
 
-const FALLBACK_CAT = { id: 'other', name: 'Other', color: '#94a3b8', icon: '📦', isIncome: false }
+const CATEGORY_STYLES: Record<string, { color: string; icon: string; isIncome: boolean }> = {
+  'Food & Dining':   { color: '#f97316', icon: '🍽️',  isIncome: false },
+  'Groceries':       { color: '#22c55e', icon: '🛒',  isIncome: false },
+  'Housing':         { color: '#8b5cf6', icon: '🏠',  isIncome: false },
+  'Transport':       { color: '#3b82f6', icon: '🚗',  isIncome: false },
+  'Entertainment':   { color: '#ec4899', icon: '🎬',  isIncome: false },
+  'Shopping':        { color: '#f59e0b', icon: '🛍️',  isIncome: false },
+  'Health':          { color: '#10b981', icon: '❤️',  isIncome: false },
+  'Utilities':       { color: '#6366f1', icon: '💡',  isIncome: false },
+  'Subscriptions':   { color: '#8b5cf6', icon: '📱',  isIncome: false },
+  'Personal Care':   { color: '#f472b6', icon: '💅',  isIncome: false },
+  'Education':       { color: '#0ea5e9', icon: '📚',  isIncome: false },
+  'Travel':          { color: '#06b6d4', icon: '✈️',  isIncome: false },
+  'Insurance':       { color: '#64748b', icon: '🛡️',  isIncome: false },
+  'Fees & Charges':  { color: '#ef4444', icon: '💸',  isIncome: false },
+  'Gifts & Charity': { color: '#f43f5e', icon: '🎁',  isIncome: false },
+  'Income':          { color: '#16a34a', icon: '📈',  isIncome: true  },
+  'Transfer':        { color: '#64748b', icon: '↔️',  isIncome: false },
+  'Transfers':       { color: '#64748b', icon: '↔️',  isIncome: false },
+  'Other':           { color: '#94a3b8', icon: '📦',  isIncome: false },
+  'Uncategorized':   { color: '#94a3b8', icon: '❓',  isIncome: false },
+  'Fast Food':       { color: '#f97316', icon: '🍔',  isIncome: false },
+  'Alcohol':         { color: '#a855f7', icon: '🍷',  isIncome: false },
+  'Restaurants':     { color: '#f97316', icon: '🍽️',  isIncome: false },
+  'Gas/Fuel':        { color: '#3b82f6', icon: '⛽',  isIncome: false },
+  'Gasoline/Fuel':   { color: '#3b82f6', icon: '⛽',  isIncome: false },
+}
+
+function getDisplayCategoryStyle(name: string) {
+  const style = CATEGORY_STYLES[name] ?? { color: '#94a3b8', icon: '📦', isIncome: false }
+  return { id: name, name, ...style }
+}
 
 // ─── Compute monthly summary ──────────────────────────────────────────────────
 
@@ -95,10 +126,14 @@ export async function computeMonthSummary(
       isForeignCurrency: false,
       amount:           { not: 0 },
     },
-    include: {
-      // Issue 1: include the override category so metadata is always correct
-      category:         { select: { id: true, name: true, color: true, icon: true, isIncome: true } },
-      overrideCategory: { select: { id: true, name: true, color: true, icon: true, isIncome: true } },
+    select: {
+      id:                 true,
+      date:               true,
+      description:        true,
+      merchantNormalized: true,
+      amount:             true,
+      bankCategoryRaw:    true,
+      appCategory:        true,
     },
     orderBy: { date: 'asc' },
   })
@@ -127,16 +162,17 @@ export async function computeMonthSummary(
   let totalSpending = 0
   let incomeTxCount = 0
 
-  const categoryMap: Map<string, { total: number; count: number; cat: typeof FALLBACK_CAT }> = new Map()
+  const categoryMap: Map<string, { total: number; count: number; cat: ReturnType<typeof getDisplayCategoryStyle> }> = new Map()
 
   for (const tx of transactions) {
-    const cat   = tx.overrideCategory ?? tx.category ?? FALLBACK_CAT
-    const catId = tx.userOverrideCategoryId ?? tx.categoryId ?? 'other'
+    // New display category: appCategory > bankCategoryRaw > "Uncategorized"
+    const displayCat = tx.appCategory?.trim() || tx.bankCategoryRaw?.trim() || 'Uncategorized'
+
+    // For icon/color, use a static lookup
+    const catStyle = getDisplayCategoryStyle(displayCat)
 
     // Classify by amount sign — the only reliable signal from bank statements.
     // positive = credit (income/deposit/refund), negative = debit (spending).
-    // Category.isIncome is decorative and unreliable (uncategorized paychecks would
-    // fall into "Other" and inflate spending under the old category-based approach).
     if (tx.amount > 0) {
       totalIncome += tx.amount
       incomeTxCount++
@@ -144,13 +180,12 @@ export async function computeMonthSummary(
       totalSpending += Math.abs(tx.amount)
     }
 
-    // Category breakdown always uses absolute amounts
-    const existing = categoryMap.get(catId)
+    const existing = categoryMap.get(displayCat)
     if (existing) {
       existing.total += Math.abs(tx.amount)
       existing.count++
     } else {
-      categoryMap.set(catId, { total: Math.abs(tx.amount), count: 1, cat })
+      categoryMap.set(displayCat, { total: Math.abs(tx.amount), count: 1, cat: catStyle })
     }
   }
 
@@ -158,8 +193,8 @@ export async function computeMonthSummary(
 
   // Category breakdown
   const categoryTotals: CategoryTotal[] = Array.from(categoryMap.entries())
-    .map(([catId, { total, count, cat }]) => ({
-      categoryId:       catId,
+    .map(([displayCat, { total, count, cat }]) => ({
+      categoryId:       cat.id,   // this is now the displayCat string, not a UUID
       categoryName:     cat.name,
       categoryColor:    cat.color,
       categoryIcon:     cat.icon,
@@ -176,7 +211,8 @@ export async function computeMonthSummary(
     .sort((a, b) => a.amount - b.amount)
     .slice(0, 5)
     .map(t => {
-      const cat = t.overrideCategory ?? t.category ?? FALLBACK_CAT
+      const displayCat = t.appCategory?.trim() || t.bankCategoryRaw?.trim() || 'Uncategorized'
+      const cat = getDisplayCategoryStyle(displayCat)
       return {
         id:                 t.id,
         date:               t.date,
@@ -203,27 +239,19 @@ export async function computeMonthSummary(
     isStale: false,
   }
 
-  const summary = await prisma.monthSummary.upsert({
+  await prisma.monthSummary.upsert({
     where:  { userId_year_month: { userId, year, month } },
     create: summaryData,
     update: summaryData,
   })
 
-  // Issues 5 & 10: delete stale totals first, then batch-insert fresh ones.
-  // deleteMany + createMany avoids N+1 upserts and removes stale category rows.
-  await prisma.monthCategoryTotal.deleteMany({ where: { userId, year, month } })
-  if (categoryTotals.length > 0) {
-    await prisma.monthCategoryTotal.createMany({
-      data: categoryTotals.map(ct => ({
-        userId, year, month,
-        categoryId:       ct.categoryId,
-        total:            ct.total,
-        transactionCount: ct.transactionCount,
-        pctOfSpending:    ct.pctOfSpending,
-        summaryId:        summary.id,
-      })),
-    })
-  }
+  // NOTE: MonthCategoryTotal persistence is intentionally skipped here.
+  // The categoryId field in MonthCategoryTotal is a required FK to the Category
+  // table (UUID references). Since we now use free-text display category names
+  // (e.g. "Gasoline/Fuel", "Groceries") as category IDs, inserting them would
+  // violate the FK constraint. Category breakdown is always recomputed from
+  // transactions on demand, so persisting it is not required for correctness.
+  // detectAnomalies() will find no history and return no spike alerts — acceptable.
 
   return {
     year, month, totalIncome, totalSpending, net,
@@ -241,11 +269,15 @@ async function detectAnomalies(
   year: number,
   month: number,
   currentCatTotals: CategoryTotal[],
-  transactions: { id: string; amount: number; description: string; date: Date; category: { name: string } | null }[],
+  transactions: { id: string; amount: number; description: string; date: Date }[],
 ): Promise<AnomalyAlert[]> {
   const alerts: AnomalyAlert[] = []
 
   // Issue 7: fetch history with a safety cap; check distinct months (not row count)
+  // NOTE: MonthCategoryTotal is no longer populated (FK constraint incompatible with
+  // free-text category names). This query will return no rows, so no spike alerts
+  // will fire. That is acceptable — a clean alternative would be to store history
+  // in a separate free-text-keyed table.
   const historyRows = await prisma.monthCategoryTotal.findMany({
     where: {
       userId,

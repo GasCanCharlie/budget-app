@@ -2,20 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
-import { categorizeBatch } from '@/lib/categorization/engine'
 import { isTransferDescription } from '@/lib/intelligence/transfers'
 import { normalizeMerchant } from '@/lib/categorization/engine'
-import { mapBankCategory, normalizeBankCategory } from '@/lib/categorization/bank-category-map'
+import { normalizeBankCategory } from '@/lib/categorization/bank-category-map'
 import { computeMonthSummary, getAvailableMonths } from '@/lib/intelligence/summaries'
 import { acceptFile } from '@/lib/ingestion/stage0-acceptance'
 import { parseCsvStage1, PARSER_VERSION } from '@/lib/ingestion/stage1-parse-csv'
-import { normalizeRow, detectDateFormatHint } from '@/lib/ingestion/stage2-normalize'
+import { normalizeRow } from '@/lib/ingestion/stage2-normalize'
 import { detectBank } from '@/lib/ingestion/bank-detector'
 import { selectDateOrder } from '@/lib/ingestion/date-order-scoring'
 import type { DateOrderSelectionResult } from '@/types/ingestion'
 import { runDedup } from '@/lib/ingestion/stage3-dedup'
 import { runReconciliation } from '@/lib/ingestion/stage4-reconcile'
-import { buildCanonicalString, computeCanonicalRowHash, type ImportReport } from '@/lib/ingestion/import-report'
+import { computeCanonicalRowHash, type ImportReport } from '@/lib/ingestion/import-report'
 import type { CsvXlsxSourceLocator } from '@/types/ingestion'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -178,16 +177,14 @@ export async function POST(req: NextRequest) {
     let dateAmbiguous = false
     const dateFormatSample: Array<{ line: number; rawDate: string; interpreted: string }> = []
 
-    // Collect inputs for batch categorisation (only for non-rejected rows)
+    // Collect valid entries for persistence
     interface ValidEntry {
       nt: ReturnType<typeof normalizeRow>
       sourceRowHash: string
       parsedDate: Date                    // the Date object we'll store in Transaction.date
       rawFields: Record<string, string>   // captured here so index stays correct after skips
-      merchantNormForCat: string          // cleaned merchant name used for categorization
     }
     const validEntries: ValidEntry[] = []
-    const txInputs: { description: string; amount: number }[] = []
 
     for (const row of parseResult.rows) {
       // Idempotency check first (before Stage 2 work) — same raw content → skip
@@ -239,39 +236,12 @@ export async function POST(req: NextRequest) {
         totalUnresolved++
       }
 
-      // Pre-compute merchant-normalized name here so we can pass it to
-      // categorizeBatch().  Using the normalized name (city/card-noise stripped)
-      // gives the keyword matcher and AI a much cleaner signal than descriptionRaw.
-      const merchantNormForCat = normalizeMerchant(nt.descriptionNormalized || nt.descriptionRaw)
-
-      validEntries.push({ nt, sourceRowHash, parsedDate, rawFields: row.fields, merchantNormForCat })
-      txInputs.push({
-        description: merchantNormForCat || nt.descriptionRaw,
-        amount:      nt.amount.value != null ? parseFloat(nt.amount.value) : 0,
-      })
+      validEntries.push({ nt, sourceRowHash, parsedDate, rawFields: row.fields })
     }
-
-    // ── Load system categories for bank category mapping ─────────────────────
-    const systemCategories = await prisma.category.findMany({
-      where: { isSystem: true },
-      select: { id: true, name: true },
-    })
-
-    // ── Batch categorise ──────────────────────────────────────────────────────
-    const categories = await categorizeBatch(txInputs, payload.userId)
 
     // ── Persist TransactionRaw + Transaction + IngestionIssues ───────────────
     for (let i = 0; i < validEntries.length; i++) {
       const { nt, sourceRowHash, parsedDate, rawFields } = validEntries[i]
-      let cat = categories[i]
-
-      // ── Bank category override ─────────────────────────────────────────────
-      if (nt.bankCategory) {
-        const bankResult = mapBankCategory(nt.bankCategory, systemCategories)
-        if (bankResult.categoryId !== null) {
-          cat = { categoryId: bankResult.categoryId, categoryName: '', confidence: 1.0, source: 'bank' as const }
-        }
-      }
 
       const merchantNorm = normalizeMerchant(nt.descriptionNormalized || nt.descriptionRaw)
       const isTransfer   = isTransferDescription(nt.descriptionRaw)
@@ -320,9 +290,6 @@ export async function POST(req: NextRequest) {
             description:          nt.descriptionNormalized || nt.descriptionRaw,
             merchantNormalized:   merchantNorm,
             amount:               amountNum,
-            categoryId:           cat.categoryId,
-            categorizationSource: cat.source,
-            confidenceScore:      cat.confidence,
             isTransfer,
             isForeignCurrency:    nt.amount.currencyDetected !== null,
             foreignAmount:        null,

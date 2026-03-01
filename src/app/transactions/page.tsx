@@ -56,6 +56,7 @@ interface Transaction {
   reviewedByUser:       boolean
   category:             TxCategory | null
   bankCategoryRaw?:     string | null
+  appCategory?:         string | null
   // Ingestion fields
   ingestionStatus:      string
   isPossibleDuplicate:  boolean
@@ -437,6 +438,11 @@ function TransactionRow({
               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">
                 <span className="text-[10px] font-medium text-blue-500 uppercase tracking-wide">Bank:</span>
                 <span className="text-blue-600">{tx.bankCategoryRaw}</span>
+              </span>
+            )}
+            {tx.appCategory && (
+              <span className="text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded font-medium">
+                {tx.appCategory}
               </span>
             )}
           </div>

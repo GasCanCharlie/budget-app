@@ -1,31 +1,15 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, ArrowRight, Loader2, AlertCircle, ChevronRight } from 'lucide-react'
+import { CheckCircle2, Loader2, AlertCircle, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
-import { CategoryIcon } from '@/components/CategoryIcon'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-interface Category {
-  id: string
-  name: string
-  icon: string
-  color: string
-  isSystem: boolean
-}
-
-interface TxCategory {
-  id: string
-  name: string
-  color: string
-  icon: string
-}
 
 interface Transaction {
   id: string
@@ -34,29 +18,23 @@ interface Transaction {
   merchantNormalized: string
   amount: number
   isTransfer: boolean
-  categorizationSource: 'rule' | 'ai' | 'user' | 'bank'
+  categorizationSource: string
   confidenceScore: number
   reviewedByUser: boolean
-  category: TxCategory | null
+  category: { id: string; name: string; color: string; icon: string } | null
   bankCategoryRaw?: string | null
+  appCategory?: string | null
 }
 
-type FilterMode = 'needs-review' | 'all'
+type FilterMode = 'all' | 'no-category' | 'has-category'
 
-interface ConfirmState {
-  transaction: Transaction
-  category: Category
-  similarCount: number
+// ─── Toast prompt for "apply to all" ─────────────────────────────────────────
+
+interface ApplyAllPrompt {
+  txId: string
+  merchantNormalized: string
+  appCategory: string
 }
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const CATEGORY_ORDER = [
-  'Food & Dining', 'Groceries', 'Housing', 'Transport', 'Entertainment',
-  'Shopping', 'Health', 'Utilities', 'Subscriptions', 'Personal Care',
-  'Education', 'Travel', 'Insurance', 'Pets', 'Gifts & Charity',
-  'Fees & Charges', 'Income', 'Transfer', 'Other',
-]
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -69,51 +47,155 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-// ─── Transaction Card ────────────────────────────────────────────────────────
+// ─── AppCategoryPicker ────────────────────────────────────────────────────────
+
+function AppCategoryPicker({
+  txId,
+  appCategory,
+  existingCategories,
+  onAssign,
+  onClear,
+}: {
+  txId: string
+  appCategory?: string | null
+  existingCategories: string[]
+  onAssign: (txId: string, value: string) => void
+  onClear: (txId: string) => void
+}) {
+  const [open, setOpen]     = useState(false)
+  const [search, setSearch] = useState('')
+  const inputRef            = useRef<HTMLInputElement>(null)
+  const containerRef        = useRef<HTMLDivElement>(null)
+
+  // Auto-focus input when dropdown opens
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 0)
+    } else {
+      setSearch('')
+    }
+  }, [open])
+
+  // Close on click outside
+  useEffect(() => {
+    if (!open) return
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [open])
+
+  const filtered = existingCategories.filter(c =>
+    c.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const showCreate = search.trim().length > 0 &&
+    !existingCategories.some(c => c.toLowerCase() === search.trim().toLowerCase())
+
+  function handleSelect(value: string) {
+    onAssign(txId, value.trim())
+    setOpen(false)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      if (showCreate) {
+        handleSelect(search.trim())
+      } else if (filtered.length > 0) {
+        handleSelect(filtered[0])
+      }
+    }
+    if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  if (appCategory) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-200">
+        {appCategory}
+        <button
+          onClick={e => { e.stopPropagation(); onClear(txId) }}
+          className="ml-0.5 text-green-500 hover:text-green-700 transition leading-none"
+          title="Clear category"
+        >
+          <X size={10} />
+        </button>
+      </span>
+    )
+  }
+
+  return (
+    <div ref={containerRef} className="relative inline-block">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 border border-dashed border-slate-300 px-1.5 py-0.5 rounded hover:border-green-400 hover:text-green-600 transition"
+      >
+        + Add category
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 w-52 rounded-lg border border-slate-200 bg-white shadow-lg">
+          <div className="p-1.5 border-b border-slate-100">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search or type new…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-green-400"
+            />
+          </div>
+          <div className="max-h-44 overflow-y-auto py-1">
+            {showCreate && (
+              <button
+                onClick={() => handleSelect(search.trim())}
+                className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-50 transition text-left"
+              >
+                <span className="text-green-500">+</span>
+                Create &ldquo;{search.trim()}&rdquo;
+              </button>
+            )}
+            {filtered.map(cat => (
+              <button
+                key={cat}
+                onClick={() => handleSelect(cat)}
+                className="flex w-full items-center px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 transition text-left"
+              >
+                {cat}
+              </button>
+            ))}
+            {filtered.length === 0 && !showCreate && (
+              <p className="px-3 py-2 text-[10px] text-slate-400 italic">
+                No categories yet — type to create one
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Transaction Card ─────────────────────────────────────────────────────────
 
 function TxCard({
   tx,
-  index,
-  isSelected,
-  onSelect,
-  onDragStart,
-  onDragEnd,
-  onTouchStart,
+  existingCategories,
+  onAssign,
+  onClear,
 }: {
   tx: Transaction
-  index: number
-  isSelected: boolean
-  onSelect: (id: string) => void
-  onDragStart: (tx: Transaction) => void
-  onDragEnd: () => void
-  onTouchStart: (tx: Transaction, e: React.TouchEvent) => void
+  existingCategories: string[]
+  onAssign: (txId: string, value: string) => void
+  onClear: (txId: string) => void
 }) {
-  const srcIcon = tx.categorizationSource === 'user'
-    ? '✏️'
-    : tx.categorizationSource === 'bank'
-      ? '🏦'
-      : tx.categorizationSource === 'rule'
-        ? '⚙️'
-        : '🤖'
-  const lowConf  = tx.categorizationSource === 'ai' && tx.confidenceScore < 0.75
-
   return (
-    <div
-      draggable
-      onDragStart={e => { e.dataTransfer.setData('text/plain', tx.id); e.dataTransfer.effectAllowed = 'move'; onDragStart(tx) }}
-      onDragEnd={onDragEnd}
-      onTouchStart={e => onTouchStart(tx, e)}
-      onClick={() => onSelect(tx.id)}
-      tabIndex={0}
-      className={clsx(
-        'group relative flex cursor-grab items-start gap-3 rounded-lg border bg-white p-3 transition-all active:cursor-grabbing touch-none select-none',
-        isSelected ? 'border-accent-500 ring-2 ring-accent-200' : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
-      )}
-    >
-      <div className="mt-0.5 flex-shrink-0 text-slate-300 group-hover:text-slate-400">
-        <GripVertical size={16} />
-      </div>
-
+    <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3 hover:border-slate-300 hover:shadow-sm transition-all">
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <p className="truncate text-sm font-semibold text-slate-900">
@@ -124,448 +206,56 @@ function TxCard({
           </p>
         </div>
 
-        <p className="mt-0.5 truncate text-xs text-slate-400">{fmtDate(tx.date)}</p>
+        <p className="mt-0.5 text-xs text-slate-400">{fmtDate(tx.date)}</p>
 
-        <div className="mt-1.5 flex items-center gap-1.5">
-          <span className="text-xs">{srcIcon}</span>
-          {tx.categorizationSource === 'bank' && (
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600">
-              Bank
-            </span>
-          )}
-          <span className={clsx(
-            'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-            tx.category ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'
-          )}>
-            {tx.category?.name ?? 'Uncategorized'}
-          </span>
-          {lowConf && (
-            <span className="text-xs text-amber-500">{(tx.confidenceScore * 100).toFixed(0)}%</span>
-          )}
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {tx.bankCategoryRaw && (
             <span className="text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full font-medium">
-              🏦 {tx.bankCategoryRaw}
+              {tx.bankCategoryRaw}
             </span>
           )}
+          <AppCategoryPicker
+            txId={tx.id}
+            appCategory={tx.appCategory}
+            existingCategories={existingCategories}
+            onAssign={onAssign}
+            onClear={onClear}
+          />
         </div>
       </div>
-
-      {/* Selected indicator */}
-      {isSelected && (
-        <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-500 text-[10px] font-bold text-white">
-          {index + 1}
-        </div>
-      )}
     </div>
   )
 }
 
-// ─── Category Drop Target ────────────────────────────────────────────────────
+// ─── Apply-to-all Toast ───────────────────────────────────────────────────────
 
-function CategoryBucket({
-  cat,
-  index,
-  isDragging,
-  isHovered,
-  hasSelected,
-  isExpanded,
-  isReorderDragging,
-  isReorderOver,
-  onDragOver,
-  onDragEnter,
-  onDragLeave,
-  onDrop,
-  onRegisterRef,
-  onClickAssign,
-  onToggleExpand,
-  onReorderDragStart,
-  onReorderDragOver,
-  onReorderDrop,
-  onReorderDragEnd,
-  txCount,
-}: {
-  cat: Category
-  index: number
-  isDragging: boolean
-  isHovered: boolean
-  hasSelected: boolean
-  isExpanded: boolean
-  isReorderDragging: boolean
-  isReorderOver: boolean
-  onDragOver: (e: React.DragEvent) => void
-  onDragEnter: (id: string) => void
-  onDragLeave: () => void
-  onDrop: (id: string) => void
-  onRegisterRef: (cat: Category, el: HTMLDivElement | null) => void
-  onClickAssign: (id: string) => void
-  onToggleExpand: (id: string) => void
-  onReorderDragStart: (id: string) => void
-  onReorderDragOver: (id: string) => void
-  onReorderDrop: (id: string) => void
-  onReorderDragEnd: () => void
-  txCount?: number
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    onRegisterRef(cat, ref.current)
-    return () => onRegisterRef(cat, null)
-  }, [cat, onRegisterRef])
-
-  return (
-    <div
-      ref={ref}
-      onDragOver={e => {
-        e.preventDefault()
-        if (isReorderDragging) {
-          e.dataTransfer.dropEffect = 'move'
-          onReorderDragOver(cat.id)
-        } else {
-          e.dataTransfer.dropEffect = 'move'
-          onDragOver(e)
-        }
-      }}
-      onDragEnter={e => {
-        e.preventDefault()
-        if (!isReorderDragging) onDragEnter(cat.id)
-      }}
-      onDragLeave={onDragLeave}
-      onDrop={e => {
-        e.preventDefault()
-        const data = e.dataTransfer.getData('text/plain')
-        if (data.startsWith('reorder:')) {
-          onReorderDrop(cat.id)
-        } else {
-          onDrop(cat.id)
-        }
-      }}
-      onClick={() => {
-        if (!isDragging) onToggleExpand(cat.id)
-      }}
-      className={clsx(
-        'flex items-center gap-2 rounded-lg border-2 border-dashed px-3 py-2.5 transition-all',
-        isHovered && isDragging
-          ? 'scale-[1.02] border-solid border-accent-500 bg-accent-50 shadow-md'
-          : isDragging
-            ? 'border-slate-200 bg-slate-50'
-            : 'border-transparent bg-white hover:bg-slate-50',
-        hasSelected && !isDragging ? 'cursor-pointer hover:border-slate-300' : !isDragging ? 'cursor-pointer' : '',
-        isReorderOver && isReorderDragging ? 'border-dashed border-2 border-accent-400 bg-accent-50' : ''
-      )}
-    >
-      {/* Reorder grip */}
-      <div
-        draggable
-        onDragStart={e => {
-          e.stopPropagation()
-          e.dataTransfer.setData('text/plain', 'reorder:' + cat.id)
-          e.dataTransfer.effectAllowed = 'move'
-          onReorderDragStart(cat.id)
-        }}
-        onDragEnd={e => { e.stopPropagation(); onReorderDragEnd() }}
-        className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 flex-shrink-0 px-0.5 touch-none"
-        title="Drag to reorder"
-      >
-        <GripVertical size={14} />
-      </div>
-
-      <CategoryIcon name={cat.icon} color={cat.color} size={20} />
-      <span className="flex-1 text-sm font-medium text-slate-700">{cat.name}</span>
-      {txCount != null && txCount > 0 && (
-        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-          {txCount}
-        </span>
-      )}
-      {index < 9 && (
-        <kbd className="hidden rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 sm:inline-block">
-          {index + 1}
-        </kbd>
-      )}
-      {!isDragging && (
-        <ChevronRight
-          size={14}
-          className={clsx(
-            'flex-shrink-0 text-slate-300 transition-transform duration-150',
-            isExpanded ? 'rotate-90' : ''
-          )}
-        />
-      )}
-      {isDragging && isHovered && <ArrowRight size={14} className="animate-pulse text-accent-500" />}
-    </div>
-  )
-}
-
-// ─── Confirmation Modal ───────────────────────────────────────────────────────
-
-function ConfirmModal({
-  state,
-  onApplyOne,
+function ApplyAllToast({
+  prompt,
   onApplyAll,
-  onCancel,
-  isPending,
+  onDismiss,
 }: {
-  state: ConfirmState
-  onApplyOne: () => void
+  prompt: ApplyAllPrompt
   onApplyAll: () => void
-  onCancel: () => void
-  isPending: boolean
+  onDismiss: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-        <div className="mb-4 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-100">
-            <CategoryIcon name={state.category.icon} color={state.category.color} size={20} />
-          </span>
-          <div>
-            <h3 className="font-bold text-slate-900">Move to {state.category.name}?</h3>
-            <p className="text-sm text-slate-500">
-              &ldquo;{state.transaction.merchantNormalized || state.transaction.description}&rdquo;
-            </p>
-          </div>
-        </div>
-
-        {state.similarCount > 1 && (
-          <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-            <strong>{state.similarCount}</strong> unreviewed transactions from{' '}
-            <strong>{state.transaction.merchantNormalized}</strong> found.
-            Apply to all + save as a rule for future imports?
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <button
-            onClick={onCancel}
-            disabled={isPending}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onApplyOne}
-            disabled={isPending}
-            className="rounded-lg border border-accent-200 bg-accent-50 px-4 py-2 text-sm font-medium text-accent-700 hover:bg-accent-100 disabled:opacity-50"
-          >
-            {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Just this one'}
-          </button>
-          {state.similarCount > 1 && (
-            <button
-              onClick={onApplyAll}
-              disabled={isPending}
-              className="btn-primary"
-            >
-              {isPending
-                ? <Loader2 size={14} className="inline animate-spin" />
-                : `Apply to all ${state.similarCount}`}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Touch Ghost ──────────────────────────────────────────────────────────────
-
-function TouchGhost({ tx, pos }: { tx: Transaction | null; pos: { x: number; y: number } | null }) {
-  if (!tx || !pos) return null
-  return (
-    <div
-      className="pointer-events-none fixed z-[100] max-w-[180px] rounded-lg border border-accent-300 bg-white/90 p-2 shadow-lg backdrop-blur-sm"
-      style={{ left: pos.x - 90, top: pos.y - 30 }}
-    >
-      <p className="truncate text-xs font-semibold text-slate-900">{tx.merchantNormalized || tx.description}</p>
-      <p className="text-[10px] text-slate-500">{fmtAmt(tx.amount)}</p>
-    </div>
-  )
-}
-
-// ─── Category Transaction List ────────────────────────────────────────────────
-
-const SOURCE_LABELS: Record<string, string> = {
-  rule: '⚙️ Rule',
-  ai:   '🤖 AI',
-  user: '✏️ You',
-  bank: '🏦 Bank',
-}
-
-function CategoryTransactionList({
-  catId,
-  catName,
-  apiFetch,
-  categories,
-  onMove,
-}: {
-  catId: string
-  catName: string
-  apiFetch: (url: string, opts?: RequestInit) => Promise<unknown>
-  categories: Category[]
-  onMove: (txId: string, newCatId: string, applyToAll: boolean) => void
-}) {
-  const [movingId, setMovingId] = useState<string | null>(null)
-  const [catSearch, setCatSearch] = useState('')
-  const [pendingMove, setPendingMove] = useState<{ txId: string; catId: string; count: number; catName: string } | null>(null)
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['cat-transactions', catId],
-    queryFn: () => apiFetch('/api/transactions?category=' + catId + '&limit=100'),
-  })
-
-  const txs: Transaction[] = (data as { transactions?: Transaction[] })?.transactions ?? []
-
-  if (isLoading) {
-    return (
-      <div className="mt-1 mb-1 ml-8 px-3 py-2 flex items-center gap-1.5 text-xs text-slate-400">
-        <Loader2 size={12} className="animate-spin" />
-        Loading…
-      </div>
-    )
-  }
-
-  if (txs.length === 0) {
-    return (
-      <div className="mt-1 mb-1 ml-8 px-3 py-2 text-xs text-slate-400 italic">
-        No transactions assigned to {catName} yet
-      </div>
-    )
-  }
-
-  return (
-    <div className="mt-1.5 mb-1 ml-2 mr-1 rounded-xl border border-slate-100 bg-white shadow-sm overflow-y-auto max-h-72">
-      {txs.map(tx => (
-        <div key={tx.id} className="px-3 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
-          <div className="flex items-start gap-2.5">
-            {/* Category icon */}
-            <div className="w-7 flex-shrink-0 flex items-center justify-center mt-0.5">
-              <CategoryIcon name={tx.category?.icon ?? 'Package'} color={tx.category?.color} size={16} />
-            </div>
-
-            {/* Main content */}
-            <div className="flex-1 min-w-0">
-              {/* Name + amount row */}
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-semibold text-sm text-slate-800 truncate">
-                  {tx.merchantNormalized || tx.description}
-                </span>
-                <span className={clsx('font-bold text-sm flex-shrink-0', tx.amount >= 0 ? 'text-green-700' : 'text-red-700')}>
-                  {tx.amount >= 0 ? '+' : '-'}{fmtAmt(tx.amount)}
-                </span>
-              </div>
-
-              {/* Badge row */}
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span className="text-xs text-slate-400">{fmtDate(tx.date)}</span>
-                {tx.category && (
-                  <span className="badge bg-slate-100 text-slate-600 text-xs">
-                    {tx.category.name}
-                  </span>
-                )}
-                <span className="text-xs text-slate-300">
-                  {SOURCE_LABELS[tx.categorizationSource]}
-                </span>
-              </div>
-              {tx.bankCategoryRaw && (
-                <div className="mt-0.5 flex items-center gap-1">
-                  <span className="text-[10px] font-medium text-blue-500 uppercase tracking-wide">Bank:</span>
-                  <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
-                    {tx.bankCategoryRaw}
-                  </span>
-                </div>
-              )}
-
-              {/* Move picker, confirm prompt, or Move button */}
-              {pendingMove?.txId === tx.id ? (
-                <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs">
-                  <p className="text-amber-800 font-medium mb-2">
-                    {pendingMove.count} transactions from <strong>{tx.merchantNormalized}</strong> at{' '}
-                    <strong>{fmtAmt(tx.amount)}</strong> found. Move all to{' '}
-                    <strong>{pendingMove.catName}</strong>?
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => { onMove(pendingMove.txId, pendingMove.catId, false); setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 hover:border-slate-400 font-medium transition"
-                    >
-                      Just this one
-                    </button>
-                    <button
-                      onClick={() => { onMove(pendingMove.txId, pendingMove.catId, true); setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="px-2.5 py-1 rounded bg-accent-500 text-white font-medium hover:bg-accent-600 transition"
-                    >
-                      Move all {pendingMove.count}
-                    </button>
-                    <button
-                      onClick={() => { setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="px-2 py-1 text-slate-400 hover:text-slate-600 transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              ) : movingId === tx.id ? (
-                <div className="mt-2">
-                  <input
-                    type="text"
-                    placeholder="Search categories…"
-                    autoFocus
-                    value={catSearch}
-                    onChange={e => setCatSearch(e.target.value)}
-                    className="w-full rounded border border-slate-200 px-2 py-1 text-xs mb-1 outline-none focus:border-accent-400"
-                  />
-                  <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
-                    {categories
-                      .filter(c => c.id !== catId && c.name.toLowerCase().includes(catSearch.toLowerCase()))
-                      .map(c => (
-                        <button
-                          key={c.id}
-                          onClick={() => {
-                            const sameCount = txs.filter(
-                              t => t.merchantNormalized === tx.merchantNormalized && t.amount === tx.amount
-                            ).length
-                            if (sameCount > 1) {
-                              setPendingMove({ txId: tx.id, catId: c.id, count: sameCount, catName: c.name })
-                            } else {
-                              onMove(tx.id, c.id, false)
-                              setMovingId(null)
-                              setCatSearch('')
-                            }
-                          }}
-                          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium hover:bg-accent-50 hover:text-accent-700 transition text-slate-700 text-left"
-                        >
-                          <CategoryIcon name={c.icon} color={c.color} size={14} />
-                          <span className="truncate">{c.name}</span>
-                        </button>
-                      ))}
-                  </div>
-                  <button
-                    onClick={() => { setMovingId(null); setCatSearch('') }}
-                    className="mt-1 text-xs text-slate-400 hover:text-slate-600 transition"
-                  >
-                    ✕ Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setMovingId(tx.id)}
-                  className="mt-1.5 flex-shrink-0 px-2 py-0.5 rounded border border-slate-200 text-[10px] font-medium text-slate-500 hover:border-accent-400 hover:text-accent-600 bg-white transition"
-                >
-                  Move
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      ))}
-      {txs.length >= 10 && (
-        <div className="px-3 py-2 border-t border-slate-100 bg-slate-50">
-          <a
-            href={`/transactions?category=${catId}`}
-            className="text-xs text-accent-600 hover:text-accent-700 font-semibold"
-          >
-            View all in Transactions →
-          </a>
-        </div>
-      )}
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">
+      <span className="text-slate-300">
+        Apply <strong className="text-white">&ldquo;{prompt.appCategory}&rdquo;</strong> to all{' '}
+        <strong className="text-white">{prompt.merchantNormalized}</strong>?
+      </span>
+      <button
+        onClick={onApplyAll}
+        className="rounded-lg bg-green-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-green-500 transition"
+      >
+        Yes, all
+      </button>
+      <button
+        onClick={onDismiss}
+        className="text-slate-400 hover:text-white transition text-xs font-semibold"
+      >
+        Just this one
+      </button>
     </div>
   )
 }
@@ -573,312 +263,130 @@ function CategoryTransactionList({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CategorizePage() {
-  const router  = useRouter()
-  const user    = useAuthStore(s => s.user)
+  const router = useRouter()
+  const user   = useAuthStore(s => s.user)
   const { apiFetch } = useApi()
-  const qc      = useQueryClient()
+  const qc     = useQueryClient()
 
   useEffect(() => { if (!user) router.replace('/') }, [user, router])
 
-  const [filterMode,   setFilterMode]   = useState<FilterMode>('needs-review')
-  const [selectedId,   setSelectedId]   = useState<string | null>(null)
-  const [dragging,     setDragging]     = useState<Transaction | null>(null)
-  const [hoveredCatId, setHoveredCatId] = useState<string | null>(null)
-  const [confirm,      setConfirm]      = useState<ConfirmState | null>(null)
-  const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
+  const [filterMode,    setFilterMode]    = useState<FilterMode>('all')
+  const [searchText,    setSearchText]    = useState('')
+  const [applyAllPrompt, setApplyAllPrompt] = useState<ApplyAllPrompt | null>(null)
 
-  // Touch drag state
-  const [touchTx,  setTouchTx]  = useState<Transaction | null>(null)
-  const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null)
-  const [touchCatId, setTouchCatId] = useState<string | null>(null)
-  const catRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  // ── Transactions query ──────────────────────────────────────────────────────
 
-  // Reorder drag state
-  const [reorderDragId, setReorderDragId] = useState<string | null>(null)
-  const [reorderOverId, setReorderOverId] = useState<string | null>(null)
-
-  // ── Re-run categorization ──────────────────────────────────────────────────
-  const [rerunResult, setRerunResult] = useState<{ updated: number; total: number; skipped: number } | null>(null)
-
-  const rerunMutation = useMutation({
-    mutationFn: () => apiFetch('/api/categorize/rerun', { method: 'POST' }) as Promise<{ updated: number; total: number; skipped: number }>,
-    onSuccess: (data) => {
-      setRerunResult(data)
-      qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
-      qc.invalidateQueries({ queryKey: ['cat-transactions'] })
-      qc.invalidateQueries({ queryKey: ['summary'] })
-    },
-  })
-
-  // ── Data ──
   const { data: txData, isLoading: txLoading, error: txError } = useQuery({
-    queryKey: ['categorize-transactions'],
-    queryFn: () => apiFetch('/api/transactions?limit=500'),
-    enabled: !!user,
-  })
-
-  const { data: catData, isLoading: catLoading } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => apiFetch('/api/categories'),
+    queryKey: ['transactions', 'categorize'],
+    queryFn: () => apiFetch('/api/transactions?page=1&limit=100'),
     enabled: !!user,
   })
 
   const allTxs: Transaction[] = txData?.transactions ?? []
 
-  // Build sorted categories (initial order from CATEGORY_ORDER or localStorage)
-  const rawCategories: Category[] = useMemo(() => {
-    const cats: Category[] = catData?.categories ?? []
-    return [...cats].sort((a, b) => {
-      const ai = CATEGORY_ORDER.indexOf(a.name)
-      const bi = CATEGORY_ORDER.indexOf(b.name)
-      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
-    })
-  }, [catData])
+  // ── App categories query ────────────────────────────────────────────────────
 
-  // Category order — persisted to localStorage
-  const [catOrder, setCatOrder] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('budgetlens:cat-order')
-      if (saved) return JSON.parse(saved) as string[]
-    } catch { /* ignore */ }
-    return []
+  const { data: appCatsData } = useQuery({
+    queryKey: ['app-categories'],
+    queryFn: () => apiFetch('/api/categories/app-categories'),
+    enabled: !!user,
   })
+  const existingAppCategories: string[] = appCatsData?.categories ?? []
 
-  const categories: Category[] = useMemo(() => {
-    if (catOrder.length === 0) return rawCategories
-    // Apply saved order: known IDs first (in saved order), then any new ones appended
-    const idToPos = new Map(catOrder.map((id, i) => [id, i]))
-    return [...rawCategories].sort((a, b) => {
-      const ai = idToPos.get(a.id) ?? 9999
-      const bi = idToPos.get(b.id) ?? 9999
-      return ai - bi
-    })
-  }, [rawCategories, catOrder])
+  // ── Assign mutation ─────────────────────────────────────────────────────────
 
-  const queueTxs: Transaction[] = useMemo(() => {
-    if (filterMode === 'all') return allTxs.filter(t => !t.isTransfer)
-    return allTxs.filter(t => {
-      if (t.isTransfer) return false
-      if (t.reviewedByUser) return false
-      if (!t.category || t.category.name === 'Other') return true
-      if (t.categorizationSource === 'ai' && t.confidenceScore < 0.75) return true
-      return false
-    })
-  }, [allTxs, filterMode])
-
-  const needsReviewCount = useMemo(() => allTxs.filter(t => {
-    if (t.isTransfer || t.reviewedByUser) return false
-    if (!t.category || t.category.name === 'Other') return true
-    if (t.categorizationSource === 'ai' && t.confidenceScore < 0.75) return true
-    return false
-  }).length, [allTxs])
-
-  const txCountByCat = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const tx of allTxs) {
-      const catId = tx.category?.id
-      if (catId) map.set(catId, (map.get(catId) ?? 0) + 1)
-    }
-    return map
-  }, [allTxs])
-
-  // ── Mutation ──
-  const updateMutation = useMutation({
-    mutationFn: ({ id, categoryId, applyToAll }: { id: string; categoryId: string; applyToAll: boolean }) =>
+  const assignMutation = useMutation({
+    mutationFn: ({ id, appCategory, applyToAll }: { id: string; appCategory: string | null; applyToAll?: boolean }) =>
       apiFetch(`/api/transactions/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ categoryId, applyToAll }),
+        body: JSON.stringify({ appCategory, applyToAll: applyToAll ?? false }),
       }),
-    onMutate: async ({ id, applyToAll, categoryId: _categoryId }) => {
-      // Cancel any in-flight refetches
-      await qc.cancelQueries({ queryKey: ['categorize-transactions'] })
-      // Snapshot previous data for rollback
-      const prev = qc.getQueryData(['categorize-transactions'])
-      // Optimistically remove the categorized transaction(s) from the list
-      qc.setQueryData(['categorize-transactions'], (old: { transactions: Transaction[] } | undefined) => {
-        if (!old) return old
-        // Find the affected tx for applyToAll matching (same merchant + same amount)
-        const affectedTx = old.transactions.find(t => t.id === id)
-        const merchant = affectedTx?.merchantNormalized
-        const amount   = affectedTx?.amount
-        const removeIds = new Set(
-          applyToAll && merchant
-            ? old.transactions.filter(t => t.merchantNormalized === merchant && t.amount === amount && !t.reviewedByUser).map(t => t.id)
-            : [id]
-        )
-        return { ...old, transactions: old.transactions.filter(t => !removeIds.has(t.id)) }
-      })
-      return { prev }
-    },
-    onError: (_err, _vars, ctx) => {
-      // Roll back on error
-      if (ctx?.prev) qc.setQueryData(['categorize-transactions'], ctx.prev)
-    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
-      qc.invalidateQueries({ queryKey: ['cat-transactions'] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
-      qc.invalidateQueries({ queryKey: ['summary'] })
+      qc.invalidateQueries({ queryKey: ['app-categories'] })
     },
   })
 
-  // ── Helpers ──
-  const countSimilar = useCallback((merchant: string, amount: number) =>
-    allTxs.filter(t => t.merchantNormalized === merchant && t.amount === amount && !t.reviewedByUser).length,
-    [allTxs]
-  )
+  // ── Handlers ────────────────────────────────────────────────────────────────
 
-  const initiateAssign = useCallback((tx: Transaction, categoryId: string) => {
-    const cat = categories.find(c => c.id === categoryId)
-    if (!cat) return
-    const similarCount = countSimilar(tx.merchantNormalized, tx.amount)
-    if (similarCount <= 1) {
-      // Only one transaction at this price — assign directly, no popup
-      updateMutation.mutate({ id: tx.id, categoryId, applyToAll: false })
-      setSelectedId(null)
-      return
-    }
-    setConfirm({ transaction: tx, category: cat, similarCount })
-  }, [categories, countSimilar, updateMutation])
-
-  // ── Drag handlers ──
-  const handleDragEnd = useCallback(() => {
-    setDragging(null)
-    setHoveredCatId(null)
-  }, [])
-
-  const handleDrop = useCallback((categoryId: string) => {
-    if (dragging) initiateAssign(dragging, categoryId)
-    setDragging(null)
-    setHoveredCatId(null)
-  }, [dragging, initiateAssign])
-
-  const handleClickAssign = useCallback((categoryId: string) => {
-    const tx = queueTxs.find(t => t.id === selectedId)
-    if (tx) initiateAssign(tx, categoryId)
-  }, [selectedId, queueTxs, initiateAssign])
-
-  // ── Reorder handlers ──
-  const handleCatReorderStart = useCallback((catId: string) => {
-    setReorderDragId(catId)
-  }, [])
-
-  const handleCatReorderOver = useCallback((catId: string) => {
-    setReorderOverId(catId)
-  }, [])
-
-  const handleCatReorderDrop = useCallback((targetId: string) => {
-    if (!reorderDragId || reorderDragId === targetId) {
-      setReorderDragId(null); setReorderOverId(null); return
-    }
-    setCatOrder(prev => {
-      const order = prev.length > 0 ? prev : categories.map(c => c.id)
-      const from = order.indexOf(reorderDragId)
-      const to   = order.indexOf(targetId)
-      if (from === -1 || to === -1) return prev
-      const next = [...order]
-      next.splice(from, 1)
-      next.splice(to, 0, reorderDragId)
-      localStorage.setItem('budgetlens:cat-order', JSON.stringify(next))
-      return next
+  const handleAssign = useCallback((txId: string, value: string) => {
+    const tx = allTxs.find(t => t.id === txId)
+    // Optimistic update in local query cache
+    qc.setQueryData(['transactions', 'categorize'], (old: { transactions: Transaction[] } | undefined) => {
+      if (!old) return old
+      return {
+        ...old,
+        transactions: old.transactions.map(t =>
+          t.id === txId ? { ...t, appCategory: value } : t
+        ),
+      }
     })
-    setReorderDragId(null); setReorderOverId(null)
-  }, [reorderDragId, categories])
-
-  const handleCatReorderEnd = useCallback(() => {
-    setReorderDragId(null); setReorderOverId(null)
-  }, [])
-
-  // ── Touch drag ──
-  const registerCatRef = useCallback((cat: Category, el: HTMLDivElement | null) => {
-    if (el) catRefs.current.set(cat.id, el)
-    else    catRefs.current.delete(cat.id)
-  }, [])
-
-  const handleTouchStart = useCallback((tx: Transaction, e: React.TouchEvent) => {
-    const t = e.touches[0]
-    setTouchTx(tx)
-    setTouchPos({ x: t.clientX, y: t.clientY })
-    setDragging(tx)
-  }, [])
-
-  useEffect(() => {
-    if (!touchTx) return
-
-    const onMove = (e: TouchEvent) => {
-      e.preventDefault()
-      const t = e.touches[0]
-      setTouchPos({ x: t.clientX, y: t.clientY })
-      let found: string | null = null
-      catRefs.current.forEach((el, catId) => {
-        const r = el.getBoundingClientRect()
-        if (t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom)
-          found = catId
-      })
-      setTouchCatId(found)
-      setHoveredCatId(found)
+    assignMutation.mutate({ id: txId, appCategory: value, applyToAll: false })
+    // Show "apply to all" prompt if merchant is known
+    if (tx?.merchantNormalized) {
+      setApplyAllPrompt({ txId, merchantNormalized: tx.merchantNormalized, appCategory: value })
+      // Auto-dismiss after 8 seconds
+      setTimeout(() => setApplyAllPrompt(p => p?.txId === txId ? null : p), 8000)
     }
+  }, [allTxs, assignMutation, qc])
 
-    const onEnd = () => {
-      if (touchCatId && touchTx) initiateAssign(touchTx, touchCatId)
-      setTouchTx(null); setTouchPos(null); setDragging(null)
-      setHoveredCatId(null); setTouchCatId(null)
-    }
-
-    document.addEventListener('touchmove', onMove, { passive: false })
-    document.addEventListener('touchend', onEnd)
-    document.addEventListener('touchcancel', onEnd)
-    return () => {
-      document.removeEventListener('touchmove', onMove)
-      document.removeEventListener('touchend', onEnd)
-      document.removeEventListener('touchcancel', onEnd)
-    }
-  }, [touchTx, touchCatId, initiateAssign])
-
-  // ── Keyboard shortcuts ──
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (confirm) {
-        if (e.key === 'Escape') setConfirm(null)
-        return
+  const handleClear = useCallback((txId: string) => {
+    qc.setQueryData(['transactions', 'categorize'], (old: { transactions: Transaction[] } | undefined) => {
+      if (!old) return old
+      return {
+        ...old,
+        transactions: old.transactions.map(t =>
+          t.id === txId ? { ...t, appCategory: null } : t
+        ),
       }
-      const num = parseInt(e.key)
-      if (num >= 1 && num <= 9 && selectedId) {
-        const cat = categories[num - 1]
-        if (cat) {
-          e.preventDefault()
-          const tx = queueTxs.find(t => t.id === selectedId)
-          if (tx) initiateAssign(tx, cat.id)
+    })
+    assignMutation.mutate({ id: txId, appCategory: null })
+    setApplyAllPrompt(null)
+  }, [assignMutation, qc])
+
+  const handleApplyAll = useCallback(() => {
+    if (!applyAllPrompt) return
+    const { txId, appCategory } = applyAllPrompt
+    assignMutation.mutate({ id: txId, appCategory, applyToAll: true })
+    // Optimistically apply to all same-merchant
+    const tx = allTxs.find(t => t.id === txId)
+    if (tx?.merchantNormalized) {
+      const merchant = tx.merchantNormalized
+      qc.setQueryData(['transactions', 'categorize'], (old: { transactions: Transaction[] } | undefined) => {
+        if (!old) return old
+        return {
+          ...old,
+          transactions: old.transactions.map(t =>
+            t.merchantNormalized === merchant ? { ...t, appCategory } : t
+          ),
         }
-        return
-      }
-      if (e.key === 'ArrowDown' || e.key === 'j') {
-        e.preventDefault()
-        const idx = queueTxs.findIndex(t => t.id === selectedId)
-        const next = queueTxs[Math.min(idx + 1, queueTxs.length - 1)]
-        if (next) setSelectedId(next.id)
-      }
-      if (e.key === 'ArrowUp' || e.key === 'k') {
-        e.preventDefault()
-        const idx = queueTxs.findIndex(t => t.id === selectedId)
-        const prev = queueTxs[Math.max(idx - 1, 0)]
-        if (prev) setSelectedId(prev.id)
-      }
-      if (e.key === 'Escape') setSelectedId(null)
+      })
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [confirm, selectedId, queueTxs, categories, initiateAssign])
+    setApplyAllPrompt(null)
+  }, [applyAllPrompt, allTxs, assignMutation, qc])
 
-  // Auto-select first if none selected
-  useEffect(() => {
-    if (!selectedId && queueTxs.length > 0) setSelectedId(queueTxs[0].id)
-  }, [queueTxs, selectedId])
+  // ── Filtered transactions ────────────────────────────────────────────────────
 
-  // ── Render ──
+  const visibleTxs = allTxs.filter(tx => {
+    if (tx.isTransfer) return false
+    if (filterMode === 'no-category' && tx.appCategory) return false
+    if (filterMode === 'has-category' && !tx.appCategory) return false
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase()
+      const name = (tx.merchantNormalized || tx.description).toLowerCase()
+      if (!name.includes(q)) return false
+    }
+    return true
+  })
+
+  const noCategoryCount  = allTxs.filter(t => !t.isTransfer && !t.appCategory).length
+  const hasCategoryCount = allTxs.filter(t => !t.isTransfer && !!t.appCategory).length
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
   if (!user) return null
 
-  if (txLoading || catLoading) {
+  if (txLoading) {
     return (
       <AppShell>
         <div className="flex min-h-[60vh] items-center justify-center gap-3 text-slate-500">
@@ -895,7 +403,7 @@ export default function CategorizePage() {
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-red-600">
           <AlertCircle size={32} />
           <p className="font-semibold">Failed to load transactions</p>
-          <button onClick={() => qc.invalidateQueries({ queryKey: ['categorize-transactions'] })} className="btn-primary">
+          <button onClick={() => qc.invalidateQueries({ queryKey: ['transactions', 'categorize'] })} className="btn-primary">
             Retry
           </button>
         </div>
@@ -905,173 +413,112 @@ export default function CategorizePage() {
 
   return (
     <AppShell>
-      <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
+      <main className="max-w-3xl mx-auto px-4 py-6 pb-28">
         {/* Header */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Categorize</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              We import your bank&apos;s categories automatically. Use Categorize to refine by dragging
-              transactions or expanding a category to review what&apos;s inside.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Re-run categorization button */}
+        <div className="mb-5">
+          <h1 className="text-2xl font-bold text-slate-900">Categorize</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Assign your own labels to transactions. Bank categories are shown in blue for reference.
+          </p>
+        </div>
+
+        {/* Filter controls */}
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {/* Toggle buttons */}
+          <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-semibold">
             <button
-              onClick={() => { setRerunResult(null); rerunMutation.mutate() }}
-              disabled={rerunMutation.isPending}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition"
-              title="Re-run the categorization engine on all uncategorized / low-confidence transactions"
+              onClick={() => setFilterMode('all')}
+              className={clsx(
+                'px-3 py-1.5 transition',
+                filterMode === 'all' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-50'
+              )}
             >
-              {rerunMutation.isPending
-                ? <><Loader2 size={14} className="animate-spin" /> Re-running…</>
-                : <><ArrowRight size={14} /> Re-run Categorization</>}
+              All ({allTxs.filter(t => !t.isTransfer).length})
             </button>
-            {rerunResult && !rerunMutation.isPending && (
-              <span className="text-xs text-green-700 font-medium">
-                ✓ {rerunResult.updated} fixed
-              </span>
-            )}
-            {needsReviewCount > 0 && (
-              <span className="badge bg-amber-100 text-amber-700">
-                {needsReviewCount} need review
-              </span>
-            )}
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm font-semibold">
-              <button
-                onClick={() => setFilterMode('needs-review')}
-                className={clsx('px-3 py-1.5 transition', filterMode === 'needs-review' ? 'bg-accent-500 text-white' : 'text-slate-600 hover:bg-slate-50')}
-              >
-                Needs Review
-              </button>
-              <button
-                onClick={() => setFilterMode('all')}
-                className={clsx('px-3 py-1.5 transition', filterMode === 'all' ? 'bg-accent-500 text-white' : 'text-slate-600 hover:bg-slate-50')}
-              >
-                All
-              </button>
-            </div>
+            <button
+              onClick={() => setFilterMode('no-category')}
+              className={clsx(
+                'px-3 py-1.5 transition border-l border-slate-200',
+                filterMode === 'no-category' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-50'
+              )}
+            >
+              No category ({noCategoryCount})
+            </button>
+            <button
+              onClick={() => setFilterMode('has-category')}
+              className={clsx(
+                'px-3 py-1.5 transition border-l border-slate-200',
+                filterMode === 'has-category' ? 'bg-green-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+              )}
+            >
+              Has category ({hasCategoryCount})
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="relative flex-1 min-w-[160px]">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search merchant…"
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-xs outline-none focus:border-slate-400"
+            />
           </div>
         </div>
 
-        {queueTxs.length === 0 ? (
-          /* All caught up */
-          <div className="flex flex-col items-center justify-center py-24 text-center">
+        {/* Transaction list */}
+        {visibleTxs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle2 size={32} className="text-green-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-800">All caught up!</h2>
-            <p className="mt-2 max-w-sm text-sm text-slate-500">
-              {filterMode === 'needs-review'
-                ? 'Every transaction has been reviewed. New imports will appear here automatically.'
-                : 'No transactions to show.'}
+            <h2 className="text-lg font-bold text-slate-800">
+              {filterMode === 'no-category' ? 'All transactions categorized!' : 'No transactions found'}
+            </h2>
+            <p className="mt-1 max-w-xs text-sm text-slate-500">
+              {filterMode === 'no-category'
+                ? 'Every transaction has an app category.'
+                : 'Try adjusting your search or filter.'}
             </p>
-            <button onClick={() => router.push('/dashboard')} className="btn-primary mt-6">
-              Go to Dashboard →
-            </button>
+            {filterMode !== 'all' && (
+              <button
+                onClick={() => { setFilterMode('all'); setSearchText('') }}
+                className="mt-4 btn-primary"
+              >
+                Show all
+              </button>
+            )}
           </div>
         ) : (
-          /* Two-column layout — categories LEFT, transactions RIGHT */
-          /* On mobile they stack: categories on top so user can see drop targets first */
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-            {/* LEFT (mobile: top): Category drop targets */}
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Categories · click to expand · drag or press 1–9 to assign
-              </p>
-              <div className="space-y-1 max-h-[calc(100vh-240px)] overflow-y-auto pr-1">
-                {categories.map((cat, i) => (
-                  <div key={cat.id}>
-                    <CategoryBucket
-                      cat={cat}
-                      index={i}
-                      isDragging={!!dragging}
-                      isHovered={hoveredCatId === cat.id}
-                      hasSelected={!!selectedId}
-                      isExpanded={expandedCatId === cat.id}
-                      isReorderDragging={!!reorderDragId}
-                      isReorderOver={reorderOverId === cat.id}
-                      onDragOver={() => {}}
-                      onDragEnter={setHoveredCatId}
-                      onDragLeave={() => setHoveredCatId(null)}
-                      onDrop={handleDrop}
-                      onRegisterRef={registerCatRef}
-                      onClickAssign={handleClickAssign}
-                      onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
-                      onReorderDragStart={handleCatReorderStart}
-                      onReorderDragOver={handleCatReorderOver}
-                      onReorderDrop={handleCatReorderDrop}
-                      onReorderDragEnd={handleCatReorderEnd}
-                      txCount={txCountByCat.get(cat.id) ?? 0}
-                    />
-                    {expandedCatId === cat.id && (
-                      <CategoryTransactionList
-                        catId={cat.id}
-                        catName={cat.name}
-                        apiFetch={apiFetch}
-                        categories={categories}
-                        onMove={(txId, newCatId, applyToAll) => {
-                          updateMutation.mutate({ id: txId, categoryId: newCatId, applyToAll })
-                        }}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* RIGHT (mobile: bottom): Transaction queue */}
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                {queueTxs.length} transaction{queueTxs.length !== 1 ? 's' : ''} — drag to the left
-                {selectedId && ' · or press 1–9'}
-              </p>
-              <div className="space-y-2 max-h-[calc(100vh-240px)] overflow-y-auto pr-1">
-                {queueTxs.map((tx, i) => (
-                  <TxCard
-                    key={tx.id}
-                    tx={tx}
-                    index={i}
-                    isSelected={tx.id === selectedId}
-                    onSelect={setSelectedId}
-                    onDragStart={setDragging}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={handleTouchStart}
-                  />
-                ))}
-              </div>
-            </div>
+          <div className="space-y-2">
+            {visibleTxs.map(tx => (
+              <TxCard
+                key={tx.id}
+                tx={tx}
+                existingCategories={existingAppCategories}
+                onAssign={handleAssign}
+                onClear={handleClear}
+              />
+            ))}
           </div>
         )}
 
-        {/* Keyboard hint */}
-        <p className="mt-4 text-center text-xs text-slate-400 hidden sm:block">
-          ↑↓ or J/K to navigate · 1–9 to assign · Drag left onto a category
-        </p>
+        {/* Summary footer */}
+        {visibleTxs.length > 0 && (
+          <p className="mt-4 text-center text-xs text-slate-400">
+            Showing {visibleTxs.length} transaction{visibleTxs.length !== 1 ? 's' : ''}
+          </p>
+        )}
       </main>
 
-      {/* Touch ghost element */}
-      <TouchGhost tx={touchTx} pos={touchPos} />
-
-      {/* Confirmation modal */}
-      {confirm && (
-        <ConfirmModal
-          state={confirm}
-          isPending={updateMutation.isPending}
-          onCancel={() => setConfirm(null)}
-          onApplyOne={() => {
-            updateMutation.mutate(
-              { id: confirm.transaction.id, categoryId: confirm.category.id, applyToAll: false },
-              { onSuccess: () => { setConfirm(null); setSelectedId(null) } }
-            )
-          }}
-          onApplyAll={() => {
-            updateMutation.mutate(
-              { id: confirm.transaction.id, categoryId: confirm.category.id, applyToAll: true },
-              { onSuccess: () => { setConfirm(null); setSelectedId(null) } }
-            )
-          }}
+      {/* Apply-to-all toast */}
+      {applyAllPrompt && (
+        <ApplyAllToast
+          prompt={applyAllPrompt}
+          onApplyAll={handleApplyAll}
+          onDismiss={() => setApplyAllPrompt(null)}
         />
       )}
     </AppShell>

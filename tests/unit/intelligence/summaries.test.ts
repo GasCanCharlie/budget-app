@@ -15,29 +15,14 @@ import { computeMonthSummary, getAvailableMonths } from '@/lib/intelligence/summ
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type MockCategory = {
-  id: string
-  name: string
-  color: string
-  icon: string
-  isIncome: boolean
-}
-
 type MockTransaction = {
   id: string
   date: Date
   amount: number
   description: string
-  categoryId: string | null
-  userOverrideCategoryId: string | null
-  isTransfer: boolean
-  isExcluded: boolean
-  isDuplicate: boolean
-  isForeignCurrency: boolean
   merchantNormalized: string
-  category: MockCategory | null
-  overrideCategory: MockCategory | null
-  accountId: string
+  bankCategoryRaw: string | null
+  appCategory: string | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,22 +33,9 @@ function makeTx(overrides: Partial<MockTransaction> = {}): MockTransaction {
     date: new Date('2024-03-15'),
     amount: -50,
     description: 'STARBUCKS #1234',
-    categoryId: 'cat-food',
-    userOverrideCategoryId: null,
-    isTransfer: false,
-    isExcluded: false,
-    isDuplicate: false,
-    isForeignCurrency: false,
     merchantNormalized: 'Starbucks',
-    accountId: 'acct-1',
-    category: {
-      id: 'cat-food',
-      name: 'Food & Drink',
-      color: '#f97316',
-      icon: '🍔',
-      isIncome: false,
-    },
-    overrideCategory: null,
+    bankCategoryRaw: 'Food & Dining',
+    appCategory: null,
     ...overrides,
   }
 }
@@ -95,10 +67,9 @@ const SAVED_SUMMARY_STUB = {
 //       so prisma.transaction.findMany is NOT called a second time.)
 //   3. prisma.anomalyAlert.deleteMany
 //   4. prisma.monthSummary.upsert
-//   5. prisma.monthCategoryTotal.deleteMany
-//   6. prisma.monthCategoryTotal.createMany
 //
-// Individual tests override prisma.transaction.findMany with their own data.
+// NOTE: MonthCategoryTotal.deleteMany + createMany are intentionally NOT called
+// because categoryId is now a free-text string, incompatible with the FK constraint.
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -141,11 +112,10 @@ describe('computeMonthSummary', () => {
       expect(result.alerts).toEqual([])
     })
 
-    it('does NOT call upsert or deleteMany when there are no transactions', async () => {
+    it('does NOT call upsert when there are no transactions', async () => {
       await computeMonthSummary('user-1', 2024, 3)
 
       expect(prisma.monthSummary.upsert).not.toHaveBeenCalled()
-      expect(prisma.monthCategoryTotal.deleteMany).not.toHaveBeenCalled()
     })
   })
 
@@ -157,14 +127,15 @@ describe('computeMonthSummary', () => {
         id: 'tx-income',
         amount: 3000,
         description: 'DIRECT DEPOSIT PAYROLL',
-        categoryId: 'cat-income',
-        category: { id: 'cat-income', name: 'Income', color: '#22c55e', icon: '💰', isIncome: true },
+        bankCategoryRaw: 'Income',
+        appCategory: null,
       })
       const food = makeTx({
         id: 'tx-food',
         amount: -80,
         description: 'GROCERY STORE',
         date: new Date('2024-03-10'),
+        bankCategoryRaw: 'Groceries',
       })
 
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([salary, food] as never)
@@ -176,14 +147,13 @@ describe('computeMonthSummary', () => {
       expect(result.net).toBe(2920)
     })
 
-    it('classifies by amount sign regardless of category.isIncome flag', async () => {
-      // amount > 0 → income even if category.isIncome is false
+    it('classifies by amount sign regardless of bankCategoryRaw', async () => {
+      // amount > 0 → income even if bankCategoryRaw is 'Groceries'
       const positiveTx = makeTx({
         id: 'tx-positive',
         amount: 1000,
         description: 'REFUND',
-        categoryId: 'cat-food',
-        category: { id: 'cat-food', name: 'Food & Drink', color: '#f97316', icon: '🍔', isIncome: false },
+        bankCategoryRaw: 'Groceries',
       })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([positiveTx] as never)
 
@@ -203,16 +173,15 @@ describe('computeMonthSummary', () => {
     })
   })
 
-  // 3. overrideCategory preference ────────────────────────────────────────────
+  // 3. Display category priority: appCategory > bankCategoryRaw > "Uncategorized" ─
 
-  describe('3. Uses overrideCategory when present instead of category', () => {
-    it('uses overrideCategory name/color/icon in the category breakdown', async () => {
+  describe('3. Uses appCategory when set, falls back to bankCategoryRaw, then Uncategorized', () => {
+    it('uses appCategory as the display category when set', async () => {
       const tx = makeTx({
         id: 'tx-override',
         amount: -200,
-        userOverrideCategoryId: 'cat-override',
-        category:         { id: 'cat-food', name: 'Food & Drink', color: '#f97316', icon: '🍔', isIncome: false },
-        overrideCategory: { id: 'cat-override', name: 'Entertainment', color: '#a855f7', icon: '🎭', isIncome: false },
+        appCategory: 'Entertainment',
+        bankCategoryRaw: 'Food & Dining',
       })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([tx] as never)
 
@@ -220,39 +189,51 @@ describe('computeMonthSummary', () => {
 
       expect(result.categoryTotals).toHaveLength(1)
       expect(result.categoryTotals[0].categoryName).toBe('Entertainment')
-      expect(result.categoryTotals[0].categoryColor).toBe('#a855f7')
-      expect(result.categoryTotals[0].categoryId).toBe('cat-override')
+      expect(result.categoryTotals[0].categoryId).toBe('Entertainment')
     })
 
-    it('falls back to category when overrideCategory is null', async () => {
+    it('falls back to bankCategoryRaw when appCategory is null', async () => {
       const tx = makeTx({
-        id: 'tx-no-override',
+        id: 'tx-bank-cat',
         amount: -50,
-        overrideCategory: null,
-        category: { id: 'cat-food', name: 'Food & Drink', color: '#f97316', icon: '🍔', isIncome: false },
+        appCategory: null,
+        bankCategoryRaw: 'Gasoline/Fuel',
       })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([tx] as never)
 
       const result = await computeMonthSummary('user-1', 2024, 3)
 
-      expect(result.categoryTotals[0].categoryName).toBe('Food & Drink')
+      expect(result.categoryTotals[0].categoryName).toBe('Gasoline/Fuel')
+      expect(result.categoryTotals[0].categoryId).toBe('Gasoline/Fuel')
     })
 
-    it('falls back to FALLBACK_CAT ("Other") when both category and overrideCategory are null', async () => {
+    it('falls back to "Uncategorized" when both appCategory and bankCategoryRaw are null', async () => {
       const tx = makeTx({
         id: 'tx-no-cat',
         amount: -30,
-        categoryId: null,
-        userOverrideCategoryId: null,
-        category: null,
-        overrideCategory: null,
+        appCategory: null,
+        bankCategoryRaw: null,
       })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([tx] as never)
 
       const result = await computeMonthSummary('user-1', 2024, 3)
 
-      expect(result.categoryTotals[0].categoryId).toBe('other')
-      expect(result.categoryTotals[0].categoryName).toBe('Other')
+      expect(result.categoryTotals[0].categoryId).toBe('Uncategorized')
+      expect(result.categoryTotals[0].categoryName).toBe('Uncategorized')
+    })
+
+    it('trims whitespace from appCategory when determining the display category', async () => {
+      const tx = makeTx({
+        id: 'tx-trim',
+        amount: -40,
+        appCategory: '  Groceries  ',
+        bankCategoryRaw: 'Food & Dining',
+      })
+      vi.mocked(prisma.transaction.findMany).mockResolvedValue([tx] as never)
+
+      const result = await computeMonthSummary('user-1', 2024, 3)
+
+      expect(result.categoryTotals[0].categoryName).toBe('Groceries')
     })
   })
 
@@ -318,14 +299,13 @@ describe('computeMonthSummary', () => {
 
   describe('5. Sorts categoryTotals by total descending', () => {
     it('highest-total category appears first', async () => {
-      const txFoodA = makeTx({ id: 'tx-f1', amount: -30, date: new Date('2024-03-01') })
-      const txFoodB = makeTx({ id: 'tx-f2', amount: -40, date: new Date('2024-03-05') })
+      const txFoodA = makeTx({ id: 'tx-f1', amount: -30, date: new Date('2024-03-01'), bankCategoryRaw: 'Food & Dining' })
+      const txFoodB = makeTx({ id: 'tx-f2', amount: -40, date: new Date('2024-03-05'), bankCategoryRaw: 'Food & Dining' })
       const txEnt   = makeTx({
         id: 'tx-ent',
         amount: -200,
         date: new Date('2024-03-10'),
-        categoryId: 'cat-ent',
-        category: { id: 'cat-ent', name: 'Entertainment', color: '#a855f7', icon: '🎭', isIncome: false },
+        bankCategoryRaw: 'Entertainment',
       })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([txFoodA, txFoodB, txEnt] as never)
 
@@ -333,13 +313,13 @@ describe('computeMonthSummary', () => {
 
       expect(result.categoryTotals[0].categoryName).toBe('Entertainment')
       expect(result.categoryTotals[0].total).toBe(200)
-      expect(result.categoryTotals[1].categoryName).toBe('Food & Drink')
+      expect(result.categoryTotals[1].categoryName).toBe('Food & Dining')
       expect(result.categoryTotals[1].total).toBe(70)
     })
 
     it('accumulates multiple transactions in the same category', async () => {
-      const tx1 = makeTx({ id: 'tx-1', amount: -50, date: new Date('2024-03-01') })
-      const tx2 = makeTx({ id: 'tx-2', amount: -75, date: new Date('2024-03-10') })
+      const tx1 = makeTx({ id: 'tx-1', amount: -50, date: new Date('2024-03-01'), bankCategoryRaw: 'Groceries' })
+      const tx2 = makeTx({ id: 'tx-2', amount: -75, date: new Date('2024-03-10'), bankCategoryRaw: 'Groceries' })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([tx1, tx2] as never)
 
       const result = await computeMonthSummary('user-1', 2024, 3)
@@ -378,8 +358,7 @@ describe('computeMonthSummary', () => {
       const income   = makeTx({
         id: 'tx-income',
         amount: 2000,
-        categoryId: 'cat-income',
-        category: { id: 'cat-income', name: 'Income', color: '#22c55e', icon: '💰', isIncome: true },
+        bankCategoryRaw: 'Income',
       })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([spending, income] as never)
 
@@ -388,13 +367,13 @@ describe('computeMonthSummary', () => {
       expect(result.topTransactions.every(t => t.amount < 0)).toBe(true)
     })
 
-    it('topTransaction entries include merchantNormalized and category fields', async () => {
+    it('topTransaction entries use appCategory when set, else bankCategoryRaw', async () => {
       const tx = makeTx({
         id: 'tx-1',
         amount: -99,
         merchantNormalized: 'Whole Foods',
-        overrideCategory: { id: 'cat-grocery', name: 'Groceries', color: '#84cc16', icon: '🛒', isIncome: false },
-        userOverrideCategoryId: 'cat-grocery',
+        appCategory: 'Groceries',
+        bankCategoryRaw: 'Food & Dining',
       })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([tx] as never)
 
@@ -403,7 +382,8 @@ describe('computeMonthSummary', () => {
       const top = result.topTransactions[0]
       expect(top.merchantNormalized).toBe('Whole Foods')
       expect(top.categoryName).toBe('Groceries')
-      expect(top.categoryColor).toBe('#84cc16')
+      // Groceries has color #22c55e in CATEGORY_STYLES
+      expect(top.categoryColor).toBe('#22c55e')
     })
   })
 
@@ -489,69 +469,24 @@ describe('computeMonthSummary', () => {
     })
   })
 
-  // 9. deleteMany then createMany (not N upserts) ─────────────────────────────
+  // 9. MonthCategoryTotal persistence is intentionally skipped ─────────────────
 
-  describe('9. Calls monthCategoryTotal.deleteMany then createMany', () => {
-    it('deleteMany is called before createMany', async () => {
+  describe('9. Does NOT persist MonthCategoryTotal (FK incompatible with free-text category names)', () => {
+    it('does NOT call monthCategoryTotal.deleteMany', async () => {
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([
         makeTx({ id: 'tx-1', amount: -50, date: new Date('2024-03-15') }),
       ] as never)
 
-      const callOrder: string[] = []
-      vi.mocked(prisma.monthCategoryTotal.deleteMany).mockImplementation(async () => {
-        callOrder.push('deleteMany')
-        return { count: 0 }
-      })
-      vi.mocked(prisma.monthCategoryTotal.createMany).mockImplementation(async () => {
-        callOrder.push('createMany')
-        return { count: 1 }
-      })
-
       await computeMonthSummary('user-1', 2024, 3)
 
-      expect(callOrder).toEqual(['deleteMany', 'createMany'])
+      expect(prisma.monthCategoryTotal.deleteMany).not.toHaveBeenCalled()
     })
 
-    it('deleteMany is called with the correct userId/year/month filter', async () => {
+    it('does NOT call monthCategoryTotal.createMany', async () => {
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([
         makeTx({ id: 'tx-1', amount: -50, date: new Date('2024-03-15') }),
       ] as never)
 
-      await computeMonthSummary('user-xyz', 2024, 3)
-
-      expect(prisma.monthCategoryTotal.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'user-xyz', year: 2024, month: 3 },
-      })
-    })
-
-    it('createMany data contains one row per distinct category with correct fields', async () => {
-      vi.mocked(prisma.transaction.findMany).mockResolvedValue([
-        makeTx({
-          id: 'tx-1',
-          amount: -80,
-          date: new Date('2024-03-15'),
-          categoryId: 'cat-food',
-          category: { id: 'cat-food', name: 'Food & Drink', color: '#f97316', icon: '🍔', isIncome: false },
-        }),
-      ] as never)
-
-      await computeMonthSummary('user-1', 2024, 3)
-
-      expect(prisma.monthCategoryTotal.createMany).toHaveBeenCalledOnce()
-      const createArg = vi.mocked(prisma.monthCategoryTotal.createMany).mock.calls[0][0]
-      expect(createArg.data).toHaveLength(1)
-      expect(createArg.data[0]).toMatchObject({
-        userId:           'user-1',
-        year:             2024,
-        month:            3,
-        categoryId:       'cat-food',
-        total:            80,
-        transactionCount: 1,
-      })
-    })
-
-    it('does NOT call createMany when there are no transactions', async () => {
-      // findMany returns [] from beforeEach — early return path
       await computeMonthSummary('user-1', 2024, 3)
 
       expect(prisma.monthCategoryTotal.createMany).not.toHaveBeenCalled()
@@ -562,32 +497,28 @@ describe('computeMonthSummary', () => {
 
   describe('pctOfSpending calculation', () => {
     it('calculates each category as a percentage of totalSpending', async () => {
-      const tx1 = makeTx({ id: 'tx-1', amount: -100, date: new Date('2024-03-01') })
+      const tx1 = makeTx({ id: 'tx-1', amount: -100, date: new Date('2024-03-01'), bankCategoryRaw: 'Groceries' })
       const tx2 = makeTx({
         id: 'tx-2',
         amount: -100,
         date: new Date('2024-03-10'),
-        categoryId: 'cat-ent',
-        category: { id: 'cat-ent', name: 'Entertainment', color: '#a855f7', icon: '🎭', isIncome: false },
+        bankCategoryRaw: 'Entertainment',
       })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([tx1, tx2] as never)
 
       const result = await computeMonthSummary('user-1', 2024, 3)
 
-      const food = result.categoryTotals.find(c => c.categoryId === 'cat-food')
-      const ent  = result.categoryTotals.find(c => c.categoryId === 'cat-ent')
-      expect(food?.pctOfSpending).toBeCloseTo(50)
+      const grocery = result.categoryTotals.find(c => c.categoryId === 'Groceries')
+      const ent     = result.categoryTotals.find(c => c.categoryId === 'Entertainment')
+      expect(grocery?.pctOfSpending).toBeCloseTo(50)
       expect(ent?.pctOfSpending).toBeCloseTo(50)
     })
 
-    it('sets pctOfSpending=0 for positive-amount (income) transactions', async () => {
-      // A positive-amount transaction goes to totalIncome, leaving totalSpending=0,
-      // so pctOfSpending must be 0 regardless of category.isIncome flag.
+    it('sets pctOfSpending=0 for positive-amount (income) transactions when no other spending exists', async () => {
       const income = makeTx({
         id: 'tx-income',
         amount: 3000,
-        categoryId: 'cat-income',
-        category: { id: 'cat-income', name: 'Income', color: '#22c55e', icon: '💰', isIncome: true },
+        bankCategoryRaw: 'Income',
       })
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([income] as never)
 
