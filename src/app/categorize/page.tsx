@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save } from 'lucide-react'
@@ -514,6 +514,18 @@ export default function CategorizePage() {
   const user    = useAuthStore(s => s.user)
   const { apiFetch } = useApi()
   const qc      = useQueryClient()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [, startTransition] = useTransition()
+
+  // Debounced dashboard invalidation — prevents 30 refetches when bulk-categorizing
+  const dashboardTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const invalidateDashboard = useCallback(() => {
+    if (dashboardTimer.current) clearTimeout(dashboardTimer.current)
+    dashboardTimer.current = setTimeout(() => {
+      qc.invalidateQueries({ queryKey: ['summary'] })
+      qc.invalidateQueries({ queryKey: ['trends'] })
+    }, 800)
+  }, [qc])
 
   useEffect(() => { if (!user) router.replace('/') }, [user, router])
 
@@ -679,7 +691,7 @@ export default function CategorizePage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
-      qc.invalidateQueries({ queryKey: ['summary'] })
+      invalidateDashboard()   // debounced — collapses rapid changes into one refetch
     },
   })
 
@@ -823,6 +835,15 @@ export default function CategorizePage() {
   const handleCatReorderEnd = useCallback(() => {
     setReorderDragId(null); setReorderOverId(null)
   }, [])
+
+  // ── Finish Categorizing ──
+  function handleFinishCategorizing() {
+    // Cancel pending debounce and flush immediately so Dashboard gets fresh data
+    if (dashboardTimer.current) { clearTimeout(dashboardTimer.current); dashboardTimer.current = null }
+    qc.invalidateQueries({ queryKey: ['summary'] })
+    qc.invalidateQueries({ queryKey: ['trends'] })
+    startTransition(() => router.push('/dashboard'))
+  }
 
   // ── Save Layout ──
   const isDirty = (() => {
@@ -987,6 +1008,12 @@ export default function CategorizePage() {
                 All
               </button>
             </div>
+            <button
+              onClick={handleFinishCategorizing}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700 transition"
+            >
+              Finish Categorizing →
+            </button>
           </div>
         </div>
 

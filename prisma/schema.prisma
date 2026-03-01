@@ -241,6 +241,7 @@ model Transaction {
   ingestionIssues IngestionIssue[]
 
   @@index([accountId, date])
+  @@index([accountId, appCategory])
   @@index([bankFingerprint])
   @@index([uploadId, ingestionStatus])
   @@map("transactions")

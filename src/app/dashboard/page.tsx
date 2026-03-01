@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { AlertTriangle, Info, X } from 'lucide-react'
+import { AlertTriangle, Info, X, Loader2 } from 'lucide-react'
 import { DashboardKPIs } from '@/components/dashboard/DashboardKPIs'
 import { TopTransactions } from '@/components/dashboard/TopTransactions'
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown'
@@ -41,16 +41,18 @@ export default function DashboardPage() {
     if (!user) router.replace('/')
   }, [user, router])
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, isRefetching } = useQuery({
     queryKey: ['summary', year, month],
     queryFn:  () => apiFetch(`/api/summaries/${year}/${month}`),
     enabled:  !!user,
+    refetchOnMount: 'always',  // always re-validate on mount (catches category changes)
   })
 
-  const { data: trendsData } = useQuery({
+  const { data: trendsData, isRefetching: trendsRefetching } = useQuery({
     queryKey: ['trends'],
     queryFn:  () => apiFetch('/api/summaries/trends?months=36'),
     enabled:  !!user,
+    refetchOnMount: 'always',
   })
 
   const { data: uploadsData } = useQuery({
@@ -156,6 +158,14 @@ export default function DashboardPage() {
   return (
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="space-y-5 pb-24">
+
+        {/* ── Background-refetch indicator ──────────────────────────────── */}
+        {(isRefetching || trendsRefetching) && (
+          <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-600">
+            <Loader2 size={12} className="animate-spin flex-shrink-0" />
+            Refreshing dashboard…
+          </div>
+        )}
 
         {/* ── Partial month banner ──────────────────────────────────────── */}
         {summary.isPartialMonth && (
