@@ -487,6 +487,28 @@ export function normalizeRow(
   const rawDebit      = getField(fields, mapping, 'debit')
   const rawCredit     = getField(fields, mapping, 'credit')
   const rawDesc       = getField(fields, mapping, 'description')
+
+  // Fallback: if no description column was mapped, find the most text-like unmapped column
+  let effectiveRawDesc = rawDesc
+  if (!effectiveRawDesc) {
+    // Build set of already-mapped column names (to skip them)
+    const mappedCols = new Set(
+      Object.values(mapping).filter((v): v is string => typeof v === 'string')
+    )
+    // Look for a text-rich unmapped field
+    for (const [colName, colValue] of Object.entries(fields)) {
+      if (mappedCols.has(colName)) continue
+      const v = (colValue ?? '').trim()
+      if (v.length < 2) continue
+      // Skip if it looks like a pure number or date
+      if (/^[\d.,\-+$£€¥%\s]+$/.test(v)) continue
+      if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(v)) continue
+      // First good text candidate wins
+      effectiveRawDesc = v
+      break
+    }
+  }
+
   const rawBalance    = getField(fields, mapping, 'runningBalance')
   const rawCheckNum   = getField(fields, mapping, 'checkNumber')
   const rawBankTxId   = getField(fields, mapping, 'bankTransactionId')
@@ -593,7 +615,7 @@ export function normalizeRow(
   }
 
   // ── Normalize description ──────────────────────────────────────────────────
-  const { normalized: descriptionNormalized, steps: descSteps } = normalizeDescription(rawDesc)
+  const { normalized: descriptionNormalized, steps: descSteps } = normalizeDescription(effectiveRawDesc)
   allTransformations.push(...descSteps)
 
   // ── Optional fields ────────────────────────────────────────────────────────
@@ -676,7 +698,7 @@ export function normalizeRow(
   const bankFingerprint = computeBankFingerprint(
     resolvedDate,
     amount.value,
-    rawDesc,
+    effectiveRawDesc,
     runningBalance,
   )
 
@@ -688,7 +710,7 @@ export function normalizeRow(
     postedDate:      postedDate ?? null,
     transactionDate: transactionDate ?? null,
     amount,
-    descriptionRaw:            rawDesc,
+    descriptionRaw:            effectiveRawDesc,
     descriptionNormalized,
     descriptionTransformations: descSteps,
     runningBalance,

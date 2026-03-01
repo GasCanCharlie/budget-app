@@ -274,6 +274,14 @@ describe('parseCsvStage1 — header mapping to canonical fields', () => {
     const mapping = result.headerDetection.suggestedMapping
     expect(mapping.amount).toBeDefined()
   })
+
+  it('maps "Merchant Name" to canonical description field', () => {
+    const merchantNameCsv = `Transaction Date,Merchant Name,Amount\n2024-01-15,Starbucks,-5.25\n2024-01-16,Amazon Prime,-14.99\n`
+    const result = parseCsvStage1(merchantNameCsv, 'utf-8')
+    const mapping = result.headerDetection.suggestedMapping
+    expect(mapping.description).toBeDefined()
+    expect(mapping.description).toBe('Merchant Name')
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

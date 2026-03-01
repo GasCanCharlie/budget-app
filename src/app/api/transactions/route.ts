@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
       date:                  tx.date,
       description:           tx.description,
       merchantNormalized:    tx.merchantNormalized,
+      descriptionDisplay:    tx.merchantNormalized?.trim() || tx.description?.trim() || '',
       amount:                tx.amount,
       isTransfer:            tx.isTransfer,
       isDuplicate:           tx.isDuplicate,

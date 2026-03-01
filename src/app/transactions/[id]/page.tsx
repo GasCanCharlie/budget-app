@@ -233,7 +233,7 @@ export default function TransactionDetailPage() {
             <span className="text-3xl">{tx.category?.icon ?? '📦'}</span>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-black text-slate-800 truncate">
-                {tx.merchantNormalized || tx.description}
+                {tx.merchantNormalized?.trim() || tx.description?.trim() || <span className="text-slate-400 italic font-normal">No description</span>}
               </h1>
               <p className="text-sm text-slate-500 mt-0.5">
                 {tx.account.name} · {fmtDate(tx.date)}

@@ -46,6 +46,7 @@ interface Transaction {
   date:                 string
   description:          string
   merchantNormalized:   string
+  descriptionDisplay:   string
   amount:               number
   isTransfer:           boolean
   isForeignCurrency:    boolean
@@ -369,12 +370,25 @@ function TransactionRow({
         {/* Main info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <Link
-              href={`/transactions/${tx.id}`}
-              className="font-semibold text-sm text-slate-800 truncate hover:text-accent-600 transition-colors"
-            >
-              {tx.merchantNormalized || tx.description}
-            </Link>
+            {(() => {
+              const displayName = tx.merchantNormalized?.trim() || tx.description?.trim() || null
+              const showSubtitle = displayName && tx.merchantNormalized?.trim() &&
+                                   tx.description?.trim() &&
+                                   tx.merchantNormalized.trim() !== tx.description.trim()
+              return (
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/transactions/${tx.id}`}
+                    className="font-semibold text-sm text-slate-800 truncate hover:text-accent-600 transition-colors block"
+                  >
+                    {displayName ?? <span className="text-slate-400 italic">No description</span>}
+                  </Link>
+                  {showSubtitle && (
+                    <p className="text-xs text-slate-400 truncate mt-0.5">{tx.description}</p>
+                  )}
+                </div>
+              )
+            })()}
             <span className={clsx('font-bold text-sm flex-shrink-0 num', tx.amount >= 0 ? 'text-green-700' : 'text-red-700')}>
               {tx.amount >= 0 ? '+' : '-'}{fmtAmt(tx.amount)}
             </span>
