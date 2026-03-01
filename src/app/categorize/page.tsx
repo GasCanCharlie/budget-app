@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X } from 'lucide-react'
+import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { CategoryIcon } from '@/components/CategoryIcon'
@@ -580,6 +580,9 @@ export default function CategorizePage() {
     } catch { /* ignore */ }
     return []
   })
+  // originalOrder = the order as last saved to the backend (dirty comparison baseline)
+  const [originalOrder,  setOriginalOrder]  = useState<string[]>([])
+  const [saveConfirmed,  setSaveConfirmed]  = useState(false)
 
   const categories: Category[] = useMemo(() => {
     if (catOrder.length === 0) return rawCategories
@@ -606,10 +609,11 @@ export default function CategorizePage() {
       }),
   })
 
-  // When backend data arrives, update local order
+  // When backend data arrives, sync local order AND set the dirty-check baseline
   useEffect(() => {
     if (prefData?.order && Array.isArray(prefData.order) && prefData.order.length > 0) {
       setCatOrder(prefData.order)
+      setOriginalOrder(prefData.order)
       localStorage.setItem('budgetlens:cat-order', JSON.stringify(prefData.order))
     }
   }, [prefData])
@@ -811,15 +815,32 @@ export default function CategorizePage() {
       next.splice(from, 1)
       next.splice(to, 0, reorderDragId)
       localStorage.setItem('budgetlens:cat-order', JSON.stringify(next))
-      savePrefMutation.mutate(next)
       return next
     })
     setReorderDragId(null); setReorderOverId(null)
-  }, [reorderDragId, categories, savePrefMutation])
+  }, [reorderDragId, categories])
 
   const handleCatReorderEnd = useCallback(() => {
     setReorderDragId(null); setReorderOverId(null)
   }, [])
+
+  // ── Save Layout ──
+  const isDirty = (() => {
+    const a = catOrder.length > 0 ? catOrder : categories.map(c => c.id)
+    const b = originalOrder.length > 0 ? originalOrder : categories.map(c => c.id)
+    return a.length !== b.length || a.some((id, i) => id !== b[i])
+  })()
+
+  function handleSaveLayout() {
+    const orderToSave = catOrder.length > 0 ? catOrder : categories.map(c => c.id)
+    savePrefMutation.mutate(orderToSave, {
+      onSuccess: () => {
+        setOriginalOrder(orderToSave)
+        setSaveConfirmed(true)
+        setTimeout(() => setSaveConfirmed(false), 2000)
+      },
+    })
+  }
 
   // ── Touch drag ──
   const registerCatRef = useCallback((cat: Category, el: HTMLDivElement | null) => {
@@ -991,7 +1012,33 @@ export default function CategorizePage() {
 
             {/* LEFT: Category drop targets */}
             <div>
-              <div className="max-h-[calc(100vh-240px)] overflow-y-auto pr-1 space-y-2">
+              {/* Panel header: label + Save Layout button */}
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Categories
+                </span>
+                <button
+                  onClick={handleSaveLayout}
+                  disabled={(!isDirty && !saveConfirmed) || savePrefMutation.isPending}
+                  className={clsx(
+                    'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition',
+                    saveConfirmed
+                      ? 'border-green-300 bg-green-50 text-green-700'
+                      : isDirty
+                        ? 'border-accent-500 bg-accent-500 text-white hover:bg-accent-600'
+                        : 'border-slate-200 bg-white text-slate-300 cursor-not-allowed'
+                  )}
+                >
+                  {savePrefMutation.isPending
+                    ? <><Loader2 size={12} className="animate-spin" /> Saving…</>
+                    : saveConfirmed
+                      ? <>✓ Saved</>
+                      : <><Save size={12} /> Save Layout</>
+                  }
+                </button>
+              </div>
+
+              <div className="max-h-[calc(100vh-270px)] overflow-y-auto pr-1 space-y-2">
                 {/* 2-column grid of category buttons */}
                 <div className="grid grid-cols-2 gap-1.5">
                   {categories.map((cat) => (
