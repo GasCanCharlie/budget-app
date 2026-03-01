@@ -3,12 +3,13 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight } from 'lucide-react'
+import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { CategoryIcon } from '@/components/CategoryIcon'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
+import { sortCategorizeTransactions, type CatSortKey, type CatSortDir } from '@/lib/sort-transactions'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -548,6 +549,17 @@ export default function CategorizePage() {
   const [reorderDragId, setReorderDragId] = useState<string | null>(null)
   const [reorderOverId, setReorderOverId] = useState<string | null>(null)
 
+  // Sort + vendor filter state (persisted to localStorage)
+  const [sortKey, setSortKey] = useState<CatSortKey>(() => {
+    try { return (localStorage.getItem('budgetlens:cat-sort-key') as CatSortKey) || 'date' }
+    catch { return 'date' }
+  })
+  const [sortDir, setSortDir] = useState<CatSortDir>(() => {
+    try { return (localStorage.getItem('budgetlens:cat-sort-dir') as CatSortDir) || 'desc' }
+    catch { return 'desc' }
+  })
+  const [vendorQuery, setVendorQuery] = useState('')
+
   // ── Data ──
   const { data: txData, isLoading: txLoading, error: txError } = useQuery({
     queryKey: ['categorize-transactions'],
@@ -602,6 +614,17 @@ export default function CategorizePage() {
     () => allTxs.filter(t => !t.isTransfer && !t.appCategory).length,
     [allTxs]
   )
+
+  // Filtered + sorted view of the queue
+  const sortedQueueTxs = useMemo(() => {
+    const q = vendorQuery.trim().toLowerCase()
+    const filtered = q
+      ? queueTxs.filter(t =>
+          (t.merchantNormalized || t.description || '').toLowerCase().includes(q)
+        )
+      : queueTxs
+    return sortCategorizeTransactions(filtered, sortKey, sortDir)
+  }, [queueTxs, sortKey, sortDir, vendorQuery])
 
   // Count transactions per category bucket (by appCategory matching cat.name)
   const txCountByCat = useMemo(() => {
@@ -681,6 +704,28 @@ export default function CategorizePage() {
     const tx = queueTxs.find(t => t.id === selectedId)
     if (tx) initiateAssign(tx, categoryId)
   }, [selectedId, queueTxs, initiateAssign])
+
+  // ── Sort handlers ──
+  function handleCatSort(key: CatSortKey) {
+    if (sortKey === key) {
+      const next: CatSortDir = sortDir === 'asc' ? 'desc' : 'asc'
+      setSortDir(next)
+      localStorage.setItem('budgetlens:cat-sort-dir', next)
+    } else {
+      const defaultDir: CatSortDir = key === 'vendor' ? 'asc' : 'desc'
+      setSortKey(key)
+      setSortDir(defaultDir)
+      localStorage.setItem('budgetlens:cat-sort-key', key)
+      localStorage.setItem('budgetlens:cat-sort-dir', defaultDir)
+    }
+  }
+
+  function resetSort() {
+    setSortKey('date'); setSortDir('desc')
+    localStorage.setItem('budgetlens:cat-sort-key', 'date')
+    localStorage.setItem('budgetlens:cat-sort-dir', 'desc')
+    setVendorQuery('')
+  }
 
   // ── Reorder handlers ──
   const handleCatReorderStart = useCallback((catId: string) => {
@@ -778,14 +823,14 @@ export default function CategorizePage() {
       }
       if (e.key === 'ArrowDown' || e.key === 'j') {
         e.preventDefault()
-        const idx  = queueTxs.findIndex(t => t.id === selectedId)
-        const next = queueTxs[Math.min(idx + 1, queueTxs.length - 1)]
+        const idx  = sortedQueueTxs.findIndex(t => t.id === selectedId)
+        const next = sortedQueueTxs[Math.min(idx + 1, sortedQueueTxs.length - 1)]
         if (next) setSelectedId(next.id)
       }
       if (e.key === 'ArrowUp' || e.key === 'k') {
         e.preventDefault()
-        const idx  = queueTxs.findIndex(t => t.id === selectedId)
-        const prev = queueTxs[Math.max(idx - 1, 0)]
+        const idx  = sortedQueueTxs.findIndex(t => t.id === selectedId)
+        const prev = sortedQueueTxs[Math.max(idx - 1, 0)]
         if (prev) setSelectedId(prev.id)
       }
       if (e.key === 'Escape') setSelectedId(null)
@@ -794,10 +839,10 @@ export default function CategorizePage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [confirm, selectedId, queueTxs, categories, initiateAssign])
 
-  // Auto-select first if none selected
+  // Auto-select first visible item if none selected
   useEffect(() => {
-    if (!selectedId && queueTxs.length > 0) setSelectedId(queueTxs[0].id)
-  }, [queueTxs, selectedId])
+    if (!selectedId && sortedQueueTxs.length > 0) setSelectedId(sortedQueueTxs[0].id)
+  }, [sortedQueueTxs, selectedId])
 
   // ── Render ──
   if (!user) return null
@@ -934,12 +979,74 @@ export default function CategorizePage() {
 
             {/* RIGHT: Transaction queue */}
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                {queueTxs.length} transaction{queueTxs.length !== 1 ? 's' : ''} — drag to the left
+              {/* ── Sort + filter controls ──────────────────────────── */}
+              <div className="mb-2 space-y-2">
+                {/* Sort buttons row */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-0.5">Sort:</span>
+                  {(['date', 'amount', 'vendor'] as CatSortKey[]).map(key => {
+                    const active = sortKey === key
+                    const Icon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+                    const label = key === 'date' ? 'Date' : key === 'amount' ? 'Amount' : 'Vendor'
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => handleCatSort(key)}
+                        className={clsx(
+                          'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
+                          active
+                            ? 'border-accent-400 bg-accent-50 text-accent-700'
+                            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-400 hover:text-slate-700'
+                        )}
+                      >
+                        {label}<Icon size={11} />
+                      </button>
+                    )
+                  })}
+                  {(sortKey !== 'date' || sortDir !== 'desc' || vendorQuery) && (
+                    <button
+                      onClick={resetSort}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-400 hover:text-slate-600 transition"
+                      title="Reset to default sort"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                {/* Vendor filter */}
+                <div className="relative">
+                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Filter by vendor…"
+                    value={vendorQuery}
+                    onChange={e => setVendorQuery(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-7 pr-7 text-xs text-slate-700 placeholder-slate-400 outline-none focus:border-accent-400 transition"
+                  />
+                  {vendorQuery && (
+                    <button
+                      onClick={() => setVendorQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Count label */}
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {sortedQueueTxs.length}
+                {vendorQuery && queueTxs.length !== sortedQueueTxs.length
+                  ? ` of ${queueTxs.length}`
+                  : ''
+                } transaction{sortedQueueTxs.length !== 1 ? 's' : ''} — drag to the left
                 {selectedId && ' · or press 1–9'}
               </p>
-              <div className="space-y-2 max-h-[calc(100vh-240px)] overflow-y-auto pr-1">
-                {queueTxs.map((tx, i) => (
+
+              <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
+                {sortedQueueTxs.map((tx, i) => (
                   <TxCard
                     key={tx.id}
                     tx={tx}
@@ -951,6 +1058,11 @@ export default function CategorizePage() {
                     onTouchStart={handleTouchStart}
                   />
                 ))}
+                {sortedQueueTxs.length === 0 && vendorQuery && (
+                  <div className="py-8 text-center text-sm text-slate-400">
+                    No transactions match &ldquo;{vendorQuery}&rdquo;
+                  </div>
+                )}
               </div>
             </div>
           </div>
