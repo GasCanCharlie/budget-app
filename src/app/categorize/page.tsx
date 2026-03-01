@@ -142,6 +142,11 @@ function TxCard({
           {lowConf && (
             <span className="text-xs text-amber-500">{(tx.confidenceScore * 100).toFixed(0)}%</span>
           )}
+          {tx.bankCategoryRaw && (
+            <span className="text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full font-medium">
+              🏦 {tx.bankCategoryRaw}
+            </span>
+          )}
         </div>
       </div>
 
@@ -398,6 +403,7 @@ function CategoryTransactionList({
   onMove: (txId: string, newCatId: string, applyToAll: boolean) => void
 }) {
   const [movingId, setMovingId] = useState<string | null>(null)
+  const [catSearch, setCatSearch] = useState('')
   const [pendingMove, setPendingMove] = useState<{ txId: string; catId: string; count: number; catName: string } | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -457,12 +463,15 @@ function CategoryTransactionList({
                 <span className="text-xs text-slate-300">
                   {SOURCE_LABELS[tx.categorizationSource]}
                 </span>
-                {tx.bankCategoryRaw && (
-                  <span className="text-[10px] text-blue-400" title="Bank-reported category">
-                    🏦 {tx.bankCategoryRaw}
-                  </span>
-                )}
               </div>
+              {tx.bankCategoryRaw && (
+                <div className="mt-0.5 flex items-center gap-1">
+                  <span className="text-[10px] font-medium text-blue-500 uppercase tracking-wide">Bank:</span>
+                  <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
+                    {tx.bankCategoryRaw}
+                  </span>
+                </div>
+              )}
 
               {/* Move picker, confirm prompt, or Move button */}
               {pendingMove?.txId === tx.id ? (
@@ -474,19 +483,19 @@ function CategoryTransactionList({
                   </p>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => { onMove(pendingMove.txId, pendingMove.catId, false); setPendingMove(null); setMovingId(null) }}
+                      onClick={() => { onMove(pendingMove.txId, pendingMove.catId, false); setPendingMove(null); setMovingId(null); setCatSearch('') }}
                       className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 hover:border-slate-400 font-medium transition"
                     >
                       Just this one
                     </button>
                     <button
-                      onClick={() => { onMove(pendingMove.txId, pendingMove.catId, true); setPendingMove(null); setMovingId(null) }}
+                      onClick={() => { onMove(pendingMove.txId, pendingMove.catId, true); setPendingMove(null); setMovingId(null); setCatSearch('') }}
                       className="px-2.5 py-1 rounded bg-accent-500 text-white font-medium hover:bg-accent-600 transition"
                     >
                       Move all {pendingMove.count}
                     </button>
                     <button
-                      onClick={() => { setPendingMove(null); setMovingId(null) }}
+                      onClick={() => { setPendingMove(null); setMovingId(null); setCatSearch('') }}
                       className="px-2 py-1 text-slate-400 hover:text-slate-600 transition"
                     >
                       ✕
@@ -495,9 +504,17 @@ function CategoryTransactionList({
                 </div>
               ) : movingId === tx.id ? (
                 <div className="mt-2">
-                  <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto">
+                  <input
+                    type="text"
+                    placeholder="Search categories…"
+                    autoFocus
+                    value={catSearch}
+                    onChange={e => setCatSearch(e.target.value)}
+                    className="w-full rounded border border-slate-200 px-2 py-1 text-xs mb-1 outline-none focus:border-accent-400"
+                  />
+                  <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
                     {categories
-                      .filter(c => c.id !== catId)
+                      .filter(c => c.id !== catId && c.name.toLowerCase().includes(catSearch.toLowerCase()))
                       .map(c => (
                         <button
                           key={c.id}
@@ -510,6 +527,7 @@ function CategoryTransactionList({
                             } else {
                               onMove(tx.id, c.id, false)
                               setMovingId(null)
+                              setCatSearch('')
                             }
                           }}
                           className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium hover:bg-accent-50 hover:text-accent-700 transition text-slate-700 text-left"
@@ -520,7 +538,7 @@ function CategoryTransactionList({
                       ))}
                   </div>
                   <button
-                    onClick={() => setMovingId(null)}
+                    onClick={() => { setMovingId(null); setCatSearch('') }}
                     className="mt-1 text-xs text-slate-400 hover:text-slate-600 transition"
                   >
                     ✕ Cancel

@@ -62,6 +62,10 @@ export async function GET(
   if (upload.reconciliationReport) {
     try { reconciliationReport = JSON.parse(upload.reconciliationReport) } catch { /* leave null */ }
   }
+  let importReport: unknown = null
+  if (upload.importReport) {
+    try { importReport = JSON.parse(upload.importReport) } catch { /* leave null */ }
+  }
   let warnings: unknown[] = []
   try { warnings = JSON.parse(upload.warnings) } catch { /* leave [] */ }
 
@@ -91,6 +95,8 @@ export async function GET(
       // Reconciliation
       reconciliationStatus:  upload.reconciliationStatus,
       reconciliationReport,
+      // Import report
+      importReport,
       // Issues summary
       issueBreakdown,
       // Warnings from parser

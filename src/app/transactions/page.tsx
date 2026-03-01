@@ -55,6 +55,7 @@ interface Transaction {
   confidenceScore:      number
   reviewedByUser:       boolean
   category:             TxCategory | null
+  bankCategoryRaw?:     string | null
   // Ingestion fields
   ingestionStatus:      string
   isPossibleDuplicate:  boolean
@@ -432,6 +433,12 @@ function TransactionRow({
               </span>
             )}
             <span className="text-xs text-slate-300">{SOURCE_LABELS[tx.categorizationSource]}</span>
+            {tx.bankCategoryRaw && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-medium text-blue-500 uppercase tracking-wide">Bank:</span>
+                <span className="text-blue-600">{tx.bankCategoryRaw}</span>
+              </span>
+            )}
           </div>
 
           {/* ── Date ambiguity resolver ──────────────────────────────── */}

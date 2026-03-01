@@ -475,6 +475,56 @@ export default function UploadPage() {
                     </span>
                   </div>
                 )}
+                {/* Import report */}
+                {(() => {
+                  const d = result.data as Record<string, unknown>
+                  const accepted = Number(d.accepted ?? 0)
+                  const rejected = Number(d.rejected ?? 0)
+                  const total = accepted + rejected
+                  const unresolved = Number(d.totalUnresolved ?? 0)
+                  const bankDetected = Boolean(d.bankDetected)
+                  const bankKey = d.bankKey ? String(d.bankKey) : null
+                  const dateOrderUsed = d.dateOrderUsed ? String(d.dateOrderUsed) : null
+                  const dateOrderSource = d.dateOrderSource ? String(d.dateOrderSource) : null
+                  return (
+                    <div className="bg-white/60 border border-green-200/60 rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">Import Report</p>
+                      <div className="space-y-1 text-xs text-slate-700">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Rows committed / total</span>
+                          <span className="font-semibold">{accepted} / {total > 0 ? total : accepted}</span>
+                        </div>
+                        {bankDetected && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">Bank category preserved</span>
+                            <span className="font-semibold text-blue-700">Yes{bankKey ? ` (${bankKey})` : ''}</span>
+                          </div>
+                        )}
+                        {!bankDetected && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">Bank category</span>
+                            <span className="font-semibold text-slate-400">Not detected</span>
+                          </div>
+                        )}
+                        {dateOrderUsed && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">Date format detected</span>
+                            <span className="font-semibold">
+                              {dateOrderUsed === 'MDY' ? 'MM/DD/YYYY' : dateOrderUsed === 'DMY' ? 'DD/MM/YYYY' : dateOrderUsed === 'YMD' ? 'YYYY-MM-DD' : dateOrderUsed}
+                              {dateOrderSource ? ` · ${dateOrderSource}` : ''}
+                            </span>
+                          </div>
+                        )}
+                        {unresolved > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">Issues to review</span>
+                            <span className="font-semibold text-amber-700">{unresolved} unresolved</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
                 {Boolean((result.data as Record<string, unknown>).dateAmbiguous) && (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
                     ⚠️ Date format was ambiguous (MM/DD vs DD/MM). Please verify your transaction dates.

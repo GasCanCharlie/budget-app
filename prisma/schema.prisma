@@ -87,6 +87,8 @@ model Upload {
   totalRowsUnresolved    Int       @default(0)
   // Timestamp when pipeline finished (null = still processing)
   completedAt            DateTime?
+  // importReport: JSON string — ImportReport struct (generated after pipeline completes)
+  importReport           String?
 
   // ── Date order selection (added in v2) ─────────────────────────────────────
   // dateOrderUsed: MDY | DMY | YMD | null (null = awaiting user confirmation)
@@ -217,6 +219,8 @@ model Transaction {
   // Bank-provided category (from CSV "Transaction Category" column)
   bankCategoryRaw        String?   // exact string from CSV, e.g. "Gasoline/Fuel"
   bankCategoryNormalized String?   // trimmed + lowercased, e.g. "gasoline/fuel"
+  // canonicalRowHash: SHA-256(rawDate|rawDesc|rawAmount|bankCategoryRaw|rowIndex)
+  canonicalRowHash       String?
 
   // Balance chain validation (populated during Stage 4 reconciliation)
   balanceChainValid      Boolean?  // null = not yet checked
