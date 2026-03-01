@@ -1038,8 +1038,8 @@ export default function CategorizePage() {
                 </button>
               </div>
 
-              <div className="max-h-[calc(100vh-270px)] overflow-y-auto pr-1 space-y-2">
-                {/* 2-column grid of category buttons */}
+              {/* 2-column grid — scrollable, constrained height */}
+              <div className="max-h-[calc(100vh-270px)] overflow-y-auto pr-1">
                 <div className="grid grid-cols-2 gap-1.5">
                   {categories.map((cat) => (
                     <CategoryBucket
@@ -1066,10 +1066,25 @@ export default function CategorizePage() {
                     />
                   ))}
                 </div>
-                {/* Expanded transaction list spans full width below the grid */}
-                {expandedCatId && (() => {
-                  const cat = categories.find(c => c.id === expandedCatId)
-                  return cat ? (
+              </div>
+
+              {/* Expanded transaction list — OUTSIDE the scroll container so it's always visible */}
+              {expandedCatId && (() => {
+                const cat = categories.find(c => c.id === expandedCatId)
+                return cat ? (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between mb-1 px-1">
+                      <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                        <CategoryIcon name={cat.icon} color={cat.color} size={14} />
+                        {cat.name}
+                      </span>
+                      <button
+                        onClick={() => setExpandedCatId(null)}
+                        className="text-xs text-slate-400 hover:text-slate-600 transition"
+                      >
+                        ✕ close
+                      </button>
+                    </div>
                     <CategoryTransactionList
                       catName={cat.name}
                       txs={allTxs.filter(t => t.appCategory === cat.name)}
@@ -1078,9 +1093,9 @@ export default function CategorizePage() {
                         updateMutation.mutate({ id: txId, appCategory: newCatName, applyToAll })
                       }}
                     />
-                  ) : null
-                })()}
-              </div>
+                  </div>
+                ) : null
+              })()}
             </div>
 
             {/* RIGHT: Transaction queue */}
