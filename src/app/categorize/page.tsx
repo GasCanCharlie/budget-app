@@ -362,8 +362,32 @@ export default function CategorizePage() {
         method: 'PATCH',
         body: JSON.stringify({ categoryId, applyToAll }),
       }),
+    onMutate: async ({ id, applyToAll, categoryId: _categoryId }) => {
+      // Cancel any in-flight refetches
+      await qc.cancelQueries({ queryKey: ['categorize-transactions'] })
+      // Snapshot previous data for rollback
+      const prev = qc.getQueryData(['categorize-transactions'])
+      // Optimistically remove the categorized transaction(s) from the list
+      qc.setQueryData(['categorize-transactions'], (old: { transactions: Transaction[] } | undefined) => {
+        if (!old) return old
+        // Find the merchant name of the affected tx for applyToAll
+        const affectedTx = old.transactions.find(t => t.id === id)
+        const merchant = affectedTx?.merchantNormalized
+        const removeIds = new Set(
+          applyToAll && merchant
+            ? old.transactions.filter(t => t.merchantNormalized === merchant && !t.reviewedByUser).map(t => t.id)
+            : [id]
+        )
+        return { ...old, transactions: old.transactions.filter(t => !removeIds.has(t.id)) }
+      })
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      // Roll back on error
+      if (ctx?.prev) qc.setQueryData(['categorize-transactions'], ctx.prev)
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['triage-transactions'] })
+      qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
     },
