@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, ArrowRight, Loader2, AlertCircle, ChevronRight } from 'lucide-react'
+import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { CategoryIcon } from '@/components/CategoryIcon'
@@ -210,7 +210,12 @@ function CategoryBucket({
         e.preventDefault()
         if (!isReorderDragging) onDragEnter(cat.id)
       }}
-      onDragLeave={onDragLeave}
+      onDragLeave={e => {
+        // Only fire when the cursor truly leaves this element (not just entering a child)
+        if (!ref.current?.contains(e.relatedTarget as Node)) {
+          onDragLeave()
+        }
+      }}
       onDrop={e => {
         e.preventDefault()
         const data = e.dataTransfer.getData('text/plain')
@@ -224,14 +229,15 @@ function CategoryBucket({
         if (!isDragging) onToggleExpand(cat.id)
       }}
       className={clsx(
-        'flex items-center gap-2 rounded-lg border-2 border-dashed px-3 py-2.5 transition-all',
+        'flex items-center gap-2 rounded-lg px-3 py-2.5 transition-all duration-100',
         isHovered && isDragging
-          ? 'scale-[1.02] border-solid border-accent-500 bg-accent-50 shadow-md'
+          ? 'scale-[1.04] border-4 border-solid border-accent-500 bg-accent-100 shadow-2xl ring-4 ring-accent-300 ring-offset-1'
           : isDragging
-            ? 'border-slate-200 bg-slate-50'
-            : 'border-transparent bg-white hover:bg-slate-50',
+            ? 'border-2 border-dashed border-slate-300 bg-slate-50'
+            : isReorderOver && isReorderDragging
+              ? 'border-2 border-dashed border-accent-400 bg-accent-50'
+              : 'border-2 border-dashed border-transparent bg-white hover:bg-slate-50',
         hasSelected && !isDragging ? 'cursor-pointer hover:border-slate-300' : !isDragging ? 'cursor-pointer' : '',
-        isReorderOver && isReorderDragging ? 'border-dashed border-2 border-accent-400 bg-accent-50' : ''
       )}
     >
       {/* Reorder grip */}
@@ -271,7 +277,11 @@ function CategoryBucket({
           )}
         />
       )}
-      {isDragging && isHovered && <ArrowRight size={14} className="animate-pulse text-accent-500" />}
+      {isDragging && isHovered && (
+        <span className="flex-shrink-0 rounded-full bg-accent-500 px-2 py-0.5 text-[10px] font-bold text-white animate-pulse">
+          DROP
+        </span>
+      )}
     </div>
   )
 }
@@ -876,10 +886,12 @@ export default function CategorizePage() {
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Categories · click to expand · drag or press 1–9 to assign
               </p>
-              <div className="space-y-1 max-h-[calc(100vh-240px)] overflow-y-auto pr-1">
-                {categories.map((cat, i) => (
-                  <div key={cat.id}>
+              <div className="max-h-[calc(100vh-240px)] overflow-y-auto pr-1 space-y-2">
+                {/* 2-column grid of category buttons */}
+                <div className="grid grid-cols-2 gap-1.5">
+                  {categories.map((cat, i) => (
                     <CategoryBucket
+                      key={cat.id}
                       cat={cat}
                       index={i}
                       isDragging={!!dragging}
@@ -901,18 +913,22 @@ export default function CategorizePage() {
                       onReorderDragEnd={handleCatReorderEnd}
                       txCount={txCountByCat.get(cat.name) ?? 0}
                     />
-                    {expandedCatId === cat.id && (
-                      <CategoryTransactionList
-                        catName={cat.name}
-                        txs={allTxs.filter(t => t.appCategory === cat.name)}
-                        categories={categories}
-                        onMove={(txId, newCatName, applyToAll) => {
-                          updateMutation.mutate({ id: txId, appCategory: newCatName, applyToAll })
-                        }}
-                      />
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {/* Expanded transaction list spans full width below the grid */}
+                {expandedCatId && (() => {
+                  const cat = categories.find(c => c.id === expandedCatId)
+                  return cat ? (
+                    <CategoryTransactionList
+                      catName={cat.name}
+                      txs={allTxs.filter(t => t.appCategory === cat.name)}
+                      categories={categories}
+                      onMove={(txId, newCatName, applyToAll) => {
+                        updateMutation.mutate({ id: txId, appCategory: newCatName, applyToAll })
+                      }}
+                    />
+                  ) : null
+                })()}
               </div>
             </div>
 
