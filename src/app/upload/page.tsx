@@ -554,8 +554,21 @@ interface UploadRow {
 function UploadHistory() {
   const { apiFetch } = useApi()
   const router = useRouter()
+  const qc = useQueryClient()
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
   const { data } = useQuery({ queryKey: ['uploads'], queryFn: () => apiFetch('/api/uploads') })
   const uploads: UploadRow[] = data?.uploads ?? []
+
+  const deleteUploadMutation = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/uploads/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      setConfirmDeleteId(null)
+      qc.invalidateQueries({ queryKey: ['uploads'] })
+      qc.invalidateQueries({ queryKey: ['summary'] })
+    },
+  })
+
   if (uploads.length === 0) return null
 
   return (
@@ -577,32 +590,68 @@ function UploadHistory() {
           </tr>
         </thead>
         <tbody>
-          {uploads.slice(0, 8).map((u) => (
-            <tr key={u.id} onClick={() => router.push(`/upload/${u.id}`)}>
-              <td>
-                <p className="font-medium text-slate-800 max-w-[180px] truncate">{u.filename}</p>
-                {u.totalRowsUnresolved > 0 && (
-                  <p className="text-xs text-amber-600 mt-0.5">{u.totalRowsUnresolved} unresolved</p>
-                )}
-              </td>
-              <td className="text-slate-500 whitespace-nowrap">{u.account?.name}</td>
-              <td className="num text-slate-500 whitespace-nowrap">
-                {new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
-              </td>
-              <td className="num text-right text-slate-700">{u.rowCountAccepted}</td>
-              <td>
-                {u.reconciliationStatus && u.status === 'complete' && (
-                  <ReconciliationShield status={u.reconciliationStatus} size="sm" />
-                )}
-              </td>
-              <td>
-                <span className={clsx('badge text-xs', u.status === 'complete' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700')}>
-                  {u.status}
-                </span>
-              </td>
-              <td><ChevronRight size={14} className="text-slate-300"/></td>
-            </tr>
-          ))}
+          {uploads.slice(0, 8).map((u) =>
+            confirmDeleteId === u.id ? (
+              <tr key={u.id} className="bg-red-50">
+                <td colSpan={7}>
+                  <div className="flex items-center gap-3 py-0.5">
+                    <span className="text-sm text-red-800 font-medium flex-1 truncate">Delete &quot;{u.filename}&quot;?</span>
+                    <button
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="text-xs px-3 py-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition flex-shrink-0"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => deleteUploadMutation.mutate(u.id)}
+                      disabled={deleteUploadMutation.isPending}
+                      className="text-xs px-3 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex items-center gap-1 flex-shrink-0 transition"
+                    >
+                      {deleteUploadMutation.isPending
+                        ? <><Loader2 size={10} className="animate-spin" /> Deleting…</>
+                        : 'Yes, delete'}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              <tr key={u.id} onClick={() => router.push(`/upload/${u.id}`)}>
+                <td>
+                  <p className="font-medium text-slate-800 max-w-[180px] truncate">{u.filename}</p>
+                  {u.totalRowsUnresolved > 0 && (
+                    <p className="text-xs text-amber-600 mt-0.5">{u.totalRowsUnresolved} unresolved</p>
+                  )}
+                </td>
+                <td className="text-slate-500 whitespace-nowrap">{u.account?.name}</td>
+                <td className="num text-slate-500 whitespace-nowrap">
+                  {new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                </td>
+                <td className="num text-right text-slate-700">{u.rowCountAccepted}</td>
+                <td>
+                  {u.reconciliationStatus && u.status === 'complete' && (
+                    <ReconciliationShield status={u.reconciliationStatus} size="sm" />
+                  )}
+                </td>
+                <td>
+                  <span className={clsx('badge text-xs', u.status === 'complete' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700')}>
+                    {u.status}
+                  </span>
+                </td>
+                <td>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={e => { e.stopPropagation(); setConfirmDeleteId(u.id) }}
+                      className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition"
+                      title="Delete statement"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                    <ChevronRight size={14} className="text-slate-300" />
+                  </div>
+                </td>
+              </tr>
+            )
+          )}
         </tbody>
       </table>
     </div>

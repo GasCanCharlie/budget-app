@@ -20,12 +20,17 @@ export async function DELETE(
   if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
 
   const result = await prisma.$transaction(async tx => {
-    // 1. Collect transaction IDs + affected months
+    // 1. Collect transaction IDs + upload IDs + affected months
     const txRows = await tx.transaction.findMany({
       where: { accountId: params.id },
       select: { id: true, date: true },
     })
     const txIds = txRows.map(t => t.id)
+
+    const uploadIds = (await tx.upload.findMany({
+      where: { accountId: params.id },
+      select: { id: true },
+    })).map(u => u.id)
 
     // 2. Delete CategoryHistory
     if (txIds.length > 0) {
@@ -38,16 +43,26 @@ export async function DELETE(
       await tx.transactionLink.deleteMany({ where: { transactionBId: { in: txIds } } })
     }
 
-    // 4. Delete Transactions
+    // 4. Delete IngestionIssues (FK to both Transaction and Upload — must precede both)
+    if (uploadIds.length > 0) {
+      await tx.ingestionIssue.deleteMany({ where: { uploadId: { in: uploadIds } } })
+    }
+
+    // 5. Delete AuditLogEntries (FK to Upload — must precede Upload deletion)
+    if (uploadIds.length > 0) {
+      await tx.auditLogEntry.deleteMany({ where: { uploadId: { in: uploadIds } } })
+    }
+
+    // 6. Delete Transactions
     const { count: deletedTransactions } = await tx.transaction.deleteMany({ where: { accountId: params.id } })
 
-    // 5. Delete TransactionRaw
+    // 7. Delete TransactionRaw
     await tx.transactionRaw.deleteMany({ where: { accountId: params.id } })
 
-    // 6. Delete Uploads (clears file hashes)
+    // 8. Delete Uploads (clears file hashes)
     await tx.upload.deleteMany({ where: { accountId: params.id } })
 
-    // 7. Clean up MonthSummary/MonthCategoryTotal for months now empty
+    // 9. Clean up MonthSummary/MonthCategoryTotal for months now empty
     const months = new Set(txRows.map(t => {
       const d = new Date(t.date)
       return `${d.getFullYear()}-${d.getMonth() + 1}`
@@ -67,7 +82,7 @@ export async function DELETE(
       }
     }
 
-    // 8. Delete the Account itself
+    // 10. Delete the Account itself
     await tx.account.delete({ where: { id: params.id } })
 
     return { deletedTransactions }
