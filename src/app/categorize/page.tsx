@@ -68,17 +68,15 @@ function fmtDate(iso: string) {
 
 function TxCard({
   tx,
-  index,
   isSelected,
-  onSelect,
+  onClick,
   onDragStart,
   onDragEnd,
   onTouchStart,
 }: {
   tx: Transaction
-  index: number
   isSelected: boolean
-  onSelect: (id: string) => void
+  onClick: (tx: Transaction, e: React.MouseEvent) => void
   onDragStart: (tx: Transaction) => void
   onDragEnd: () => void
   onTouchStart: (tx: Transaction, e: React.TouchEvent) => void
@@ -89,11 +87,11 @@ function TxCard({
       onDragStart={e => { e.dataTransfer.setData('text/plain', tx.id); e.dataTransfer.effectAllowed = 'move'; onDragStart(tx) }}
       onDragEnd={onDragEnd}
       onTouchStart={e => onTouchStart(tx, e)}
-      onClick={() => onSelect(tx.id)}
+      onClick={e => onClick(tx, e)}
       tabIndex={0}
       className={clsx(
-        'group relative flex cursor-grab items-start gap-3 rounded-lg border bg-white p-3 transition-all active:cursor-grabbing touch-none select-none',
-        isSelected ? 'border-accent-500 ring-2 ring-accent-200' : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
+        'group relative flex cursor-grab items-start gap-3 rounded-lg border p-3 transition-all active:cursor-grabbing touch-none select-none',
+        isSelected ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50' : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-md'
       )}
     >
       <div className="mt-0.5 flex-shrink-0 text-slate-300 group-hover:text-slate-400">
@@ -132,12 +130,6 @@ function TxCard({
         </div>
       </div>
 
-      {/* Selected indicator */}
-      {isSelected && (
-        <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-500 text-[10px] font-bold text-white">
-          {index + 1}
-        </div>
-      )}
     </div>
   )
 }
@@ -146,7 +138,6 @@ function TxCard({
 
 function CategoryBucket({
   cat,
-  index,
   isDragging,
   isHovered,
   hasSelected,
@@ -167,7 +158,6 @@ function CategoryBucket({
   txCount,
 }: {
   cat: Category
-  index: number
   isDragging: boolean
   isHovered: boolean
   hasSelected: boolean
@@ -263,11 +253,6 @@ function CategoryBucket({
         <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
           {txCount}
         </span>
-      )}
-      {index < 9 && (
-        <kbd className="hidden rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 sm:inline-block">
-          {index + 1}
-        </kbd>
       )}
       {!isDragging && (
         <ChevronRight
@@ -533,8 +518,10 @@ export default function CategorizePage() {
   useEffect(() => { if (!user) router.replace('/') }, [user, router])
 
   const [filterMode,    setFilterMode]    = useState<FilterMode>('needs-review')
-  const [selectedId,    setSelectedId]    = useState<string | null>(null)
+  const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
+  const [anchorId,      setAnchorId]      = useState<string | null>(null)
   const [dragging,      setDragging]      = useState<Transaction | null>(null)
+  const [draggingIds,   setDraggingIds]   = useState<string[]>([])
   const [hoveredCatId,  setHoveredCatId]  = useState<string | null>(null)
   const [confirm,       setConfirm]       = useState<ConfirmState | null>(null)
   const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
@@ -603,6 +590,29 @@ export default function CategorizePage() {
       return ai - bi
     })
   }, [rawCategories, catOrder])
+
+  // Load saved order from backend on mount
+  const { data: prefData } = useQuery({
+    queryKey: ['category-order-pref'],
+    queryFn: () => apiFetch('/api/preferences/category-order'),
+    enabled: !!user,
+  })
+
+  const savePrefMutation = useMutation({
+    mutationFn: (order: string[]) =>
+      apiFetch('/api/preferences/category-order', {
+        method: 'PUT',
+        body: JSON.stringify({ order }),
+      }),
+  })
+
+  // When backend data arrives, update local order
+  useEffect(() => {
+    if (prefData?.order && Array.isArray(prefData.order) && prefData.order.length > 0) {
+      setCatOrder(prefData.order)
+      localStorage.setItem('budgetlens:cat-order', JSON.stringify(prefData.order))
+    }
+  }, [prefData])
 
   // Queue = transactions without an appCategory
   const queueTxs: Transaction[] = useMemo(() => {
@@ -682,28 +692,80 @@ export default function CategorizePage() {
     const similarCount = countSimilar(tx.merchantNormalized, tx.amount)
     if (similarCount <= 1) {
       updateMutation.mutate({ id: tx.id, appCategory: cat.name, applyToAll: false })
-      setSelectedId(null)
+      setSelectedIds(new Set()); setAnchorId(null)
       return
     }
     setConfirm({ transaction: tx, category: cat, similarCount })
   }, [categories, countSimilar, updateMutation])
 
+  // ── Click handler (multi-select) ──
+  const handleTxClick = useCallback((tx: Transaction, e: React.MouseEvent) => {
+    const isCtrl = e.ctrlKey || e.metaKey
+    const isShift = e.shiftKey
+
+    if (isShift && anchorId) {
+      const anchorIdx = sortedQueueTxs.findIndex(t => t.id === anchorId)
+      const clickIdx  = sortedQueueTxs.findIndex(t => t.id === tx.id)
+      if (anchorIdx === -1 || clickIdx === -1) {
+        setSelectedIds(new Set([tx.id]))
+        setAnchorId(tx.id)
+        return
+      }
+      const [lo, hi] = anchorIdx < clickIdx ? [anchorIdx, clickIdx] : [clickIdx, anchorIdx]
+      setSelectedIds(new Set(sortedQueueTxs.slice(lo, hi + 1).map(t => t.id)))
+    } else if (isCtrl) {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        if (next.has(tx.id)) next.delete(tx.id)
+        else next.add(tx.id)
+        return next
+      })
+      setAnchorId(tx.id)
+    } else {
+      setSelectedIds(new Set([tx.id]))
+      setAnchorId(tx.id)
+    }
+  }, [anchorId, sortedQueueTxs])
+
   // ── Drag handlers ──
   const handleDragEnd = useCallback(() => {
     setDragging(null)
+    setDraggingIds([])
     setHoveredCatId(null)
   }, [])
 
+  const handleDragStart = useCallback((tx: Transaction) => {
+    if (selectedIds.has(tx.id) && selectedIds.size > 1) {
+      setDraggingIds([...selectedIds])
+    } else {
+      setDraggingIds([tx.id])
+    }
+    setDragging(tx)
+  }, [selectedIds])
+
   const handleDrop = useCallback((categoryId: string) => {
-    if (dragging) initiateAssign(dragging, categoryId)
+    const cat = categories.find(c => c.id === categoryId)
+    if (!cat) { setDragging(null); setDraggingIds([]); setHoveredCatId(null); return }
+
+    if (draggingIds.length > 1) {
+      // Bulk assign all selected — no confirm modal
+      draggingIds.forEach(id => {
+        updateMutation.mutate({ id, appCategory: cat.name, applyToAll: false })
+      })
+      setSelectedIds(new Set())
+      setAnchorId(null)
+    } else if (dragging) {
+      initiateAssign(dragging, categoryId)
+    }
     setDragging(null)
+    setDraggingIds([])
     setHoveredCatId(null)
-  }, [dragging, initiateAssign])
+  }, [dragging, draggingIds, categories, initiateAssign, updateMutation])
 
   const handleClickAssign = useCallback((categoryId: string) => {
-    const tx = queueTxs.find(t => t.id === selectedId)
-    if (tx) initiateAssign(tx, categoryId)
-  }, [selectedId, queueTxs, initiateAssign])
+    const anchored = sortedQueueTxs.find(t => t.id === anchorId)
+    if (anchored) initiateAssign(anchored, categoryId)
+  }, [anchorId, sortedQueueTxs, initiateAssign])
 
   // ── Sort handlers ──
   function handleCatSort(key: CatSortKey) {
@@ -749,10 +811,11 @@ export default function CategorizePage() {
       next.splice(from, 1)
       next.splice(to, 0, reorderDragId)
       localStorage.setItem('budgetlens:cat-order', JSON.stringify(next))
+      savePrefMutation.mutate(next)
       return next
     })
     setReorderDragId(null); setReorderOverId(null)
-  }, [reorderDragId, categories])
+  }, [reorderDragId, categories, savePrefMutation])
 
   const handleCatReorderEnd = useCallback(() => {
     setReorderDragId(null); setReorderOverId(null)
@@ -811,38 +874,38 @@ export default function CategorizePage() {
         if (e.key === 'Escape') setConfirm(null)
         return
       }
-      const num = parseInt(e.key)
-      if (num >= 1 && num <= 9 && selectedId) {
-        const cat = categories[num - 1]
-        if (cat) {
-          e.preventDefault()
-          const tx = queueTxs.find(t => t.id === selectedId)
-          if (tx) initiateAssign(tx, cat.id)
-        }
-        return
-      }
       if (e.key === 'ArrowDown' || e.key === 'j') {
         e.preventDefault()
-        const idx  = sortedQueueTxs.findIndex(t => t.id === selectedId)
+        const idx  = sortedQueueTxs.findIndex(t => t.id === anchorId)
         const next = sortedQueueTxs[Math.min(idx + 1, sortedQueueTxs.length - 1)]
-        if (next) setSelectedId(next.id)
+        if (next) { setSelectedIds(new Set([next.id])); setAnchorId(next.id) }
       }
       if (e.key === 'ArrowUp' || e.key === 'k') {
         e.preventDefault()
-        const idx  = sortedQueueTxs.findIndex(t => t.id === selectedId)
+        const idx  = sortedQueueTxs.findIndex(t => t.id === anchorId)
         const prev = sortedQueueTxs[Math.max(idx - 1, 0)]
-        if (prev) setSelectedId(prev.id)
+        if (prev) { setSelectedIds(new Set([prev.id])); setAnchorId(prev.id) }
       }
-      if (e.key === 'Escape') setSelectedId(null)
+      if (e.key === 'Escape') { setSelectedIds(new Set()); setAnchorId(null) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [confirm, selectedId, queueTxs, categories, initiateAssign])
+  }, [confirm, anchorId, sortedQueueTxs])
 
   // Auto-select first visible item if none selected
   useEffect(() => {
-    if (!selectedId && sortedQueueTxs.length > 0) setSelectedId(sortedQueueTxs[0].id)
-  }, [sortedQueueTxs, selectedId])
+    if (selectedIds.size === 0 && sortedQueueTxs.length > 0) {
+      const first = sortedQueueTxs[0]
+      setSelectedIds(new Set([first.id]))
+      setAnchorId(first.id)
+    }
+  }, [sortedQueueTxs, selectedIds])
+
+  // Clear selection when filter tab changes
+  useEffect(() => {
+    setSelectedIds(new Set())
+    setAnchorId(null)
+  }, [filterMode])
 
   // ── Render ──
   if (!user) return null
@@ -928,20 +991,16 @@ export default function CategorizePage() {
 
             {/* LEFT: Category drop targets */}
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Categories · click to expand · drag or press 1–9 to assign
-              </p>
               <div className="max-h-[calc(100vh-240px)] overflow-y-auto pr-1 space-y-2">
                 {/* 2-column grid of category buttons */}
                 <div className="grid grid-cols-2 gap-1.5">
-                  {categories.map((cat, i) => (
+                  {categories.map((cat) => (
                     <CategoryBucket
                       key={cat.id}
                       cat={cat}
-                      index={i}
                       isDragging={!!dragging}
                       isHovered={hoveredCatId === cat.id}
-                      hasSelected={!!selectedId}
+                      hasSelected={selectedIds.size > 0}
                       isExpanded={expandedCatId === cat.id}
                       isReorderDragging={!!reorderDragId}
                       isReorderOver={reorderOverId === cat.id}
@@ -1036,24 +1095,27 @@ export default function CategorizePage() {
               </div>
 
               {/* Count label */}
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                {sortedQueueTxs.length}
-                {vendorQuery && queueTxs.length !== sortedQueueTxs.length
-                  ? ` of ${queueTxs.length}`
-                  : ''
-                } transaction{sortedQueueTxs.length !== 1 ? 's' : ''} — drag to the left
-                {selectedId && ' · or press 1–9'}
-              </p>
+              <div className="mb-2 flex items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {sortedQueueTxs.length}
+                  {vendorQuery && queueTxs.length !== sortedQueueTxs.length ? ` of ${queueTxs.length}` : ''}
+                  {' '}transaction{sortedQueueTxs.length !== 1 ? 's' : ''}
+                </p>
+                {selectedIds.size > 1 && (
+                  <span className="text-xs font-semibold text-accent-600 bg-accent-50 border border-accent-200 rounded-full px-2 py-0.5">
+                    {selectedIds.size} selected
+                  </span>
+                )}
+              </div>
 
               <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
-                {sortedQueueTxs.map((tx, i) => (
+                {sortedQueueTxs.map((tx) => (
                   <TxCard
                     key={tx.id}
                     tx={tx}
-                    index={i}
-                    isSelected={tx.id === selectedId}
-                    onSelect={setSelectedId}
-                    onDragStart={setDragging}
+                    isSelected={selectedIds.has(tx.id)}
+                    onClick={handleTxClick}
+                    onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     onTouchStart={handleTouchStart}
                   />
@@ -1068,10 +1130,6 @@ export default function CategorizePage() {
           </div>
         )}
 
-        {/* Keyboard hint */}
-        <p className="mt-4 text-center text-xs text-slate-400 hidden sm:block">
-          ↑↓ or J/K to navigate · 1–9 to assign · Drag left onto a category
-        </p>
       </main>
 
       {/* Touch ghost element */}
@@ -1086,13 +1144,13 @@ export default function CategorizePage() {
           onApplyOne={() => {
             updateMutation.mutate(
               { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: false },
-              { onSuccess: () => { setConfirm(null); setSelectedId(null) } }
+              { onSuccess: () => { setConfirm(null); setSelectedIds(new Set()); setAnchorId(null) } }
             )
           }}
           onApplyAll={() => {
             updateMutation.mutate(
               { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: true },
-              { onSuccess: () => { setConfirm(null); setSelectedId(null) } }
+              { onSuccess: () => { setConfirm(null); setSelectedIds(new Set()); setAnchorId(null) } }
             )
           }}
         />

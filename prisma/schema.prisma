@@ -13,7 +13,8 @@ model User {
   email        String    @unique
   passwordHash String
   createdAt    DateTime  @default(now())
-  deletedAt    DateTime?
+  deletedAt        DateTime?
+  categoryOrder    String    @default("[]")
 
   accounts         Account[]
   categories       Category[]
