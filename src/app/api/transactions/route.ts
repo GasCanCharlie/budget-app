@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   const year            = searchParams.get('year')            ? parseInt(searchParams.get('year')!)    : null
   const month           = searchParams.get('month')           ? parseInt(searchParams.get('month')!)   : null
   const category        = searchParams.get('category')        || null
+  const displayCategory = searchParams.get('displayCategory') || null
   const search          = searchParams.get('search')          || null
   const ingestionFilter = searchParams.get('ingestionFilter') || null   // 'flagged' | 'duplicate'
   const page            = parseInt(searchParams.get('page')   || '1')
@@ -28,13 +29,18 @@ export async function GET(req: NextRequest) {
   }
 
   if (category) {
-    // Effective category = userOverrideCategoryId when set, otherwise categoryId.
-    // A transaction belongs to this category if:
-    //   • the user explicitly moved it here (userOverrideCategoryId = category), OR
-    //   • it was auto-categorized here AND hasn't been moved (categoryId = category AND no override)
+    // Legacy FK-based filter (old categoryId UUIDs)
     where['OR'] = [
       { userOverrideCategoryId: category },
       { categoryId: category, userOverrideCategoryId: null },
+    ]
+  }
+
+  if (displayCategory) {
+    // New display-category filter: appCategory takes priority, falls back to bankCategoryRaw
+    where['OR'] = [
+      { appCategory: displayCategory },
+      { appCategory: null, bankCategoryRaw: displayCategory },
     ]
   }
 

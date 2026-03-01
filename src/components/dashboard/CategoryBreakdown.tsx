@@ -58,7 +58,7 @@ export function CategoryBreakdown({ categories, totalSpending, month, year }: Pr
           {topCategories.map((cat) => (
             <li key={cat.categoryId}>
               <Link
-                href={'/transactions?category=' + cat.categoryId}
+                href={'/transactions?displayCategory=' + encodeURIComponent(cat.categoryName)}
                 className="group flex items-start gap-3"
               >
                 <div className="w-6 flex-shrink-0 flex items-center">

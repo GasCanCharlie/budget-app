@@ -78,9 +78,10 @@ function TransactionsPageInner() {
   const { apiFetch, apiDownload } = useApi()
   const qc           = useQueryClient()
 
-  const [search,          setSearch]          = useState('')
-  const [category,        setCategory]        = useState(searchParams.get('category') || '')
-  const [ingestionFilter, setIngestionFilter] = useState<IngestionFilter>('')
+  const [search,           setSearch]           = useState('')
+  const [category,         setCategory]         = useState(searchParams.get('category') || '')
+  const [displayCategory,  setDisplayCategory]  = useState(searchParams.get('displayCategory') || '')
+  const [ingestionFilter,  setIngestionFilter]  = useState<IngestionFilter>('')
   const [page,            setPage]            = useState(1)
   const [editing,         setEditing]         = useState<string | null>(null)
   const [toast,           setToast]           = useState<string | null>(null)
@@ -97,12 +98,13 @@ function TransactionsPageInner() {
   const categories = catData?.categories ?? []
 
   const { data, isLoading } = useQuery({
-    queryKey: ['transactions', search, category, ingestionFilter, page],
+    queryKey: ['transactions', search, category, displayCategory, ingestionFilter, page],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), limit: '50' })
-      if (search)          params.set('search',          search)
-      if (category)        params.set('category',        category)
-      if (ingestionFilter) params.set('ingestionFilter', ingestionFilter)
+      if (search)           params.set('search',          search)
+      if (category)         params.set('category',        category)
+      if (displayCategory)  params.set('displayCategory', displayCategory)
+      if (ingestionFilter)  params.set('ingestionFilter', ingestionFilter)
       return apiFetch(`/api/transactions?${params}`)
     },
     enabled: !!user,
@@ -229,6 +231,23 @@ function TransactionsPageInner() {
             ))}
           </select>
         </div>
+
+        {/* ── Active display-category filter pill ──────────────────────── */}
+        {displayCategory && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">Category filter:</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 border border-blue-200">
+              {displayCategory}
+              <button
+                onClick={() => { setDisplayCategory(''); setPage(1) }}
+                className="ml-0.5 hover:text-blue-900 leading-none"
+                aria-label="Clear category filter"
+              >
+                ×
+              </button>
+            </span>
+          </div>
+        )}
 
         {/* ── Ingestion filter tabs ────────────────────────────────────── */}
         {(flaggedCount > 0 || duplicateCount > 0 || ingestionFilter !== '') && (
