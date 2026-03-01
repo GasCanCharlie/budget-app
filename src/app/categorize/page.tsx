@@ -579,6 +579,19 @@ export default function CategorizePage() {
   const [reorderDragId, setReorderDragId] = useState<string | null>(null)
   const [reorderOverId, setReorderOverId] = useState<string | null>(null)
 
+  // ── Re-run categorization ──────────────────────────────────────────────────
+  const [rerunResult, setRerunResult] = useState<{ updated: number; total: number; skipped: number } | null>(null)
+
+  const rerunMutation = useMutation({
+    mutationFn: () => apiFetch('/api/categorize/rerun', { method: 'POST' }) as Promise<{ updated: number; total: number; skipped: number }>,
+    onSuccess: (data) => {
+      setRerunResult(data)
+      qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+      qc.invalidateQueries({ queryKey: ['cat-transactions'] })
+      qc.invalidateQueries({ queryKey: ['summary'] })
+    },
+  })
+
   // ── Data ──
   const { data: txData, isLoading: txLoading, error: txError } = useQuery({
     queryKey: ['categorize-transactions'],
@@ -884,7 +897,23 @@ export default function CategorizePage() {
               transactions or expanding a category to review what&apos;s inside.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Re-run categorization button */}
+            <button
+              onClick={() => { setRerunResult(null); rerunMutation.mutate() }}
+              disabled={rerunMutation.isPending}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition"
+              title="Re-run the categorization engine on all uncategorized / low-confidence transactions"
+            >
+              {rerunMutation.isPending
+                ? <><Loader2 size={14} className="animate-spin" /> Re-running…</>
+                : <><ArrowRight size={14} /> Re-run Categorization</>}
+            </button>
+            {rerunResult && !rerunMutation.isPending && (
+              <span className="text-xs text-green-700 font-medium">
+                ✓ {rerunResult.updated} fixed
+              </span>
+            )}
             {needsReviewCount > 0 && (
               <span className="badge bg-amber-100 text-amber-700">
                 {needsReviewCount} need review

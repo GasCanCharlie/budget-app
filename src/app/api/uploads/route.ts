@@ -183,6 +183,7 @@ export async function POST(req: NextRequest) {
       sourceRowHash: string
       parsedDate: Date                    // the Date object we'll store in Transaction.date
       rawFields: Record<string, string>   // captured here so index stays correct after skips
+      merchantNormForCat: string          // cleaned merchant name used for categorization
     }
     const validEntries: ValidEntry[] = []
     const txInputs: { description: string; amount: number }[] = []
@@ -237,9 +238,14 @@ export async function POST(req: NextRequest) {
         totalUnresolved++
       }
 
-      validEntries.push({ nt, sourceRowHash, parsedDate, rawFields: row.fields })
+      // Pre-compute merchant-normalized name here so we can pass it to
+      // categorizeBatch().  Using the normalized name (city/card-noise stripped)
+      // gives the keyword matcher and AI a much cleaner signal than descriptionRaw.
+      const merchantNormForCat = normalizeMerchant(nt.descriptionNormalized || nt.descriptionRaw)
+
+      validEntries.push({ nt, sourceRowHash, parsedDate, rawFields: row.fields, merchantNormForCat })
       txInputs.push({
-        description: nt.descriptionRaw,
+        description: merchantNormForCat || nt.descriptionRaw,
         amount:      nt.amount.value != null ? parseFloat(nt.amount.value) : 0,
       })
     }

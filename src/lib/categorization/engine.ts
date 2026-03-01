@@ -217,9 +217,11 @@ const MERCHANT_KEYWORDS: Array<[string, string]> = [
   ['crate and barrel', 'Shopping'], ['williams sonoma', 'Shopping'],
   ['michaels', 'Shopping'], ["hobby lobby", 'Shopping'],
   ['petco', 'Pets'], ['petsmart', 'Pets'], ['chewy', 'Pets'],
-  // Health
+  // Health — drug stores / pharmacies
   ['cvs', 'Health'], ['walgreens', 'Health'], ['rite aid', 'Health'],
   ['duane reade', 'Health'], ['bartell drug', 'Health'],
+  ['longs drugs', 'Health'], ['longs drug', 'Health'],
+  ['navarro', 'Health'], ['harmons drug', 'Health'],
   ['planet fitness', 'Health'], ['la fitness', 'Health'],
   ['anytime fitness', 'Health'], ['ymca', 'Health'],
   ['orange theory', 'Health'], ['equinox', 'Health'],
@@ -235,7 +237,12 @@ const MERCHANT_KEYWORDS: Array<[string, string]> = [
   ['dominion energy', 'Utilities'], ['national grid', 'Utilities'],
   ['georgia power', 'Utilities'], ['southern company', 'Utilities'],
   ['american electric', 'Utilities'],
-  // Travel
+  // Travel — hotels, airlines, car rentals
+  ['ritz-carlton', 'Travel'], ['ritz carlton', 'Travel'], ['four seasons', 'Travel'],
+  ['intercontinental', 'Travel'], ['sheraton', 'Travel'], ['westin', 'Travel'],
+  ['renaissance hotel', 'Travel'], ['courtyard', 'Travel'], ['residence inn', 'Travel'],
+  ['hampton inn', 'Travel'], ['holiday inn', 'Travel'], ['doubletree', 'Travel'],
+  ['embassy suites', 'Travel'], ['extended stay', 'Travel'],
   ['marriott', 'Travel'], ['hilton', 'Travel'], ['hyatt', 'Travel'],
   ['ihg', 'Travel'], ['wyndham', 'Travel'], ['best western', 'Travel'],
   ['airbnb', 'Travel'], ['vrbo', 'Travel'], ['booking.com', 'Travel'],
@@ -252,9 +259,13 @@ const MERCHANT_KEYWORDS: Array<[string, string]> = [
   ['aetna', 'Insurance'], ['cigna', 'Insurance'], ['humana', 'Insurance'],
   ['bcbs', 'Insurance'], ['blue cross', 'Insurance'],
   ['unitedhealth', 'Insurance'], ['anthem', 'Insurance'],
-  // Fees & Charges
+  // Fees & Charges — bank fees, card fees, cross-border
   ['annual fee', 'Fees & Charges'], ['late payment', 'Fees & Charges'],
   ['overdraft fee', 'Fees & Charges'], ['atm fee', 'Fees & Charges'],
+  ['card fee', 'Fees & Charges'], ['cross-border fee', 'Fees & Charges'],
+  ['foreign transaction', 'Fees & Charges'], ['currency conversion', 'Fees & Charges'],
+  ['issuer fee', 'Fees & Charges'], ['mastercard issuer', 'Fees & Charges'],
+  ['visa issuer', 'Fees & Charges'], ['interchange fee', 'Fees & Charges'],
   // Income / Transfers
   ['direct dep', 'Income'], ['payroll', 'Income'],
   ['zelle payment', 'Transfer'], ['venmo payment', 'Transfer'],
