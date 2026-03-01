@@ -215,7 +215,6 @@ const BANK_CATEGORY_MAP: Record<string, string> = {
   'mortgage': 'Housing',
   'home improvement': 'Housing',
   'home maintenance': 'Housing',
-  'home and garden': 'Housing',
   'home repair': 'Housing',
   'home and improvement': 'Housing',
   'lawn and garden': 'Housing',
