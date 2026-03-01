@@ -196,6 +196,8 @@ describe('categorize()', () => {
   })
 
   // ── AI high confidence (>= 0.6) → uses AI category ───────────────────────
+  // Note: well-known merchants are now matched by the keyword layer (source='rule')
+  // before reaching AI.  Use an unknown merchant name to exercise the AI path.
 
   it('returns the AI category when confidence is >= 0.6', async () => {
     ;(prisma.categoryRule.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([])
@@ -203,7 +205,8 @@ describe('categorize()', () => {
       choices: [{ message: { content: '{"category": "Food & Dining", "confidence": 0.9}' } }],
     })
 
-    const result = await categorize('PANERA BREAD', USER_ID, -14.0)
+    // Use a generic merchant that won't match any built-in keyword rule
+    const result = await categorize('OBSCURE EATERY XYZ', USER_ID, -14.0)
 
     expect(result.source).toBe('ai')
     expect(result.categoryName).toBe('Food & Dining')

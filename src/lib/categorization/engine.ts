@@ -122,6 +122,167 @@ async function applyRules(description: string, userId: string): Promise<RuleMatc
   return null
 }
 
+// ─── Layer 2: Built-in keyword/merchant matching ──────────────────────────────
+
+/**
+ * Common merchant/keyword → category mappings.
+ * Checked before the AI call to reduce latency and handle OpenAI outages.
+ * Each entry: [pattern (lowercase substring), category name]
+ */
+const MERCHANT_KEYWORDS: Array<[string, string]> = [
+  // Groceries
+  ['whole foods', 'Groceries'], ['wholefoods', 'Groceries'],
+  ['kroger', 'Groceries'], ['safeway', 'Groceries'], ['publix', 'Groceries'],
+  ['trader joe', 'Groceries'], ['aldi', 'Groceries'], ['wegmans', 'Groceries'],
+  ['sprouts', 'Groceries'], ['harris teeter', 'Groceries'], ['giant', 'Groceries'],
+  ['heb ', 'Groceries'], ['meijer', 'Groceries'], ['winn dixie', 'Groceries'],
+  ['food lion', 'Groceries'], ['price chopper', 'Groceries'], ['stop shop', 'Groceries'],
+  ['ralph', 'Groceries'], ['vons', 'Groceries'], ['tom thumb', 'Groceries'],
+  ['market basket', 'Groceries'], ['hannaford', 'Groceries'],
+  // Food & Dining
+  ['mcdonald', 'Food & Dining'], ['starbucks', 'Food & Dining'],
+  ['subway', 'Food & Dining'], ['chipotle', 'Food & Dining'],
+  ['dunkin', 'Food & Dining'], ['doordash', 'Food & Dining'],
+  ['grubhub', 'Food & Dining'], ['uber eats', 'Food & Dining'],
+  ['ubereats', 'Food & Dining'], ['instacart', 'Food & Dining'],
+  ['chick-fil-a', 'Food & Dining'], ['chickfila', 'Food & Dining'],
+  ['taco bell', 'Food & Dining'], ['burger king', 'Food & Dining'],
+  ['wendy', 'Food & Dining'], ['pizza hut', 'Food & Dining'],
+  ['domino', 'Food & Dining'], ['panera', 'Food & Dining'],
+  ['olive garden', 'Food & Dining'], ['applebee', 'Food & Dining'],
+  ['ihop', 'Food & Dining'], ['denny', 'Food & Dining'],
+  ['panda express', 'Food & Dining'], ['popeye', 'Food & Dining'],
+  ['five guys', 'Food & Dining'], ['in-n-out', 'Food & Dining'],
+  ['shake shack', 'Food & Dining'], ['wingstop', 'Food & Dining'],
+  ['raising cane', 'Food & Dining'], ['dairy queen', 'Food & Dining'],
+  ['sonic drive', 'Food & Dining'], ['jack in the box', 'Food & Dining'],
+  ['hardee', 'Food & Dining'], ['carl jr', 'Food & Dining'],
+  ['arby', 'Food & Dining'], ['whataburger', 'Food & Dining'],
+  ['dutch bros', 'Food & Dining'], ['tim horton', 'Food & Dining'],
+  ['postmates', 'Food & Dining'],
+  // Transport
+  ['shell ', 'Transport'], ['chevron', 'Transport'], ['exxon', 'Transport'],
+  ['mobil', 'Transport'], ['bp gas', 'Transport'], ['sunoco', 'Transport'],
+  ['marathon', 'Transport'], ['citgo', 'Transport'], ['valero', 'Transport'],
+  ['speedway', 'Transport'], ['circle k', 'Transport'], ['casey', 'Transport'],
+  ['kwik trip', 'Transport'], ['wawa', 'Transport'], ['sheetz', 'Transport'],
+  ['pilot flying', 'Transport'], ['loves travel', 'Transport'],
+  ['uber*', 'Transport'], ['lyft*', 'Transport'],
+  ['enterprise rent', 'Transport'], ['hertz', 'Transport'], ['avis', 'Transport'],
+  ['budget rent', 'Transport'], ['national car', 'Transport'],
+  ['e-zpass', 'Transport'], ['ezpass', 'Transport'], ['sunpass', 'Transport'],
+  ['parkwhiz', 'Transport'], ['spothero', 'Transport'], ['impark', 'Transport'],
+  ['autozone', 'Transport'], ['advance auto', 'Transport'], ['oreilly auto', 'Transport'],
+  ['pep boys', 'Transport'], ['jiffy lube', 'Transport'], ['midas', 'Transport'],
+  ['firestone', 'Transport'], ['goodyear', 'Transport'], ['mavis', 'Transport'],
+  ['car wash', 'Transport'],
+  // Entertainment
+  ['netflix', 'Entertainment'], ['hulu', 'Entertainment'], ['disney+', 'Entertainment'],
+  ['disneyplus', 'Entertainment'], ['hbo', 'Entertainment'],
+  ['paramount+', 'Entertainment'], ['peacock', 'Entertainment'],
+  ['amc theatre', 'Entertainment'], ['regal cinema', 'Entertainment'],
+  ['cinemark', 'Entertainment'], ['ticketmaster', 'Entertainment'],
+  ['stubhub', 'Entertainment'], ['eventbrite', 'Entertainment'],
+  ['xbox', 'Entertainment'], ['playstation', 'Entertainment'],
+  ['nintendo', 'Entertainment'], ['steam games', 'Entertainment'],
+  ['twitch', 'Entertainment'], ['youtube premium', 'Entertainment'],
+  ['siriusxm', 'Entertainment'], ['pandora', 'Entertainment'],
+  ['audible', 'Entertainment'],
+  // Subscriptions
+  ['spotify', 'Subscriptions'], ['apple.com/bill', 'Subscriptions'],
+  ['google play', 'Subscriptions'], ['microsoft', 'Subscriptions'],
+  ['adobe', 'Subscriptions'], ['dropbox', 'Subscriptions'],
+  ['icloud', 'Subscriptions'], ['amazon prime', 'Subscriptions'],
+  ['amazon digital', 'Subscriptions'], ['nytimes', 'Subscriptions'],
+  ['wsj.com', 'Subscriptions'], ['linkedin', 'Subscriptions'],
+  ['zoom', 'Subscriptions'], ['slack', 'Subscriptions'],
+  ['github', 'Subscriptions'], ['squarespace', 'Subscriptions'],
+  ['mailchimp', 'Subscriptions'], ['shopify', 'Subscriptions'],
+  ['chatgpt', 'Subscriptions'], ['openai', 'Subscriptions'],
+  ['anthropic', 'Subscriptions'],
+  // Shopping
+  ['amazon', 'Shopping'], ['walmart', 'Shopping'], ['target', 'Shopping'],
+  ['costco', 'Shopping'], ['home depot', 'Shopping'], ['lowes', 'Shopping'],
+  ['best buy', 'Shopping'], ['ikea', 'Shopping'], ['wayfair', 'Shopping'],
+  ['ebay', 'Shopping'], ['etsy', 'Shopping'], ['overstock', 'Shopping'],
+  ['kohls', 'Shopping'], ["tj maxx", 'Shopping'], ['marshalls', 'Shopping'],
+  ['ross stores', 'Shopping'], ['burlington', 'Shopping'], ['old navy', 'Shopping'],
+  ['gap ', 'Shopping'], ['banana republic', 'Shopping'], ['h&m', 'Shopping'],
+  ['zara', 'Shopping'], ['uniqlo', 'Shopping'], ['nike', 'Shopping'],
+  ['adidas', 'Shopping'], ['macys', 'Shopping'], ['nordstrom', 'Shopping'],
+  ['saks', 'Shopping'], ['neiman marcus', 'Shopping'],
+  ['dollar tree', 'Shopping'], ['dollar general', 'Shopping'],
+  ['five below', 'Shopping'], ['party city', 'Shopping'],
+  ['bed bath', 'Shopping'], ['container store', 'Shopping'],
+  ['crate and barrel', 'Shopping'], ['williams sonoma', 'Shopping'],
+  ['michaels', 'Shopping'], ["hobby lobby", 'Shopping'],
+  ['petco', 'Pets'], ['petsmart', 'Pets'], ['chewy', 'Pets'],
+  // Health
+  ['cvs', 'Health'], ['walgreens', 'Health'], ['rite aid', 'Health'],
+  ['duane reade', 'Health'], ['bartell drug', 'Health'],
+  ['planet fitness', 'Health'], ['la fitness', 'Health'],
+  ['anytime fitness', 'Health'], ['ymca', 'Health'],
+  ['orange theory', 'Health'], ['equinox', 'Health'],
+  ['24 hour fitness', 'Health'], ['crossfit', 'Health'],
+  ['peloton', 'Health'], ['lifetime fitness', 'Health'],
+  ['mayo clinic', 'Health'], ['kaiser', 'Health'],
+  // Utilities
+  ['at&t', 'Utilities'], ['verizon', 'Utilities'], ['t-mobile', 'Utilities'],
+  ['sprint', 'Utilities'], ['xfinity', 'Utilities'], ['comcast', 'Utilities'],
+  ['spectrum', 'Utilities'], ['cox communication', 'Utilities'],
+  ['directv', 'Utilities'], ['dish network', 'Utilities'],
+  ['pg&e', 'Utilities'], ['con edison', 'Utilities'], ['duke energy', 'Utilities'],
+  ['dominion energy', 'Utilities'], ['national grid', 'Utilities'],
+  ['georgia power', 'Utilities'], ['southern company', 'Utilities'],
+  ['american electric', 'Utilities'],
+  // Travel
+  ['marriott', 'Travel'], ['hilton', 'Travel'], ['hyatt', 'Travel'],
+  ['ihg', 'Travel'], ['wyndham', 'Travel'], ['best western', 'Travel'],
+  ['airbnb', 'Travel'], ['vrbo', 'Travel'], ['booking.com', 'Travel'],
+  ['expedia', 'Travel'], ['priceline', 'Travel'], ['hotels.com', 'Travel'],
+  ['delta air', 'Travel'], ['united air', 'Travel'], ['american air', 'Travel'],
+  ['southwest air', 'Travel'], ['jetblue', 'Travel'], ['spirit air', 'Travel'],
+  ['frontier air', 'Travel'], ['alaska air', 'Travel'],
+  ['amtrak', 'Travel'], ['greyhound', 'Travel'],
+  // Insurance
+  ['geico', 'Insurance'], ['state farm', 'Insurance'], ['allstate', 'Insurance'],
+  ['progressive', 'Insurance'], ['farmers insurance', 'Insurance'],
+  ['usaa insurance', 'Insurance'], ['nationwide', 'Insurance'],
+  ['liberty mutual', 'Insurance'], ['travelers insurance', 'Insurance'],
+  ['aetna', 'Insurance'], ['cigna', 'Insurance'], ['humana', 'Insurance'],
+  ['bcbs', 'Insurance'], ['blue cross', 'Insurance'],
+  ['unitedhealth', 'Insurance'], ['anthem', 'Insurance'],
+  // Fees & Charges
+  ['annual fee', 'Fees & Charges'], ['late payment', 'Fees & Charges'],
+  ['overdraft fee', 'Fees & Charges'], ['atm fee', 'Fees & Charges'],
+  // Income / Transfers
+  ['direct dep', 'Income'], ['payroll', 'Income'],
+  ['zelle payment', 'Transfer'], ['venmo payment', 'Transfer'],
+  ['paypal transfer', 'Transfer'], ['cash app', 'Transfer'],
+]
+
+interface KeywordMatch {
+  categoryId: string
+  categoryName: string
+  confidence: number
+  source: 'rule'
+}
+
+async function applyKeywordRules(description: string): Promise<KeywordMatch | null> {
+  const descLower = description.toLowerCase()
+  const categories = await getCategories()
+
+  for (const [keyword, categoryName] of MERCHANT_KEYWORDS) {
+    if (descLower.includes(keyword.toLowerCase())) {
+      const cat = categories.find(c => c.name === categoryName)
+      if (cat) {
+        return { categoryId: cat.id, categoryName, confidence: 0.85, source: 'rule' }
+      }
+    }
+  }
+  return null
+}
+
 // ─── Layer 3: AI fallback ─────────────────────────────────────────────────────
 
 const AI_CATEGORY_NAMES = [
@@ -199,7 +360,7 @@ export async function categorize(
   // (rules can still override this if description matches something else)
   const isLikelyIncome = amount > 0
 
-  // Layer 1: Rules
+  // Layer 1: User/system rules (highest priority)
   const ruleMatch = await applyRules(description, userId)
   if (ruleMatch) {
     return {
@@ -216,6 +377,17 @@ export async function categorize(
       categoryId: findCatId('Income'),
       categoryName: 'Income',
       confidence: 0.75,
+      source: 'rule',
+    }
+  }
+
+  // Layer 2: Built-in keyword/merchant matching (before AI to reduce latency + handle outages)
+  const keywordMatch = await applyKeywordRules(description)
+  if (keywordMatch) {
+    return {
+      categoryId: keywordMatch.categoryId,
+      categoryName: keywordMatch.categoryName,
+      confidence: keywordMatch.confidence,
       source: 'rule',
     }
   }

@@ -110,6 +110,7 @@ export async function GET(req: NextRequest) {
       dateAmbiguity:         tx.dateAmbiguity,
       dateInterpretationA:   tx.dateInterpretationA,
       dateInterpretationB:   tx.dateInterpretationB,
+      bankCategoryRaw:       tx.bankCategoryRaw,
       category: effectiveCat ? {
         id:    effectiveCat.id,
         name:  effectiveCat.name,

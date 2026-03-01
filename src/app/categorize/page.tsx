@@ -38,6 +38,7 @@ interface Transaction {
   confidenceScore: number
   reviewedByUser: boolean
   category: TxCategory | null
+  bankCategoryRaw?: string | null
 }
 
 type FilterMode = 'needs-review' | 'all'
@@ -456,6 +457,11 @@ function CategoryTransactionList({
                 <span className="text-xs text-slate-300">
                   {SOURCE_LABELS[tx.categorizationSource]}
                 </span>
+                {tx.bankCategoryRaw && (
+                  <span className="text-[10px] text-blue-400" title="Bank-reported category">
+                    🏦 {tx.bankCategoryRaw}
+                  </span>
+                )}
               </div>
 
               {/* Move picker, confirm prompt, or Move button */}
