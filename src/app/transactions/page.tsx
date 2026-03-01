@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-react'
 import clsx from 'clsx'
 import { CategoryIcon } from '@/components/CategoryIcon'
 
@@ -117,6 +117,7 @@ function TransactionsPageInner() {
   const [sortDir,          setSortDir]          = useState<SortDir>('desc')
   const [page,            setPage]            = useState(1)
   const [editing,         setEditing]         = useState<string | null>(null)
+  const [appCatEditing,   setAppCatEditing]   = useState<string | null>(null)
   const [toast,           setToast]           = useState<string | null>(null)
   const [undoStack,       setUndoStack]       = useState<{ id: string; oldCatId: string }[]>([])
   const [downloading,     setDownloading]     = useState(false)
@@ -163,6 +164,22 @@ function TransactionsPageInner() {
       qc.invalidateQueries({ queryKey: ['summary'] })
       setEditing(null)
       showToast(vars.applyToAll && data.updated > 1 ? `Updated ${data.updated} transactions` : 'Category updated')
+    },
+  })
+
+  // ── App-category (free-text) mutation ─────────────────────────────────────
+
+  const appCategoryMutation = useMutation({
+    mutationFn: ({ id, appCategory, applyToAll }: { id: string; appCategory: string | null; applyToAll: boolean }) =>
+      apiFetch(`/api/transactions/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ appCategory, applyToAll }),
+      }),
+    onSuccess: (data, vars) => {
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['summary'] })
+      setAppCatEditing(null)
+      showToast(vars.applyToAll && (data.updated ?? 1) > 1 ? `Updated ${data.updated} transactions` : 'Category updated')
     },
   })
 
@@ -376,9 +393,13 @@ function TransactionsPageInner() {
                 tx={tx}
                 categories={categories}
                 isEditing={editing === tx.id}
-                onEdit={() => setEditing(editing === tx.id ? null : tx.id)}
+                onEdit={() => { setAppCatEditing(null); setEditing(editing === tx.id ? null : tx.id) }}
                 onUpdate={(newCatId, applyToAll) => doUpdate(tx.id, tx.category?.id ?? '', newCatId, applyToAll)}
                 isPending={updateMutation.isPending && updateMutation.variables?.id === tx.id}
+                isAppCatEditing={appCatEditing === tx.id}
+                onAppCatEdit={() => { setEditing(null); setAppCatEditing(appCatEditing === tx.id ? null : tx.id) }}
+                onAppCatUpdate={(newName, applyToAll) => appCategoryMutation.mutate({ id: tx.id, appCategory: newName, applyToAll })}
+                isAppCatPending={appCategoryMutation.isPending && appCategoryMutation.variables?.id === tx.id}
                 onResolveDate={(resolvedDate) => resolveMutation.mutate({ id: tx.id, payload: { resolvedDate } })}
                 onDismissDuplicate={() => resolveMutation.mutate({ id: tx.id, payload: { dismissDuplicate: true } })}
                 isResolvePending={resolveMutation.isPending && resolveMutation.variables?.id === tx.id}
@@ -417,6 +438,7 @@ function TransactionsPageInner() {
 
 function TransactionRow({
   tx, categories, isEditing, onEdit, onUpdate, isPending,
+  isAppCatEditing, onAppCatEdit, onAppCatUpdate, isAppCatPending,
   onResolveDate, onDismissDuplicate, isResolvePending,
 }: {
   tx:                  Transaction
@@ -425,11 +447,16 @@ function TransactionRow({
   onEdit:              () => void
   onUpdate:            (catId: string, applyToAll: boolean) => void
   isPending:           boolean
+  isAppCatEditing:     boolean
+  onAppCatEdit:        () => void
+  onAppCatUpdate:      (catName: string | null, applyToAll: boolean) => void
+  isAppCatPending:     boolean
   onResolveDate:       (resolvedDate: string) => void
   onDismissDuplicate:  () => void
   isResolvePending:    boolean
 }) {
-  const [applyAll, setApplyAll] = useState(false)
+  const [applyAll,       setApplyAll]       = useState(false)
+  const [appCatApplyAll, setAppCatApplyAll] = useState(false)
   const cat = tx.category
 
   const needsReview   = tx.categorizationSource === 'ai' && tx.confidenceScore < 0.85 && !tx.reviewedByUser
@@ -512,11 +539,18 @@ function TransactionRow({
                 <span className="text-blue-600">{tx.bankCategoryRaw}</span>
               </span>
             )}
-            {tx.appCategory && (
-              <span className="text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded font-medium">
-                {tx.appCategory}
-              </span>
-            )}
+            <button
+              onClick={onAppCatEdit}
+              className={clsx(
+                'inline-flex items-center gap-1 text-[10px] font-semibold rounded px-1.5 py-0.5 transition',
+                tx.appCategory
+                  ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                  : 'bg-slate-50 text-slate-400 border border-dashed border-slate-300 hover:border-slate-400 hover:text-slate-600'
+              )}
+            >
+              {tx.appCategory ?? 'Assign'}
+              <ChevronDown size={9} />
+            </button>
           </div>
 
           {/* ── Date ambiguity resolver ──────────────────────────────── */}
@@ -559,8 +593,46 @@ function TransactionRow({
           )}
         </div>
 
-        {isPending && <div className="w-4 h-4 border-2 border-accent-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />}
+        {(isPending || isAppCatPending) && <div className="w-4 h-4 border-2 border-accent-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />}
       </div>
+
+      {/* ── App-category picker ───────────────────────────────────────── */}
+      {isAppCatEditing && (
+        <div className="mt-3 ml-11 space-y-2">
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id={`appCatApplyAll-${tx.id}`} checked={appCatApplyAll} onChange={e => setAppCatApplyAll(e.target.checked)} className="rounded" />
+            <label htmlFor={`appCatApplyAll-${tx.id}`} className="text-xs font-medium text-slate-600">
+              Apply to all &quot;{tx.merchantNormalized}&quot; transactions
+            </label>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => onAppCatUpdate(c.name, appCatApplyAll)}
+                className={clsx(
+                  'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition text-left',
+                  tx.appCategory === c.name
+                    ? 'bg-green-500 text-white'
+                    : 'hover:bg-white hover:shadow-sm text-slate-700'
+                )}
+              >
+                <CategoryIcon name={c.icon} color={tx.appCategory === c.name ? '#ffffff' : c.color} size={14} />
+                <span className="truncate">{c.name}</span>
+              </button>
+            ))}
+            {tx.appCategory && (
+              <button
+                onClick={() => onAppCatUpdate(null, appCatApplyAll)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition text-left text-red-500 hover:bg-red-50"
+              >
+                <X size={14} />
+                <span>Clear</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Category picker ──────────────────────────────────────────── */}
       {isEditing && (
