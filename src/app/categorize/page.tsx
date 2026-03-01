@@ -370,12 +370,13 @@ export default function CategorizePage() {
       // Optimistically remove the categorized transaction(s) from the list
       qc.setQueryData(['categorize-transactions'], (old: { transactions: Transaction[] } | undefined) => {
         if (!old) return old
-        // Find the merchant name of the affected tx for applyToAll
+        // Find the affected tx for applyToAll matching (same merchant + same amount)
         const affectedTx = old.transactions.find(t => t.id === id)
         const merchant = affectedTx?.merchantNormalized
+        const amount   = affectedTx?.amount
         const removeIds = new Set(
           applyToAll && merchant
-            ? old.transactions.filter(t => t.merchantNormalized === merchant && !t.reviewedByUser).map(t => t.id)
+            ? old.transactions.filter(t => t.merchantNormalized === merchant && t.amount === amount && !t.reviewedByUser).map(t => t.id)
             : [id]
         )
         return { ...old, transactions: old.transactions.filter(t => !removeIds.has(t.id)) }
@@ -394,16 +395,23 @@ export default function CategorizePage() {
   })
 
   // ── Helpers ──
-  const countSimilar = useCallback((merchant: string) =>
-    allTxs.filter(t => t.merchantNormalized === merchant && !t.reviewedByUser).length,
+  const countSimilar = useCallback((merchant: string, amount: number) =>
+    allTxs.filter(t => t.merchantNormalized === merchant && t.amount === amount && !t.reviewedByUser).length,
     [allTxs]
   )
 
   const initiateAssign = useCallback((tx: Transaction, categoryId: string) => {
     const cat = categories.find(c => c.id === categoryId)
     if (!cat) return
-    setConfirm({ transaction: tx, category: cat, similarCount: countSimilar(tx.merchantNormalized) })
-  }, [categories, countSimilar])
+    const similarCount = countSimilar(tx.merchantNormalized, tx.amount)
+    if (similarCount <= 1) {
+      // Only one transaction at this price — assign directly, no popup
+      updateMutation.mutate({ id: tx.id, categoryId, applyToAll: false })
+      setSelectedId(null)
+      return
+    }
+    setConfirm({ transaction: tx, category: cat, similarCount })
+  }, [categories, countSimilar, updateMutation])
 
   // ── Drag handlers ──
   const handleDragEnd = useCallback(() => {
