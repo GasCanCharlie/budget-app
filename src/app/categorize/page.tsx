@@ -1177,7 +1177,7 @@ export default function CategorizePage() {
               </div>
 
               {/* Category rows — grouped into pairs so the accordion expands inline under its row */}
-              <div className="max-h-[calc(100vh-270px)] overflow-y-auto pr-1">
+              <div className="max-h-[calc(100vh-270px)] overflow-y-auto px-1 py-0.5">
                 {Array.from({ length: Math.ceil(categories.length / 2) }, (_, rowIdx) => {
                   const row = categories.slice(rowIdx * 2, rowIdx * 2 + 2)
                   const expandedCat = row.find(c => c.id === expandedCatId)
