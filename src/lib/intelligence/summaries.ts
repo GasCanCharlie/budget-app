@@ -162,7 +162,9 @@ export async function computeMonthSummary(
   let totalSpending = 0
   let incomeTxCount = 0
 
-  const categoryMap: Map<string, { total: number; count: number; cat: ReturnType<typeof getDisplayCategoryStyle> }> = new Map()
+  // Track total (abs) and netAmount (signed) per category so we can determine
+  // income vs expense purely from transaction direction, not from name lookup.
+  const categoryMap: Map<string, { total: number; netAmount: number; count: number; cat: ReturnType<typeof getDisplayCategoryStyle> }> = new Map()
 
   for (const tx of transactions) {
     // New display category: appCategory > bankCategoryRaw > "Uncategorized"
@@ -182,27 +184,35 @@ export async function computeMonthSummary(
 
     const existing = categoryMap.get(displayCat)
     if (existing) {
-      existing.total += Math.abs(tx.amount)
+      existing.total     += Math.abs(tx.amount)
+      existing.netAmount += tx.amount
       existing.count++
     } else {
-      categoryMap.set(displayCat, { total: Math.abs(tx.amount), count: 1, cat: catStyle })
+      categoryMap.set(displayCat, { total: Math.abs(tx.amount), netAmount: tx.amount, count: 1, cat: catStyle })
     }
   }
 
   const net = totalIncome - totalSpending
 
-  // Category breakdown
+  // Category breakdown.
+  // isIncome is determined by the net direction of the category's transactions —
+  // if the category's net amount is positive it's income, regardless of category name.
+  // This correctly handles user-defined income categories like "Paycheck" or "Freelance".
   const categoryTotals: CategoryTotal[] = Array.from(categoryMap.entries())
-    .map(([displayCat, { total, count, cat }]) => ({
-      categoryId:       cat.id,   // this is now the displayCat string, not a UUID
-      categoryName:     cat.name,
-      categoryColor:    cat.color,
-      categoryIcon:     cat.icon,
-      total,
-      transactionCount: count,
-      pctOfSpending:    totalSpending > 0 && !cat.isIncome ? (total / totalSpending) * 100 : 0,
-      isIncome:         cat.isIncome,
-    }))
+    .map(([, { total, netAmount, count, cat }]) => {
+      const isIncome = netAmount > 0
+      return {
+        categoryId:       cat.id,
+        categoryName:     cat.name,
+        categoryColor:    cat.color,
+        categoryIcon:     cat.icon,
+        total,
+        transactionCount: count,
+        // pctOfSpending is only meaningful for expense categories
+        pctOfSpending:    totalSpending > 0 && !isIncome ? (total / totalSpending) * 100 : 0,
+        isIncome,
+      }
+    })
     .sort((a, b) => b.total - a.total)
 
   // Top 5 transactions (biggest expenses)

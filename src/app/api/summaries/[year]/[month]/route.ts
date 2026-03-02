@@ -18,6 +18,56 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid year/month' }, { status: 400 })
   }
 
+  // ── Strict Mode Gate ───────────────────────────────────────────────────────
+  // Financial analysis only runs on fully-structured datasets.
+  // If ANY transactions in this month are uncategorized, block analysis and
+  // return categorization_required state with minimal metadata.
+  const monthStart = new Date(year, month - 1, 1)
+  const monthEnd   = new Date(year, month, 0, 23, 59, 59, 999)
+
+  const txBaseWhere = {
+    account:    { userId: payload.userId },
+    date:       { gte: monthStart, lte: monthEnd },
+    isTransfer: false,
+    isExcluded: false,
+    isDuplicate: false,
+    amount:     { not: 0 },
+  }
+
+  const [totalCount, uncategorizedCount, availableMonths] = await Promise.all([
+    prisma.transaction.count({ where: txBaseWhere }),
+    prisma.transaction.count({ where: { ...txBaseWhere, appCategory: null } }),
+    getAvailableMonths(payload.userId),
+  ])
+
+  if (uncategorizedCount > 0) {
+    // Minimal metadata for the gate UI
+    const boundary = await prisma.transaction.aggregate({
+      where:  txBaseWhere,
+      _min:   { date: true },
+      _max:   { date: true },
+    })
+    const accounts = await prisma.account.findMany({
+      where:   { userId: payload.userId },
+      select:  { name: true },
+      take:    3,
+    })
+
+    return NextResponse.json({
+      dashboardState:     'categorization_required',
+      uncategorizedCount,
+      totalCount,
+      categorizedCount:   totalCount - uncategorizedCount,
+      dateRangeStart:     boundary._min.date ?? null,
+      dateRangeEnd:       boundary._max.date ?? null,
+      accountNames:       accounts.map(a => a.name),
+      availableMonths,
+      rolling:            null,
+      summary:            null,
+    })
+  }
+
+  // ── Analysis Unlocked — full computation ───────────────────────────────────
   const existing = await prisma.monthSummary.findUnique({
     where: { userId_year_month: { userId: payload.userId, year, month } },
   })
@@ -36,10 +86,14 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to compute monthly summary' }, { status: 500 })
   }
 
-  const [availableMonths, rolling] = await Promise.all([
-    getAvailableMonths(payload.userId),
-    getRollingAverages(payload.userId, year, month, 3),
-  ])
+  const rolling = await getRollingAverages(payload.userId, year, month, 3)
 
-  return NextResponse.json({ summary, availableMonths, rolling })
+  return NextResponse.json({
+    dashboardState:     'analysis_unlocked',
+    uncategorizedCount: 0,
+    totalCount,
+    summary,
+    availableMonths,
+    rolling,
+  })
 }

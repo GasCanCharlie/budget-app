@@ -18,6 +18,11 @@ vi.mock('@/lib/db', () => ({
       findMany: vi.fn(),
     },
     transaction: {
+      findMany:  vi.fn(),
+      count:     vi.fn(),
+      aggregate: vi.fn(),
+    },
+    account: {
       findMany: vi.fn(),
     },
     anomalyAlert: {
@@ -150,6 +155,9 @@ describe('GET /api/summaries/[year]/[month]', () => {
     // Default: no existing summary row (fresh-month path)
     vi.mocked(prisma.monthSummary.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.monthSummary.update).mockResolvedValue(EXISTING_SUMMARY_ROW as never)
+
+    // Strict-mode gate: default to 0 uncategorized → analysis_unlocked path
+    vi.mocked(prisma.transaction.count).mockResolvedValue(0)
 
     // Cached-path DB queries (used when existing row is non-stale)
     vi.mocked(prisma.monthCategoryTotal.findMany).mockResolvedValue([])

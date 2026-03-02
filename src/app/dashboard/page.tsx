@@ -14,12 +14,55 @@ import { InsightPanel } from '@/components/dashboard/InsightPanel'
 import { CategoryRanking } from '@/components/dashboard/CategoryRanking'
 import { FinancialControlPanel } from '@/components/dashboard/FinancialControlPanel'
 import { TopTransactions } from '@/components/dashboard/TopTransactions'
+import { CategorizationGate } from '@/components/dashboard/CategorizationGate'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
 const TrendChart = dynamic(
   () => import('@/components/dashboard/TrendChart').then(m => m.TrendChart),
   { ssr: false }
 )
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+type DashboardState = 'categorization_required' | 'analysis_unlocked'
+
+interface CategoryTotal {
+  categoryId: string; categoryName: string; categoryColor: string;
+  categoryIcon: string; total: number; transactionCount: number;
+  pctOfSpending: number; isIncome: boolean;
+}
+
+interface TopTx {
+  id: string; date: string; description: string; merchantNormalized: string;
+  amount: number; categoryName: string; categoryColor: string; categoryIcon: string;
+}
+
+interface UnlockedSummary {
+  totalIncome:      number
+  totalSpending:    number
+  net:              number
+  transactionCount: number
+  incomeTxCount:    number
+  isPartialMonth:   boolean
+  dateRangeStart:   string | null
+  dateRangeEnd:     string | null
+  categoryTotals:   CategoryTotal[]
+  topTransactions:  TopTx[]
+  alerts:           { id?: string; type: string; message: string }[]
+}
+
+interface SummaryResponse {
+  dashboardState:     DashboardState
+  uncategorizedCount: number
+  totalCount:         number
+  categorizedCount?:  number
+  dateRangeStart?:    string | null
+  dateRangeEnd?:      string | null
+  accountNames?:      string[]
+  availableMonths:    { year: number; month: number }[]
+  rolling:            { spending: number; income: number } | null
+  summary:            UnlockedSummary | null
+}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -38,7 +81,7 @@ export default function DashboardPage() {
     if (!user) router.replace('/')
   }, [user, router])
 
-  const { data, isLoading, isError, isRefetching } = useQuery({
+  const { data, isLoading, isError, isRefetching } = useQuery<SummaryResponse>({
     queryKey: ['summary', year, month],
     queryFn:  () => apiFetch(`/api/summaries/${year}/${month}`),
     enabled:  !!user,
@@ -58,22 +101,10 @@ export default function DashboardPage() {
     enabled:  !!user,
   })
 
-  const { data: uncatData } = useQuery<{ uncategorizedCount: number }>({
-    queryKey: ['uncategorized-count'],
-    queryFn:  () => apiFetch('/api/transactions?limit=1'),
-    enabled:  !!user,
-    staleTime: 30_000,
-  })
-
   const latestUpload = uploadsData?.uploads?.[0] as {
-    id: string
-    filename: string
-    account: { name: string }
-    rowCountAccepted: number
-    createdAt: string
-    reconciliationStatus: string
-    totalRowsUnresolved: number
-    status: string
+    id: string; filename: string; account: { name: string }
+    rowCountAccepted: number; createdAt: string
+    reconciliationStatus: string; totalRowsUnresolved: number; status: string
   } | undefined
 
   const dismissAlert = useMutation({
@@ -85,25 +116,25 @@ export default function DashboardPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['summary', year, month] }),
   })
 
-  const summary         = data?.summary
   const availableMonths = data?.availableMonths ?? []
-  const rolling         = data?.rolling ?? null
   const trendMonths     = trendsData?.months ?? []
 
-  // Auto-jump to the most recent month with data on first load
+  // Auto-jump to the most recent month with data on first load.
+  // Works for both gate state and analysis state.
   useEffect(() => {
     if (autoNavigated.current || isLoading || !data) return
-    if ((summary?.transactionCount ?? 0) === 0 && availableMonths.length > 0) {
+    const hasData = data.totalCount > 0 || (data.summary && (data.summary.transactionCount as number) > 0)
+    if (!hasData && availableMonths.length > 0) {
       const latest = availableMonths[0]
       if (latest && (latest.year !== year || latest.month !== month)) {
         autoNavigated.current = true
         setYear(latest.year)
         setMonth(latest.month)
       }
-    } else if ((summary?.transactionCount ?? 0) > 0) {
+    } else if (hasData) {
       autoNavigated.current = true
     }
-  }, [data, isLoading, summary, availableMonths, year, month])
+  }, [data, isLoading, availableMonths, year, month])
 
   const handleMonthChange = useCallback((y: number, m: number) => {
     setYear(y); setMonth(m)
@@ -124,7 +155,7 @@ export default function DashboardPage() {
   )
 
   // ── Empty / error state ────────────────────────────────────────────────────
-  if (isError || !summary) return (
+  if (isError || !data) return (
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="max-w-md mx-auto py-20 text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
@@ -141,20 +172,36 @@ export default function DashboardPage() {
     </AppShell>
   )
 
-  // ── Derived values ─────────────────────────────────────────────────────────
-  const allCategories      = summary.categoryTotals as {
-    categoryId: string; categoryName: string; categoryColor: string;
-    categoryIcon: string; total: number; transactionCount: number;
-    pctOfSpending: number; isIncome: boolean;
-  }[]
-  const spendingCategories = allCategories.filter(c => !c.isIncome)
+  // ── Categorization Required (Strict Mode Gate) ─────────────────────────────
+  if (data.dashboardState === 'categorization_required') {
+    return (
+      <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
+        {(isRefetching || trendsRefetching) && (
+          <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-600 mb-4">
+            <Loader2 size={12} className="animate-spin flex-shrink-0" />
+            Refreshing…
+          </div>
+        )}
+        <CategorizationGate
+          uncategorizedCount={data.uncategorizedCount}
+          totalCount={data.totalCount}
+          categorizedCount={data.categorizedCount ?? (data.totalCount - data.uncategorizedCount)}
+          dateRangeStart={data.dateRangeStart ?? null}
+          dateRangeEnd={data.dateRangeEnd ?? null}
+          accountNames={data.accountNames ?? []}
+        />
+      </AppShell>
+    )
+  }
 
-  const topTransactions = (summary.topTransactions ?? []) as {
-    id: string; date: string; description: string; merchantNormalized: string;
-    amount: number; categoryName: string; categoryColor: string; categoryIcon: string;
-  }[]
+  // ── Analysis Unlocked ──────────────────────────────────────────────────────
+  const summary = data.summary!
 
-  // Previous month data for MoM change (from trend history)
+  // Strict: spending charts ONLY include expense categories (isIncome === false)
+  const spendingCategories = summary.categoryTotals.filter(c => !c.isIncome)
+  const topTransactions    = summary.topTransactions ?? []
+
+  // Previous month data for MoM change
   const prevMonthYear  = month === 1 ? year - 1 : year
   const prevMonthMonth = month === 1 ? 12 : month - 1
   const prevMonthData  = (trendMonths as { year: number; month: number; totalSpending: number | null; net: number | null; hasData: boolean }[])
@@ -162,21 +209,16 @@ export default function DashboardPage() {
   const prevMonthNet      = prevMonthData?.net      ?? null
   const prevMonthSpending = prevMonthData?.totalSpending ?? null
 
-  // Largest spending category
   const largestCategory = spendingCategories.length > 0
     ? { name: spendingCategories[0].categoryName, pct: Math.round(spendingCategories[0].pctOfSpending) }
     : null
 
-  // Suppress unused variable warning for rolling (still available if needed later)
-  void rolling
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="space-y-5 pb-24">
 
         {/* Background-refetch indicator */}
-        {(isRefetching || trendsRefetching) && (
+        {!!(isRefetching || trendsRefetching) && (
           <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-600">
             <Loader2 size={12} className="animate-spin flex-shrink-0" />
             Refreshing dashboard…
@@ -184,30 +226,12 @@ export default function DashboardPage() {
         )}
 
         {/* Partial month banner */}
-        {summary.isPartialMonth && (
+        {!!summary.isPartialMonth && (
           <div className="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
             <Info size={15} className="text-amber-600 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-amber-800">
               <strong>Partial month</strong> — totals reflect only the imported date range, not the full month.
             </p>
-          </div>
-        )}
-
-        {/* ── Uncategorized transactions banner ────────────────────────────── */}
-        {(uncatData?.uncategorizedCount ?? 0) > 0 && (
-          <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
-              {uncatData!.uncategorizedCount > 99 ? '99+' : uncatData!.uncategorizedCount}
-            </span>
-            <p className="flex-1 text-sm text-amber-800">
-              <strong>{uncatData!.uncategorizedCount}</strong> transaction{uncatData!.uncategorizedCount !== 1 ? 's' : ''} still need a category — charts reflect only categorized data.
-            </p>
-            <Link
-              href="/categorize"
-              className="flex-shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 transition"
-            >
-              Categorize Now →
-            </Link>
           </div>
         )}
 
@@ -226,13 +250,13 @@ export default function DashboardPage() {
         />
 
         {/* ── Anomaly alerts ────────────────────────────────────────────────── */}
-        {summary.alerts && summary.alerts.length > 0 && (
+        {summary.alerts && (summary.alerts as unknown[]).length > 0 && (
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-100">
               <AlertTriangle size={14} className="text-amber-600" />
               <span className="text-sm font-semibold text-slate-700">Anomaly Alerts</span>
               <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
-                {summary.alerts.length}
+                {(summary.alerts as unknown[]).length}
               </span>
             </div>
             <div className="divide-y divide-slate-50">
@@ -265,7 +289,7 @@ export default function DashboardPage() {
           prevMonthSpending={prevMonthSpending}
         />
 
-        {/* ── Section 3: Category Ranking ───────────────────────────────────── */}
+        {/* ── Section 3: Category Ranking (expense only) ───────────────────── */}
         <CategoryRanking
           categories={spendingCategories}
           totalSpending={summary.totalSpending as number}
