@@ -293,7 +293,7 @@ export default function UploadPage() {
                       const isConfirming = confirmState?.id === acct.id
                       const confirmAction = confirmState?.action
                       return (
-                        <div key={acct.id} style={{ borderRadius: 18, border: `1px solid ${isConfirming && confirmAction === 'delete' ? 'rgba(255,92,122,.40)' : isConfirming && confirmAction === 'reset' ? 'rgba(255,204,102,.40)' : isSelected ? 'rgba(110,168,255,.35)' : 'rgba(255,255,255,.10)'}`, background: isSelected ? 'rgba(110,168,255,.10)' : 'rgba(255,255,255,.04)', transition: 'border-color .15s, background .15s', overflow: 'hidden' }}>
+                        <div key={acct.id} style={{ borderRadius: 18, border: `1px solid ${isConfirming && confirmAction === 'delete' ? 'rgba(255,92,122,.40)' : isConfirming && confirmAction === 'reset' ? 'rgba(255,204,102,.40)' : isSelected ? 'rgba(110,168,255,.35)' : 'rgba(255,255,255,.10)'}`, background: isSelected ? 'rgba(110,168,255,.10)' : 'rgba(255,255,255,.04)', transition: 'border-color .15s, background .15s' }}>
                           <div
                             role="button"
                             tabIndex={0}
