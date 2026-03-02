@@ -84,7 +84,7 @@ export function SpendingCharts({ categories }: Props) {
               />
               <Tooltip
                 formatter={(v: number) => [`$${v.toLocaleString()}`, 'Spent']}
-                cursor={{ fill: '#f1f5f9' }}
+                cursor={{ fill: 'rgba(255,255,255,.05)' }}
               />
               <Bar dataKey="value" fill="#2563eb" radius={[0, 4, 4, 0]} />
             </BarChart>

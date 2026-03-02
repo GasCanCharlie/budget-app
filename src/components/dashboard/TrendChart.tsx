@@ -84,7 +84,7 @@ export function TrendChart({ months }: Props) {
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9' }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,.05)' }} />
           <Legend
             verticalAlign="bottom"
             formatter={(value: string) =>

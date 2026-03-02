@@ -142,14 +142,27 @@ html, body {
 .app-dark .text-red-500     { color: #ff8397; }
 .app-dark .text-red-600     { color: #ff8397; }
 .app-dark .text-red-700     { color: #ff8397; }
+.app-dark .text-red-800     { color: #ff8397; }
 .app-dark .text-amber-600   { color: #ffcc66; }
+.app-dark .text-amber-700   { color: #ffcc66; }
+.app-dark .text-yellow-500  { color: #ffcc66; }
+.app-dark .text-yellow-700  { color: #ffcc66; }
+.app-dark .text-yellow-800  { color: #ffe3a8; }
+.app-dark .text-orange-600  { color: #ffb570; }
 .app-dark .text-blue-600    { color: #6ea8ff; }
+.app-dark .text-blue-700    { color: #6ea8ff; }
+.app-dark .text-blue-800    { color: #6ea8ff; }
+.app-dark .text-slate-200   { color: #8b97c3; }
 
 /* Hover */
-.app-dark .hover\:bg-slate-50:hover  { background-color: rgba(255,255,255,.04); }
-.app-dark .hover\:bg-slate-100:hover { background-color: rgba(255,255,255,.06); }
-.app-dark .hover\:text-slate-600:hover { color: #a8b3d6; }
-.app-dark .hover\:text-slate-700:hover { color: #a8b3d6; }
+.app-dark .hover\:bg-slate-50:hover   { background-color: rgba(255,255,255,.04); }
+.app-dark .hover\:bg-slate-100:hover  { background-color: rgba(255,255,255,.06); }
+.app-dark .hover\:bg-white:hover      { background-color: rgba(255,255,255,.06); }
+.app-dark .hover\:bg-red-100:hover    { background-color: rgba(255,92,122,.12); }
+.app-dark .hover\:bg-green-100:hover  { background-color: rgba(46,229,157,.14); }
+.app-dark .hover\:text-slate-600:hover  { color: #a8b3d6; }
+.app-dark .hover\:text-slate-700:hover  { color: #a8b3d6; }
+.app-dark .hover\:border-slate-300:hover { border-color: rgba(255,255,255,.15); }
 .app-dark .hover\:border-slate-400:hover { border-color: rgba(255,255,255,.18); }
 .app-dark .placeholder-slate-400::placeholder { color: rgba(139,151,195,.55); }
 
@@ -194,9 +207,30 @@ html, body {
 .app-dark .border-amber-300          { border-color: rgba(255,204,102,.30); }
 .app-dark .hover\:bg-amber-100:hover { background-color: rgba(255,204,102,.12); }
 
-/* Blue variants (bank category tags) */
+/* Blue variants */
 .app-dark .text-blue-500             { color: #6ea8ff; }
 .app-dark .bg-blue-50                { background-color: rgba(110,168,255,.10); }
+.app-dark .bg-blue-100               { background-color: rgba(110,168,255,.14); }
+.app-dark .border-blue-100           { border-color: rgba(110,168,255,.18); }
+
+/* Yellow / orange variants */
+.app-dark .bg-yellow-50              { background-color: rgba(255,204,102,.08); }
+.app-dark .bg-yellow-100             { background-color: rgba(255,204,102,.12); }
+.app-dark .border-yellow-200         { border-color: rgba(255,204,102,.22); }
+.app-dark .bg-orange-100             { background-color: rgba(255,181,112,.12); }
+.app-dark .text-orange-600           { color: #ffb570; }
+
+/* Red 100 / border-red-100 */
+.app-dark .bg-red-100                { background-color: rgba(255,92,122,.12); }
+.app-dark .border-red-100            { border-color: rgba(255,92,122,.15); }
+
+/* Additional border variants */
+.app-dark .border-blue-100           { border-color: rgba(110,168,255,.18); }
+.app-dark .border-amber-100          { border-color: rgba(255,204,102,.15); }
+.app-dark .border-slate-300          { border-color: rgba(255,255,255,.12); }
+
+/* Slate-200 bg (rank badge) */
+.app-dark .bg-slate-200              { background-color: rgba(255,255,255,.08); }
 
 /* ─── Data table ─────────────────────────────────────────────────────────── */
 .data-table {
