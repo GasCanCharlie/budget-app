@@ -90,11 +90,14 @@ function TxCard({
       onClick={e => onClick(tx, e)}
       tabIndex={0}
       className={clsx(
-        'group relative flex cursor-grab items-start gap-3 rounded-lg border p-3 transition-all active:cursor-grabbing touch-none select-none',
-        isSelected ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50' : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-md'
+        'group relative flex cursor-grab items-start gap-3 rounded-xl border p-3 transition-all active:cursor-grabbing touch-none select-none',
+        isSelected
+          ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50'
+          : 'border-white/10 hover:border-white/20 hover:-translate-y-px'
       )}
+      style={!isSelected ? { background: 'rgba(0,0,0,.18)' } : undefined}
     >
-      <div className="mt-0.5 flex-shrink-0 text-slate-300 group-hover:text-slate-400">
+      <div className="mt-0.5 flex-shrink-0 text-white/25 group-hover:text-white/50">
         <GripVertical size={16} />
       </div>
 
@@ -224,11 +227,11 @@ function CategoryBucket({
         isHovered && isDragging
           ? 'scale-[1.04] border-4 border-solid border-accent-500 bg-accent-100 shadow-2xl ring-4 ring-accent-300 ring-offset-1'
           : isDragging
-            ? 'border-2 border-dashed border-slate-300 bg-slate-50'
+            ? 'border-2 border-dashed border-white/20 bg-white/[.04]'
             : isReorderOver && isReorderDragging
               ? 'border-2 border-dashed border-accent-400 bg-accent-50'
-              : 'border-2 border-dashed border-transparent bg-white hover:bg-slate-50',
-        hasSelected && !isDragging ? 'cursor-pointer hover:border-slate-300' : !isDragging ? 'cursor-pointer' : '',
+              : 'border-2 border-dashed border-transparent bg-white/[.03] hover:bg-white/[.06]',
+        hasSelected && !isDragging ? 'cursor-pointer hover:border-white/20' : !isDragging ? 'cursor-pointer' : '',
       )}
     >
       {/* Reorder grip */}
@@ -241,16 +244,16 @@ function CategoryBucket({
           onReorderDragStart(cat.id)
         }}
         onDragEnd={e => { e.stopPropagation(); onReorderDragEnd() }}
-        className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 flex-shrink-0 px-0.5 touch-none"
+        className="cursor-grab active:cursor-grabbing text-white/30 hover:text-white/60 flex-shrink-0 px-0.5 touch-none"
         title="Drag to reorder"
       >
         <GripVertical size={14} />
       </div>
 
       <CategoryIcon name={cat.icon} color={cat.color} size={20} />
-      <span className="flex-1 text-sm font-medium text-slate-700">{cat.name}</span>
+      <span className="flex-1 text-sm font-medium text-[#eaf0ff]">{cat.name}</span>
       {txCount != null && txCount > 0 && (
-        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+        <span className="inline-flex items-center rounded-full bg-white/[.06] px-2 py-0.5 text-[11px] font-medium text-[#8b97c3]">
           {txCount}
         </span>
       )}
@@ -258,7 +261,7 @@ function CategoryBucket({
         <ChevronRight
           size={14}
           className={clsx(
-            'flex-shrink-0 text-slate-300 transition-transform duration-150',
+            'flex-shrink-0 text-white/30 transition-transform duration-150',
             isExpanded ? 'rotate-90' : ''
           )}
         />
@@ -288,14 +291,14 @@ function ConfirmModal({
   isPending: boolean
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" style={{ backdropFilter: 'blur(4px)' }}>
+      <div className="w-full max-w-md rounded-2xl p-6 shadow-xl" style={{ background: 'rgba(11,16,32,.96)', border: '1px solid rgba(255,255,255,.12)' }}>
         <div className="mb-4 flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-100">
             <CategoryIcon name={state.category.icon} color={state.category.color} size={20} />
           </span>
           <div>
-            <h3 className="font-bold text-slate-900">Move to {state.category.name}?</h3>
+            <h3 className="font-bold text-[#eaf0ff]">Move to {state.category.name}?</h3>
             <p className="text-sm text-slate-500">
               &ldquo;{state.transaction.merchantNormalized || state.transaction.description}&rdquo;
             </p>
@@ -314,7 +317,8 @@ function ConfirmModal({
           <button
             onClick={onCancel}
             disabled={isPending}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-[#8b97c3] hover:bg-white/[.06] disabled:opacity-50"
+          style={{ borderColor: 'rgba(255,255,255,.12)' }}
           >
             Cancel
           </button>
@@ -348,11 +352,12 @@ function TouchGhost({ tx, pos }: { tx: Transaction | null; pos: { x: number; y: 
   if (!tx || !pos) return null
   return (
     <div
-      className="pointer-events-none fixed z-[100] max-w-[180px] rounded-lg border border-accent-300 bg-white/90 p-2 shadow-lg backdrop-blur-sm"
+      className="pointer-events-none fixed z-[100] max-w-[180px] rounded-lg p-2 shadow-lg backdrop-blur-sm"
+      style={{ background: 'rgba(11,16,32,.92)', border: '1px solid rgba(110,168,255,.35)' }}
       style={{ left: pos.x - 90, top: pos.y - 30 }}
     >
-      <p className="truncate text-xs font-semibold text-slate-900">{tx.merchantNormalized || tx.description}</p>
-      <p className="text-[10px] text-slate-500">{fmtAmt(tx.amount)}</p>
+      <p className="truncate text-xs font-semibold text-[#eaf0ff]">{tx.merchantNormalized || tx.description}</p>
+      <p className="text-[10px] text-[#8b97c3]">{fmtAmt(tx.amount)}</p>
     </div>
   )
 }
@@ -390,9 +395,9 @@ function CategoryTransactionList({
   }
 
   return (
-    <div className="mt-1.5 mb-1 ml-2 mr-1 rounded-xl border border-slate-100 bg-white shadow-sm overflow-y-auto max-h-72">
+    <div className="mt-1.5 mb-1 ml-2 mr-1 rounded-xl overflow-y-auto max-h-72" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
       {txs.map(tx => (
-        <div key={tx.id} className="px-3 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
+        <div key={tx.id} className="px-3 py-2.5 hover:bg-white/[.04] transition-colors border-b border-white/[.06] last:border-0">
           <div className="flex items-start gap-2.5">
             <div className="flex-1 min-w-0">
               {/* Name + amount row */}
@@ -431,7 +436,7 @@ function CategoryTransactionList({
                   <div className="flex gap-2">
                     <button
                       onClick={() => { onMove(pendingMove.txId, pendingMove.catName, false); setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 hover:border-slate-400 font-medium transition"
+                      className="px-2.5 py-1 rounded border border-white/10 text-[#c8d4f5] hover:border-white/20 font-medium transition" style={{ background: 'rgba(255,255,255,.06)' }}
                     >
                       Just this one
                     </button>
@@ -457,7 +462,7 @@ function CategoryTransactionList({
                     autoFocus
                     value={catSearch}
                     onChange={e => setCatSearch(e.target.value)}
-                    className="w-full rounded border border-slate-200 px-2 py-1 text-xs mb-1 outline-none focus:border-accent-400"
+                    className="w-full rounded border border-white/10 px-2 py-1 text-xs mb-1 outline-none focus:border-accent-400 text-[#eaf0ff] placeholder-slate-400" style={{ background: 'rgba(255,255,255,.06)' }}
                   />
                   <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
                     {categories
@@ -494,7 +499,7 @@ function CategoryTransactionList({
               ) : (
                 <button
                   onClick={() => setMovingId(tx.id)}
-                  className="mt-1.5 flex-shrink-0 px-2 py-0.5 rounded border border-slate-200 text-[10px] font-medium text-slate-500 hover:border-accent-400 hover:text-accent-600 bg-white transition"
+                  className="mt-1.5 flex-shrink-0 px-2 py-0.5 rounded border border-white/10 text-[10px] font-medium text-[#8b97c3] hover:border-accent-400 hover:text-accent-600 transition" style={{ background: 'rgba(255,255,255,.04)' }}
                 >
                   Move
                 </button>
@@ -530,18 +535,18 @@ function RulePrompt({
 }) {
   return (
     <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
-      <div className="rounded-xl border border-accent-200 bg-white shadow-xl ring-1 ring-accent-100 p-4">
+      <div className="rounded-2xl p-4" style={{ background: 'rgba(11,16,32,.96)', border: '1px solid rgba(110,168,255,.25)', boxShadow: '0 20px 60px rgba(0,0,0,.55)' }}>
         <div className="flex items-start gap-2.5 mb-3">
           <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent-100">
             <Zap size={14} className="text-accent-600" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900">Remember this?</p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-sm font-semibold text-[#eaf0ff]">Remember this?</p>
+            <p className="text-xs text-[#8b97c3] mt-0.5">
               You&apos;ve assigned <strong>{state.vendor}</strong> → <strong>{state.catName}</strong> multiple times.
             </p>
           </div>
-          <button onClick={onDismiss} className="flex-shrink-0 text-slate-300 hover:text-slate-500 transition">
+          <button onClick={onDismiss} className="flex-shrink-0 text-white/30 hover:text-white/60 transition">
             <X size={14} />
           </button>
         </div>
@@ -1101,16 +1106,16 @@ export default function CategorizePage() {
                 {needsReviewCount} uncategorized
               </span>
             )}
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm font-semibold">
+            <div className="flex rounded-lg border border-white/10 overflow-hidden text-sm font-semibold">
               <button
                 onClick={() => setFilterMode('needs-review')}
-                className={clsx('px-3 py-1.5 transition', filterMode === 'needs-review' ? 'bg-accent-500 text-white' : 'text-slate-600 hover:bg-slate-50')}
+                className={clsx('px-3 py-1.5 transition', filterMode === 'needs-review' ? 'bg-accent-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
               >
                 Uncategorized
               </button>
               <button
                 onClick={() => setFilterMode('all')}
-                className={clsx('px-3 py-1.5 transition', filterMode === 'all' ? 'bg-accent-500 text-white' : 'text-slate-600 hover:bg-slate-50')}
+                className={clsx('px-3 py-1.5 transition', filterMode === 'all' ? 'bg-accent-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
               >
                 All
               </button>
@@ -1160,7 +1165,7 @@ export default function CategorizePage() {
                       ? 'border-green-300 bg-green-50 text-green-700'
                       : isDirty
                         ? 'border-accent-500 bg-accent-500 text-white hover:bg-accent-600'
-                        : 'border-slate-200 bg-white text-slate-300 cursor-not-allowed'
+                        : 'border-white/10 bg-white/[.03] text-white/20 cursor-not-allowed'
                   )}
                 >
                   {savePrefMutation.isPending
@@ -1212,8 +1217,8 @@ export default function CategorizePage() {
 
                       {/* Inline accordion — spans full width, appears directly under this row */}
                       {expandedCat && (
-                        <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 shadow-inner overflow-hidden">
-                          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 bg-white">
+                        <div className="mb-2 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.02)' }}>
+                          <div className="flex items-center justify-between px-3 py-2 border-b border-white/[.07]" style={{ background: 'rgba(255,255,255,.04)' }}>
                             <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
                               <CategoryIcon name={expandedCat.icon} color={expandedCat.color} size={14} />
                               {expandedCat.name}
@@ -1260,7 +1265,7 @@ export default function CategorizePage() {
                           'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
                           active
                             ? 'border-accent-400 bg-accent-50 text-accent-700'
-                            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-400 hover:text-slate-700'
+                            : 'border-white/10 bg-white/[.04] text-[#8b97c3] hover:border-white/20 hover:text-[#c8d4f5]'
                         )}
                       >
                         {label}<Icon size={11} />
@@ -1270,7 +1275,7 @@ export default function CategorizePage() {
                   {(sortKey !== 'date' || sortDir !== 'desc' || vendorQuery) && (
                     <button
                       onClick={resetSort}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-400 hover:text-slate-600 transition"
+                      className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.04] px-2 py-1 text-xs text-[#8b97c3] hover:text-[#c8d4f5] transition"
                       title="Reset to default sort"
                     >
                       Reset
@@ -1286,7 +1291,7 @@ export default function CategorizePage() {
                     placeholder="Filter by vendor…"
                     value={vendorQuery}
                     onChange={e => setVendorQuery(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-7 pr-7 text-xs text-slate-700 placeholder-slate-400 outline-none focus:border-accent-400 transition"
+                    className="w-full rounded-lg border border-white/10 py-1.5 pl-7 pr-7 text-xs text-[#c8d4f5] placeholder-slate-400 outline-none focus:border-accent-400 transition" style={{ background: 'rgba(255,255,255,.06)' }}
                   />
                   {vendorQuery && (
                     <button

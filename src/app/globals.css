@@ -134,21 +134,69 @@ html, body {
 .app-dark .text-slate-600  { color: #a8b3d6; }
 .app-dark .text-slate-500  { color: #8b97c3; }
 .app-dark .text-slate-400  { color: #8b97c3; }
+.app-dark .text-slate-300  { color: #6b7fa8; }
 
 /* Bright semantic variants */
 .app-dark .text-emerald-600 { color: #2ee59d; }
 .app-dark .text-emerald-700 { color: #2ee59d; }
 .app-dark .text-red-500     { color: #ff8397; }
 .app-dark .text-red-600     { color: #ff8397; }
+.app-dark .text-red-700     { color: #ff8397; }
 .app-dark .text-amber-600   { color: #ffcc66; }
 .app-dark .text-blue-600    { color: #6ea8ff; }
 
 /* Hover */
 .app-dark .hover\:bg-slate-50:hover  { background-color: rgba(255,255,255,.04); }
 .app-dark .hover\:bg-slate-100:hover { background-color: rgba(255,255,255,.06); }
+.app-dark .hover\:text-slate-600:hover { color: #a8b3d6; }
+.app-dark .hover\:text-slate-700:hover { color: #a8b3d6; }
+.app-dark .hover\:border-slate-400:hover { border-color: rgba(255,255,255,.18); }
+.app-dark .placeholder-slate-400::placeholder { color: rgba(139,151,195,.55); }
 
 /* Shadow */
-.app-dark .shadow-sm { box-shadow: 0 10px 30px rgba(0,0,0,.40); }
+.app-dark .shadow-sm  { box-shadow: 0 10px 30px rgba(0,0,0,.40); }
+.app-dark .shadow-md  { box-shadow: 0 16px 40px rgba(0,0,0,.50); }
+.app-dark .shadow-xl  { box-shadow: 0 20px 60px rgba(0,0,0,.60); }
+.app-dark .shadow-lg  { box-shadow: 0 18px 50px rgba(0,0,0,.55); }
+
+/* Accent (custom blue: accent-50=#eff6ff, accent-100=#dbeafe) */
+.app-dark .bg-accent-50              { background-color: rgba(110,168,255,.10); }
+.app-dark .bg-accent-100             { background-color: rgba(110,168,255,.16); }
+.app-dark .text-accent-700           { color: #6ea8ff; }
+.app-dark .text-accent-600           { color: #6ea8ff; }
+.app-dark .border-accent-200         { border-color: rgba(110,168,255,.25); }
+.app-dark .border-accent-300         { border-color: rgba(110,168,255,.30); }
+.app-dark .border-accent-400         { border-color: rgba(110,168,255,.40); }
+.app-dark .border-accent-500         { border-color: rgba(110,168,255,.55); }
+.app-dark .ring-accent-100           { --tw-ring-color: rgba(110,168,255,.15); }
+.app-dark .ring-accent-200           { --tw-ring-color: rgba(110,168,255,.25); }
+.app-dark .ring-accent-300           { --tw-ring-color: rgba(110,168,255,.35); }
+.app-dark .hover\:bg-accent-50:hover  { background-color: rgba(110,168,255,.10); }
+.app-dark .hover\:bg-accent-100:hover { background-color: rgba(110,168,255,.16); }
+.app-dark .hover\:text-accent-700:hover { color: #6ea8ff; }
+.app-dark .hover\:text-accent-600:hover { color: #6ea8ff; }
+.app-dark .hover\:border-accent-400:hover { border-color: rgba(110,168,255,.40); }
+.app-dark .focus\:border-accent-400:focus { border-color: rgba(110,168,255,.45); }
+
+/* Green variants (success states, "all caught up") */
+.app-dark .bg-green-50               { background-color: rgba(46,229,157,.08); }
+.app-dark .bg-green-100              { background-color: rgba(46,229,157,.14); }
+.app-dark .text-green-600            { color: #2ee59d; }
+.app-dark .text-green-700            { color: #2ee59d; }
+.app-dark .text-green-800            { color: #2ee59d; }
+.app-dark .border-green-200          { border-color: rgba(46,229,157,.22); }
+.app-dark .border-green-300          { border-color: rgba(46,229,157,.30); }
+
+/* Amber variants */
+.app-dark .bg-amber-100              { background-color: rgba(255,204,102,.12); }
+.app-dark .text-amber-700            { color: #ffcc66; }
+.app-dark .text-amber-800            { color: #ffe3a8; }
+.app-dark .border-amber-300          { border-color: rgba(255,204,102,.30); }
+.app-dark .hover\:bg-amber-100:hover { background-color: rgba(255,204,102,.12); }
+
+/* Blue variants (bank category tags) */
+.app-dark .text-blue-500             { color: #6ea8ff; }
+.app-dark .bg-blue-50                { background-color: rgba(110,168,255,.10); }
 
 /* ─── Data table ─────────────────────────────────────────────────────────── */
 .data-table {
