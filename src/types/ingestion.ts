@@ -547,7 +547,7 @@ export interface ReconciliationReport {
 export interface FileAcceptanceResult {
   accepted: boolean
   fileHash: string
-  sourceType: 'CSV' | 'XLSX' | 'PDF' | null
+  sourceType: 'CSV' | 'XLSX' | 'PDF' | 'OFX' | null
   /** Human-readable rejection reason; null if accepted */
   rejectionReason: string | null
   /**

@@ -133,8 +133,9 @@ export default function UploadPage() {
   }, [uploadMutation.isPending])
 
   const handleFile = useCallback((file: File) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setResult({ success: false, error: 'Only CSV files are supported (.csv)' })
+    const nameLower = file.name.toLowerCase()
+    if (!nameLower.endsWith('.csv') && !nameLower.endsWith('.ofx') && !nameLower.endsWith('.qfx')) {
+      setResult({ success: false, error: 'Supported formats: CSV (.csv), OFX/QFX (.ofx, .qfx)' })
       return
     }
     setSelectedFile(file)
@@ -340,7 +341,7 @@ export default function UploadPage() {
             selectedFile ? 'border-green-400 bg-green-50' : ''
           )}
         >
-          <input ref={fileRef} type="file" accept=".csv,.CSV,text/csv,application/vnd.ms-excel" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+          <input ref={fileRef} type="file" accept=".csv,.CSV,.ofx,.OFX,.qfx,.QFX,text/csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
           {selectedFile ? (
             <div className="space-y-2">
               <div className="text-4xl">📄</div>

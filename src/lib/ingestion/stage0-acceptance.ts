@@ -18,6 +18,7 @@ import { createHash } from 'crypto'
 import prisma from '@/lib/db'
 import type { FileAcceptanceResult } from '@/types/ingestion'
 import { MAX_FILE_SIZE_BYTES } from '@/types/ingestion'
+import { isOfxFile } from './parse-ofx'
 
 // ─── Magic byte detection ────────────────────────────────────────────────────
 
@@ -154,32 +155,32 @@ export async function acceptFile(
 
   const fromMagic = detectTypeFromMagicBytes(buffer)
 
-  let sourceType: 'CSV' | 'XLSX' | 'PDF' | null = fromMagic
+  let sourceType: 'CSV' | 'XLSX' | 'PDF' | 'OFX' | null = fromMagic
   if (!sourceType) {
-    if (ext === '.csv')                   sourceType = 'CSV'
+    if (ext === '.csv')                       sourceType = 'CSV'
     else if (ext === '.xlsx' || ext === '.xls') sourceType = 'XLSX'
-    else if (ext === '.pdf')              sourceType = 'PDF'
+    else if (ext === '.pdf')                  sourceType = 'PDF'
+    else if (isOfxFile(buffer, fileName))     sourceType = 'OFX'
   }
 
   if (!sourceType) {
     result.rejectionReason =
-      `Unsupported file type (extension: "${ext || 'none'}"). Accepted formats: CSV (.csv), Excel (.xlsx), PDF (.pdf).`
+      `Unsupported file type (extension: "${ext || 'none'}"). Accepted formats: CSV (.csv), OFX/QFX (.ofx, .qfx), Excel (.xlsx), PDF (.pdf).`
     return result
   }
 
-  // Phase 1: only CSV is supported for ingestion
   if (sourceType === 'XLSX') {
     result.rejectionReason =
-      'Excel (XLSX) support is coming in Phase 1b. Please export your bank statement as a CSV file and re-upload.'
+      'Excel (XLSX) support is coming soon. Please export your bank statement as a CSV or OFX file and re-upload.'
     return result
   }
   if (sourceType === 'PDF') {
     result.rejectionReason =
-      'PDF statement parsing is coming in Phase 2. Please export your bank statement as a CSV file and re-upload.'
+      'PDF statement parsing is coming in Phase 2. Please export your bank statement as a CSV or OFX file and re-upload.'
     return result
   }
 
-  result.sourceType = sourceType // 'CSV'
+  result.sourceType = sourceType // 'CSV' or 'OFX'
 
   // ── 4. SHA-256 of raw bytes ──────────────────────────────────────────────
   //  Hash the bytes BEFORE any decoding so it is stable regardless of how
@@ -208,11 +209,13 @@ export async function acceptFile(
   result.encoding = encoding
   const decodedText = decodeBuffer(buffer, encoding)
 
-  // ── 7. Truncation check ───────────────────────────────────────────────────
-  const truncCheck = checkCsvTruncation(decodedText)
-  if (!truncCheck.valid) {
-    result.rejectionReason = `File appears truncated: ${truncCheck.reason}`
-    return result
+  // ── 7. Truncation check (CSV only — OFX has container tags, not quoted fields) ──
+  if (result.sourceType !== 'OFX') {
+    const truncCheck = checkCsvTruncation(decodedText)
+    if (!truncCheck.valid) {
+      result.rejectionReason = `File appears truncated: ${truncCheck.reason}`
+      return result
+    }
   }
 
   result.accepted = true

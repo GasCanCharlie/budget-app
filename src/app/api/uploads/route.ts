@@ -13,6 +13,7 @@ import { detectBank } from '@/lib/ingestion/bank-detector'
 import { selectDateOrder } from '@/lib/ingestion/date-order-scoring'
 import type { DateOrderSelectionResult } from '@/types/ingestion'
 import { runDedup } from '@/lib/ingestion/stage3-dedup'
+import { parseOfx, parseOfxDate, type OfxTransaction } from '@/lib/ingestion/parse-ofx'
 import { runReconciliation } from '@/lib/ingestion/stage4-reconcile'
 import { computeCanonicalRowHash, type ImportReport } from '@/lib/ingestion/import-report'
 import type { CsvXlsxSourceLocator } from '@/types/ingestion'
@@ -79,6 +80,201 @@ export async function POST(req: NextRequest) {
     const rawText  = acceptance.decodedText!
     const fileHash = acceptance.fileHash
     const encoding = acceptance.encoding ?? 'utf-8'
+
+    // ── OFX fast-path (bypasses CSV stages 1–2) ───────────────────────────────
+    if (acceptance.sourceType === 'OFX') {
+      const ofxResult = parseOfx(rawText)
+
+      if (ofxResult.transactions.length === 0) {
+        return NextResponse.json(
+          { error: 'No transactions found in OFX file. Make sure it contains a <BANKTRANLIST> section.' },
+          { status: 422 },
+        )
+      }
+
+      // Version-stamp if re-upload of same file
+      let uploadVersion = 1
+      if (acceptance.isDuplicate && acceptance.previousUploadId) {
+        const prevUpload = await prisma.upload.findUnique({
+          where: { id: acceptance.previousUploadId },
+          select: { version: true },
+        })
+        uploadVersion = (prevUpload?.version ?? 0) + 1
+        await prisma.upload.update({
+          where: { id: acceptance.previousUploadId },
+          data: { superseded: true },
+        })
+      }
+
+      const ofxUpload = await prisma.upload.create({
+        data: {
+          userId:              payload.userId,
+          accountId,
+          filename:            file.name,
+          fileHash,
+          formatDetected:      'OFX',
+          version:             uploadVersion,
+          reprocessedFromId:   acceptance.previousUploadId ?? undefined,
+          rowCountRaw:         ofxResult.transactions.length,
+          rowCountParsed:      ofxResult.transactions.length,
+          status:              'processing',
+          warnings:            '[]',
+          parserVersion:       'ofx-1.0',
+          parserConfig:        '{}',
+          reconciliationStatus: 'PENDING',
+          dateOrderUsed:       'YMD',          // OFX dates are always YYYYMMDD
+          dateOrderSource:     'OFX_STANDARD',
+          dateOrderConfidence: 1,
+          statementOpenBalance:  openingBalance,
+          statementCloseBalance: closingBalance ?? (ofxResult.ledgerBalance != null ? String(ofxResult.ledgerBalance) : null),
+          statementTotalCredits,
+          statementTotalDebits,
+        },
+      })
+
+      let ofxAccepted = 0
+      let ofxRejected = 0
+      const ofxValidDates: Date[] = []
+
+      for (const ofxTx of ofxResult.transactions as OfxTransaction[]) {
+        // Dedup by FITID (bank's unique transaction ID)
+        const fitIdKey      = ofxTx.fitId || ofxTx.rawBlock
+        const sourceRowHash = createHash('sha256')
+          .update(`${accountId}|ofx:${fitIdKey}`)
+          .digest('hex')
+
+        const existingRaw = await prisma.transactionRaw.findUnique({ where: { sourceRowHash } })
+        if (existingRaw) { ofxRejected++; continue }
+
+        const parsedDate    = parseOfxDate(ofxTx.dtPosted)
+        const amountNum     = parseFloat(ofxTx.trnAmt) || 0
+        const descRaw       = ofxTx.memo || ofxTx.name
+        const descNorm      = ofxTx.name || ofxTx.memo
+        const merchantNorm  = normalizeMerchant(descNorm)
+        const isTransfer    = isTransferDescription(descRaw)
+        const rawFields     = {
+          TRNTYPE: ofxTx.trnType, DTPOSTED: ofxTx.dtPosted,
+          TRNAMT: ofxTx.trnAmt, FITID: ofxTx.fitId,
+          NAME: ofxTx.name, MEMO: ofxTx.memo,
+          ...(ofxTx.checkNum ? { CHECKNUM: ofxTx.checkNum } : {}),
+        }
+
+        try {
+          const raw = await prisma.transactionRaw.create({
+            data: {
+              uploadId:       ofxUpload.id,
+              accountId,
+              rawDate:        ofxTx.dtPosted,
+              rawDescription: descRaw,
+              rawAmount:      ofxTx.trnAmt,
+              rawCredit:      '',
+              rawDebit:       '',
+              rawBalance:     '',
+              sourceRowHash,
+              sourceLocator:  JSON.stringify({ type: 'OFX', parseOrder: ofxTx.parseOrder }),
+              rawLine:        ofxTx.rawBlock,
+              parseOrder:     ofxTx.parseOrder,
+              rawFields:      JSON.stringify(rawFields),
+            },
+          })
+
+          await prisma.transaction.create({
+            data: {
+              rawId:                raw.id,
+              accountId,
+              uploadId:             ofxUpload.id,
+              date:                 parsedDate,
+              description:          descNorm || descRaw,
+              merchantNormalized:   merchantNorm,
+              amount:               amountNum,
+              isTransfer,
+              isForeignCurrency:    false,
+              foreignAmount:        null,
+              foreignCurrency:      null,
+              postedDate:           parsedDate,
+              transactionDate:      parsedDate,
+              dateRaw:              ofxTx.dtPosted,
+              dateAmbiguity:        'RESOLVED',
+              dateInterpretationA:  null,
+              dateInterpretationB:  null,
+              amountRaw:            ofxTx.trnAmt,
+              currencyCode:         ofxResult.currency || undefined,
+              currencyDetected:     false,
+              descriptionRaw:       descRaw,
+              descriptionNormalized: descNorm || undefined,
+              transformations:      '[]',
+              runningBalance:       null,
+              runningBalanceRaw:    null,
+              checkNumber:          ofxTx.checkNum,
+              bankTransactionId:    ofxTx.fitId || undefined,
+              pendingFlag:          false,
+              bankFingerprint:      undefined,
+              ingestionStatus:      'VALID',
+              bankCategoryRaw:      ofxTx.trnType || null,
+              bankCategoryNormalized: normalizeBankCategory(ofxTx.trnType || ''),
+              canonicalRowHash: computeCanonicalRowHash(
+                ofxTx.dtPosted, descRaw, ofxTx.trnAmt, ofxTx.trnType, ofxTx.parseOrder,
+              ),
+            },
+          })
+
+          ofxAccepted++
+          ofxValidDates.push(parsedDate)
+        } catch {
+          ofxRejected++
+        }
+      }
+
+      const sortedOfxDates = [...ofxValidDates].sort((a, b) => a.getTime() - b.getTime())
+      await prisma.upload.update({
+        where: { id: ofxUpload.id },
+        data: {
+          rowCountAccepted:    ofxAccepted,
+          rowCountRejected:    ofxRejected,
+          totalRowsUnresolved: 0,
+          status:              'complete',
+          completedAt:         new Date(),
+          dateRangeStart:      sortedOfxDates[0] ?? null,
+          dateRangeEnd:        sortedOfxDates[sortedOfxDates.length - 1] ?? null,
+        },
+      })
+
+      const ofxDedupResult = await runDedup(ofxUpload.id, accountId)
+      const ofxReconcileResult = await runReconciliation(ofxUpload.id)
+
+      const ofxAvailableMonths = await getAvailableMonths(payload.userId)
+      for (const { year, month } of ofxAvailableMonths.slice(0, 12)) {
+        await computeMonthSummary(payload.userId, year, month)
+      }
+
+      return NextResponse.json(
+        {
+          uploadId:             ofxUpload.id,
+          accepted:             ofxAccepted,
+          rejected:             ofxRejected,
+          totalUnresolved:      0,
+          possibleDuplicates:   ofxDedupResult.possibleDuplicatesFound,
+          crossUploadDuplicates: ofxDedupResult.crossUploadMatches,
+          withinUploadDuplicates: ofxDedupResult.withinUploadMatches,
+          formatDetected:       'OFX',
+          dateAmbiguous:        false,
+          dateFormatSample:     [],
+          warnings:             [],
+          transactionCount:     ofxAccepted,
+          parserVersion:        'ofx-1.0',
+          fileHashTruncated:    `${fileHash.slice(0, 8)}…${fileHash.slice(-8)}`,
+          reconciliationStatus: ofxReconcileResult.status,
+          reconciliationMode:   ofxReconcileResult.mode,
+          dateOrderUsed:        'YMD',
+          dateOrderSource:      'OFX_STANDARD',
+          dateOrderConfidence:  1,
+          bankDetected:         false,
+          bankKey:              null,
+          dateOrderNeedsConfirmation: false,
+        },
+        { status: 201 },
+      )
+    }
 
     // ── Stage 1: Lossless CSV parse ───────────────────────────────────────────
     const parseResult = parseCsvStage1(rawText, encoding)
