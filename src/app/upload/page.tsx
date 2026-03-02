@@ -6,7 +6,7 @@ import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, AlertCircle, Loader2, PlusCircle, MoreHorizontal, RefreshCw, Trash2, ChevronRight } from 'lucide-react'
+import { CheckCircle, AlertCircle, Loader2, PlusCircle, MoreHorizontal, RefreshCw, Trash2, ChevronRight, Landmark, CreditCard, FileCheck2, UploadCloud, Workflow, ShieldCheck, FlaskConical, ArrowRight } from 'lucide-react'
 import clsx from 'clsx'
 import { ReconciliationShield } from '@/components/ReconciliationShield'
 
@@ -236,7 +236,7 @@ export default function UploadPage() {
           <section style={glassCard}>
             <div style={cardHeader}>
               <div style={cardTitle}>
-                <span style={tIco}>🏦</span>
+                <span style={tIco}><Landmark size={16} style={{ color: '#6ea8ff' }} /></span>
                 Account + upload
               </div>
               <button
@@ -302,7 +302,9 @@ export default function UploadPage() {
                             style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, cursor: 'pointer' }}
                           >
                             <div style={{ width: 40, height: 40, borderRadius: 16, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', display: 'grid', placeItems: 'center', fontWeight: 950, fontSize: 18, flexShrink: 0 }}>
-                              {acct.accountType === 'credit_card' ? '💳' : '🏦'}
+                              {acct.accountType === 'credit_card'
+                                ? <CreditCard size={18} style={{ color: '#6ea8ff' }} />
+                                : <Landmark size={18} style={{ color: '#6ea8ff' }} />}
                             </div>
                             <div style={{ minWidth: 0, flex: 1 }}>
                               <p style={{ margin: 0, fontWeight: 950, fontSize: 14, color: '#eaf0ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{acct.name}</p>
@@ -403,8 +405,8 @@ export default function UploadPage() {
 
                 {selectedFile ? (
                   <div>
-                    <div style={{ width: 58, height: 58, margin: '0 auto 10px', borderRadius: 22, border: '1px solid rgba(46,229,157,.35)', background: 'rgba(46,229,157,.10)', display: 'grid', placeItems: 'center', fontSize: 26, boxShadow: '0 18px 40px rgba(0,0,0,.25)' }}>
-                      📄
+                    <div style={{ width: 58, height: 58, margin: '0 auto 10px', borderRadius: 22, border: '1px solid rgba(46,229,157,.35)', background: 'rgba(46,229,157,.10)', display: 'grid', placeItems: 'center', boxShadow: '0 18px 40px rgba(0,0,0,.25)' }}>
+                      <FileCheck2 size={26} style={{ color: '#2ee59d' }} />
                     </div>
                     <p style={{ margin: 0, fontWeight: 950, fontSize: 15, color: '#eaf0ff' }}>{selectedFile.name}</p>
                     <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,.68)', fontSize: 13 }}>
@@ -413,8 +415,8 @@ export default function UploadPage() {
                   </div>
                 ) : (
                   <div>
-                    <div style={{ width: 58, height: 58, margin: '0 auto 10px', borderRadius: 22, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.06)', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 950, boxShadow: '0 18px 40px rgba(0,0,0,.25)' }}>
-                      ⇪
+                    <div style={{ width: 58, height: 58, margin: '0 auto 10px', borderRadius: 22, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.06)', display: 'grid', placeItems: 'center', boxShadow: '0 18px 40px rgba(0,0,0,.25)' }}>
+                      <UploadCloud size={26} style={{ color: '#a8b3d6' }} />
                     </div>
                     <p style={{ display: 'block', margin: '6px 0 0', fontWeight: 950, fontSize: 15, color: '#eaf0ff' }}>Drop your statement here</p>
                     <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,.68)', fontSize: 13, lineHeight: 1.55 }}>
@@ -451,7 +453,7 @@ export default function UploadPage() {
                   >
                     {uploadMutation.isPending
                       ? <><Loader2 size={18} className="animate-spin" /> Processing statement…</>
-                      : <>⇪ Import statement →</>}
+                      : <><UploadCloud size={16} /> Import statement <ArrowRight size={14} /></>}
                   </button>
                 </div>
               )}
@@ -586,7 +588,7 @@ export default function UploadPage() {
             <section style={glassCard}>
               <div style={cardHeader}>
                 <div style={cardTitle}>
-                  <span style={tIco}>🧭</span>
+                  <span style={tIco}><Workflow size={16} style={{ color: '#8a7dff' }} /></span>
                   The 3-step flow
                 </div>
               </div>
@@ -622,7 +624,7 @@ export default function UploadPage() {
             <section style={glassCard}>
               <div style={cardHeader}>
                 <div style={cardTitle}>
-                  <span style={tIco}>🔒</span>
+                  <span style={tIco}><ShieldCheck size={16} style={{ color: '#2ee59d' }} /></span>
                   Privacy &amp; accuracy
                 </div>
               </div>
@@ -667,7 +669,7 @@ function SampleDataLoader({ onLoaded }: { onLoaded: () => void }) {
       disabled={loading || done}
       style={{ padding: '10px 14px', borderRadius: 14, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.05)', cursor: 'pointer', fontWeight: 850, fontSize: 13, color: '#eaf0ff', display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', opacity: (loading || done) ? .6 : 1 }}
     >
-      {done ? '✅ Loaded!' : loading ? <><Loader2 size={13} className="animate-spin" /> Loading…</> : '🧪 Load sample data'}
+      {done ? <><CheckCircle size={13} style={{ color: '#2ee59d' }} /> Loaded!</> : loading ? <><Loader2 size={13} className="animate-spin" /> Loading…</> : <><FlaskConical size={13} /> Load sample data</>}
     </button>
   )
 }

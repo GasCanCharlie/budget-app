@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import {
-  LayoutDashboard, Upload, List, Tags, FolderKanban,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Zap
+  LayoutDashboard, Upload, ReceiptText, Tags, FolderKanban,
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -22,10 +22,10 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 const navItems = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
   { href: '/upload',       label: 'Upload',       icon: Upload },
-  { href: '/transactions', label: 'Transactions', icon: List },
+  { href: '/transactions', label: 'Transactions', icon: ReceiptText },
   { href: '/categorize',   label: 'Categorize',   icon: FolderKanban },
   { href: '/categories',   label: 'Categories',   icon: Tags },
-  { href: '/rules',        label: 'Rules',        icon: Zap },
+  { href: '/rules',        label: 'Rules',        icon: Repeat2 },
 ]
 
 export function AppShell({ children, year, month, availableMonths, onMonthChange }: AppShellProps) {
