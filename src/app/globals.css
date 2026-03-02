@@ -2,18 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design tokens (RGB channels for opacity compositing) ─────────────── */
 :root {
-  --bg: 248 250 252;
-  --panel: 255 255 255;
-  --text: 15 23 42;
-  --muted: 100 116 139;
-  --border: 226 232 240;
-  --nav: 15 23 42;
-  --nav2: 2 6 23;
-  --primary: 37 99 235;
-  --success: 22 163 74;
-  --warning: 245 158 11;
-  --danger: 220 38 38;
+  --bg:      7 10 20;        /* #070a14  body base */
+  --panel:   15 19 40;       /* #0f1328  surface */
+  --text:    234 240 255;    /* #eaf0ff  primary text */
+  --muted:   139 151 195;    /* #8b97c3  muted text */
+  --border:  255 255 255;    /* use with opacity: rgba(255,255,255,.10) */
+  --nav:     11 16 32;       /* #0b1020  nav bg */
+  --nav2:    7 10 20;        /* #070a14  nav gradient end */
+  --primary: 110 168 255;    /* #6ea8ff  brand blue */
+  --success: 46 229 157;     /* #2ee59d  positive */
+  --warning: 255 204 102;    /* #ffcc66  warning */
+  --danger:  255 92 122;     /* #ff5c7a  negative */
 }
 
 html, body {
@@ -22,7 +23,11 @@ html, body {
 
 @layer base {
   body {
-    background: rgb(var(--bg));
+    background:
+      radial-gradient(900px 600px at 15%  8%,  rgba(110,168,255,.14), transparent 55%),
+      radial-gradient(800px 600px at 85% 12%, rgba(138,125,255,.12), transparent 55%),
+      linear-gradient(180deg, #0b1020 0%, #070a14 100%);
+    background-attachment: fixed;
     color: rgb(var(--text));
     @apply antialiased;
   }
@@ -30,17 +35,35 @@ html, body {
 
 @layer components {
   .card {
-    @apply bg-white rounded-lg border border-slate-200 p-4;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.40);
+    padding: 1rem;
+    position: relative;
   }
   .btn-primary {
     @apply inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-lg border border-slate-200 transition-all text-sm;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 font-semibold rounded-lg border transition-all text-sm;
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.12);
+    color: #c8d4f5;
+  }
+  .btn-secondary:hover {
+    background: rgba(255,255,255,.10);
   }
   .input {
-    @apply w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
+    @apply w-full px-4 py-2.5 rounded-lg text-sm
+           focus:outline-none focus:ring-2 transition-all;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    color: #eaf0ff;
+    --tw-ring-color: rgba(110,168,255,.40);
   }
+  .input::placeholder { color: rgba(139,151,195,.55); }
+  .input:focus        { background: rgba(255,255,255,.08); }
   .badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
   }
@@ -49,7 +72,85 @@ html, body {
   }
 }
 
-/* ── Data table ─────────────────────────────────────────────────────────── */
+/* ─── Logo mark ─────────────────────────────────────────────────────────── */
+.logo-mark {
+  border-radius: 11px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(10px 10px at 30% 30%, rgba(255,255,255,.35), transparent 65%),
+    linear-gradient(135deg, rgba(110,168,255,.90), rgba(138,125,255,.90));
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 6px 18px rgba(110,168,255,.20);
+}
+.logo-mark::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,.22) 50%, transparent 65%);
+  transform: rotate(12deg) translateX(-60%);
+  animation: logo-sweep 5.8s ease-in-out infinite;
+  opacity: .85;
+}
+@keyframes logo-sweep {
+  0%,55% { transform: rotate(12deg) translateX(-65%); opacity: 0; }
+  60%    { opacity: .85; }
+  100%   { transform: rotate(12deg) translateX(65%);  opacity: 0; }
+}
+
+/* ─── .app-dark cascade overrides ──────────────────────────────────────── */
+/* Declared outside @layer so they outrank Tailwind utilities.             */
+
+/* Background */
+.app-dark .bg-white            { background-color: rgba(15,19,40,.80); }
+.app-dark .bg-white\/90        { background-color: rgba(11,16,32,.82); }
+.app-dark .bg-slate-50         { background-color: rgba(255,255,255,.03); }
+.app-dark .bg-slate-50\/60     { background-color: rgba(255,255,255,.03); }
+.app-dark .bg-slate-100        { background-color: rgba(255,255,255,.06); }
+.app-dark .bg-slate-900\/50    { background-color: rgba(0,0,0,.30); }
+.app-dark .bg-blue-50          { background-color: rgba(110,168,255,.12); }
+.app-dark .bg-emerald-50       { background-color: rgba(46,229,157,.10); }
+.app-dark .bg-red-50           { background-color: rgba(255,92,122,.10); }
+.app-dark .bg-amber-50         { background-color: rgba(255,204,102,.10); }
+
+/* Border */
+.app-dark .border-slate-200    { border-color: rgba(255,255,255,.09); }
+.app-dark .border-slate-100    { border-color: rgba(255,255,255,.07); }
+.app-dark .border-slate-900    { border-color: rgba(255,255,255,.06); }
+.app-dark .border-blue-200     { border-color: rgba(110,168,255,.30); }
+.app-dark .border-emerald-200  { border-color: rgba(46,229,157,.22); }
+.app-dark .border-red-200      { border-color: rgba(255,92,122,.22); }
+.app-dark .border-amber-200    { border-color: rgba(255,204,102,.22); }
+
+/* Divide */
+.app-dark .divide-slate-100 > * + * { border-color: rgba(255,255,255,.07); }
+.app-dark .divide-x > * + *         { border-color: rgba(255,255,255,.07); }
+
+/* Text */
+.app-dark .text-slate-900  { color: #eaf0ff; }
+.app-dark .text-slate-800  { color: #c8d4f5; }
+.app-dark .text-slate-700  { color: #a8b3d6; }
+.app-dark .text-slate-600  { color: #a8b3d6; }
+.app-dark .text-slate-500  { color: #8b97c3; }
+.app-dark .text-slate-400  { color: #8b97c3; }
+
+/* Bright semantic variants */
+.app-dark .text-emerald-600 { color: #2ee59d; }
+.app-dark .text-emerald-700 { color: #2ee59d; }
+.app-dark .text-red-500     { color: #ff8397; }
+.app-dark .text-red-600     { color: #ff8397; }
+.app-dark .text-amber-600   { color: #ffcc66; }
+.app-dark .text-blue-600    { color: #6ea8ff; }
+
+/* Hover */
+.app-dark .hover\:bg-slate-50:hover  { background-color: rgba(255,255,255,.04); }
+.app-dark .hover\:bg-slate-100:hover { background-color: rgba(255,255,255,.06); }
+
+/* Shadow */
+.app-dark .shadow-sm { box-shadow: 0 10px 30px rgba(0,0,0,.40); }
+
+/* ─── Data table ─────────────────────────────────────────────────────────── */
 .data-table {
   width: 100%;
   font-size: 0.875rem;
@@ -61,20 +162,20 @@ html, body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #64748b;
+  color: #8b97c3;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid rgba(255,255,255,.09);
   white-space: nowrap;
 }
 .data-table td {
   padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid #f1f5f9;
-  color: #475569;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  color: #a8b3d6;
 }
 .data-table tbody tr:last-child td {
   border-bottom: none;
 }
 .data-table tbody tr:hover td {
-  background-color: #f8fafc;
+  background-color: rgba(255,255,255,.03);
   cursor: pointer;
 }
