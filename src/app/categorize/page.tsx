@@ -601,7 +601,7 @@ export default function CategorizePage() {
     }, 800)
   }, [qc])
 
-  useEffect(() => { if (!user) router.replace('/') }, [user, router])
+  useEffect(() => { if (!user) router.replace('/login') }, [user, router])
 
   const [filterMode,    setFilterMode]    = useState<FilterMode>('needs-review')
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())

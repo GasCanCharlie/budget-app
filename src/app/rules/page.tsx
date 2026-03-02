@@ -148,7 +148,7 @@ export default function RulesPage() {
   const { apiFetch } = useApi()
   const qc     = useQueryClient()
 
-  if (!user) { router.replace('/'); return null }
+  if (!user) { router.replace('/login'); return null }
 
   const { data, isLoading, isError } = useQuery<{ rules: Rule[] }>({
     queryKey: ['rules'],

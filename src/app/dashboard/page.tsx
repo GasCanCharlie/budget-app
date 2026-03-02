@@ -78,7 +78,7 @@ export default function DashboardPage() {
   const autoNavigated = useRef(false)
 
   useEffect(() => {
-    if (!user) router.replace('/')
+    if (!user) router.replace('/login')
   }, [user, router])
 
   const { data, isLoading, isError, isRefetching } = useQuery<SummaryResponse>({

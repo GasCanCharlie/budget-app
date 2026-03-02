@@ -39,7 +39,7 @@ export default function CategoriesPage() {
   const { apiFetch } = useApi()
   const qc     = useQueryClient()
 
-  useEffect(() => { if (!user) router.replace('/') }, [user, router])
+  useEffect(() => { if (!user) router.replace('/login') }, [user, router])
 
   const [showAdd,    setShowAdd]    = useState(false)
   const [newName,    setNewName]    = useState('')

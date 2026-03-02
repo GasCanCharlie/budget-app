@@ -122,7 +122,7 @@ function TransactionsPageInner() {
   const [undoStack,       setUndoStack]       = useState<{ id: string; oldCatId: string }[]>([])
   const [downloading,     setDownloading]     = useState(false)
 
-  useEffect(() => { if (!user) router.replace('/') }, [user, router])
+  useEffect(() => { if (!user) router.replace('/login') }, [user, router])
 
   const { data: catData } = useQuery({
     queryKey: ['categories'],

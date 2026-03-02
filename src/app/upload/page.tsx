@@ -40,7 +40,7 @@ export default function UploadPage() {
   const [pipelineStage, setPipelineStage] = useState(-1)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { if (!user) router.replace('/') }, [user, router])
+  useEffect(() => { if (!user) router.replace('/login') }, [user, router])
 
   const { data: accountsData } = useQuery({
     queryKey: ['accounts'],
