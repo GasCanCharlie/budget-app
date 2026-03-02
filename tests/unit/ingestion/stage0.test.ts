@@ -206,7 +206,7 @@ describe('acceptFile', () => {
 
     expect(result.accepted).toBe(false)
     expect(result.rejectionReason).toMatch(/xlsx/i)
-    expect(result.rejectionReason).toMatch(/phase 1b/i)
+    expect(result.rejectionReason).toMatch(/csv|ofx/i)
   })
 
   it('rejects a PDF file (magic bytes %PDF) with a Phase 2 message', async () => {
