@@ -5,12 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
+import '@/styles/auth.css'
 
 function LoginForm() {
-  const router   = useRouter()
-  const params   = useSearchParams()
-  const setAuth  = useAuthStore(s => s.setAuth)
-  const user     = useAuthStore(s => s.user)
+  const router       = useRouter()
+  const params       = useSearchParams()
+  const setAuth      = useAuthStore(s => s.setAuth)
+  const user         = useAuthStore(s => s.user)
   const { apiFetch } = useApi()
 
   const [mode,     setMode]     = useState<'login' | 'register'>(
@@ -26,6 +27,11 @@ function LoginForm() {
   }, [user, router])
 
   if (user) return null
+
+  function switchMode(m: 'login' | 'register') {
+    setMode(m)
+    setError('')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -47,76 +53,121 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4 py-10">
-      <Link href="/" className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
-          <span className="text-sm font-black text-white tracking-tight select-none">BL</span>
+    <div className="auth-shell">
+
+      {/* ── Brand row ──────────────────────────────────────────────────────── */}
+      <Link
+        href="/"
+        style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}
+      >
+        <div className="auth-logo-mark" aria-hidden="true" />
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#eaf0ff', letterSpacing: '.2px', lineHeight: '1' }}>
+            BudgetLens
+          </div>
+          <div style={{ fontSize: '12px', color: '#a8b3d6', fontWeight: 600, marginTop: '3px' }}>
+            Statement Intelligence
+          </div>
         </div>
-        <span className="text-xl font-bold text-slate-900 tracking-tight">BudgetLens</span>
       </Link>
 
-      <div className="w-full max-w-md">
-        <div className="card">
-          <div className="flex rounded-lg bg-slate-100 p-1 mb-6">
-            {(['login', 'register'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${
-                  mode === m ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {m === 'login' ? 'Sign In' : 'Create Account'}
-              </button>
-            ))}
-          </div>
+      {/* ── Glass card ─────────────────────────────────────────────────────── */}
+      <div className="glass-card" style={{ maxWidth: '480px' }}>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="input"
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="input"
-                placeholder={mode === 'register' ? 'At least 8 characters' : '••••••••'}
-                required
-                minLength={mode === 'register' ? 8 : 1}
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3">
-              {loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-          </form>
-
-          <p className="text-xs text-slate-400 text-center mt-4">
-            Your data is processed locally and never sold. Delete your account at any time.
+        {/* Headline */}
+        <div style={{ marginBottom: '24px', position: 'relative' }}>
+          <h1 style={{ margin: '0 0 7px', fontSize: '22px', fontWeight: 800, letterSpacing: '-.3px', color: '#eaf0ff' }}>
+            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+          </h1>
+          <p style={{ margin: 0, fontSize: '14px', color: '#a8b3d6', lineHeight: '1.5' }}>
+            Privacy-first · No bank login · Local-first
           </p>
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-4">
-          Supported formats: Chase · BofA · Wells Fargo · Capital One · Discover ·{' '}
-          <span className="text-blue-600 font-medium">40+ banks</span>
-        </p>
+        {/* Mode tabs */}
+        <div className="auth-tab-bar" style={{ marginBottom: '24px' }}>
+          <button type="button" className={`auth-tab${mode === 'login'    ? ' active' : ''}`} onClick={() => switchMode('login')}>
+            Sign in
+          </button>
+          <button type="button" className={`auth-tab${mode === 'register' ? ' active' : ''}`} onClick={() => switchMode('register')}>
+            Create account
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          <div>
+            <label className="auth-label" htmlFor="au-email">Email address</label>
+            <input
+              id="au-email"
+              className="auth-input"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '7px' }}>
+              <label className="auth-label" htmlFor="au-password" style={{ margin: 0 }}>Password</label>
+              {mode === 'login' && (
+                <span style={{ fontSize: '12px', color: '#8b97c3', letterSpacing: '.1px' }}>Forgot password?</span>
+              )}
+            </div>
+            <input
+              id="au-password"
+              className="auth-input"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder={mode === 'register' ? 'At least 8 characters' : '••••••••'}
+              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+              required
+              minLength={mode === 'register' ? 8 : 1}
+            />
+          </div>
+
+          {error && <div className="auth-error">{error}</div>}
+
+          <button type="submit" className="auth-btn-primary" disabled={loading} style={{ marginTop: '4px' }}>
+            {loading
+              ? 'Please wait…'
+              : mode === 'login' ? 'Sign in' : 'Create account'
+            }
+          </button>
+
+        </form>
+
+        {/* Divider + switch mode */}
+        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="auth-divider">or</div>
+          <button
+            type="button"
+            className="auth-btn-secondary"
+            onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
+          >
+            {mode === 'login' ? 'Create a new account' : 'Back to sign in'}
+          </button>
+        </div>
+
       </div>
+
+      {/* ── Trust copy ─────────────────────────────────────────────────────── */}
+      <div className="auth-trust" style={{ marginTop: '20px', maxWidth: '480px', width: '100%', padding: '0 4px' }}>
+        <div className="auth-trust-row">
+          <span className="auth-trust-dot" />
+          We never ask for your bank credentials.
+        </div>
+        <div className="auth-trust-row">
+          <span className="auth-trust-dot" />
+          Uploads are processed safely and stay private.
+        </div>
+      </div>
+
     </div>
   )
 }
