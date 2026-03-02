@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Upload, List, Tags, FolderKanban,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Zap
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -25,6 +25,7 @@ const navItems = [
   { href: '/transactions', label: 'Transactions', icon: List },
   { href: '/categorize',   label: 'Categorize',   icon: FolderKanban },
   { href: '/categories',   label: 'Categories',   icon: Tags },
+  { href: '/rules',        label: 'Rules',        icon: Zap },
 ]
 
 export function AppShell({ children, year, month, availableMonths, onMonthChange }: AppShellProps) {

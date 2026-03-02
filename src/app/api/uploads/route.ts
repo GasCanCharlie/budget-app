@@ -6,6 +6,7 @@ import { isTransferDescription } from '@/lib/intelligence/transfers'
 import { normalizeMerchant } from '@/lib/categorization/engine'
 import { normalizeBankCategory } from '@/lib/categorization/bank-category-map'
 import { computeMonthSummary, getAvailableMonths } from '@/lib/intelligence/summaries'
+import { applyRulesToUpload } from '@/lib/ingestion/auto-apply-rules'
 import { acceptFile } from '@/lib/ingestion/stage0-acceptance'
 import { parseCsvStage1, PARSER_VERSION } from '@/lib/ingestion/stage1-parse-csv'
 import { normalizeRow } from '@/lib/ingestion/stage2-normalize'
@@ -248,6 +249,9 @@ export async function POST(req: NextRequest) {
         await computeMonthSummary(payload.userId, year, month)
       }
 
+      // Auto-apply user rules to newly imported transactions
+      const ofxAutoApply = await applyRulesToUpload(ofxUpload.id, payload.userId, accountId)
+
       return NextResponse.json(
         {
           uploadId:             ofxUpload.id,
@@ -274,6 +278,7 @@ export async function POST(req: NextRequest) {
           bankDetected:         false,
           bankKey:              null,
           dateOrderNeedsConfirmation: false,
+          autoApply: ofxAutoApply,
         },
         { status: 201 },
       )
@@ -707,6 +712,9 @@ export async function POST(req: NextRequest) {
       await computeMonthSummary(payload.userId, year, month)
     }
 
+    // Auto-apply user rules to newly imported transactions
+    const autoApply = await applyRulesToUpload(upload.id, payload.userId, accountId)
+
     return NextResponse.json(
       {
         uploadId:                   upload.id,
@@ -732,6 +740,7 @@ export async function POST(req: NextRequest) {
         bankKey:           bankDetection.bankProfile?.bankKey ?? null,
         dateOrderNeedsConfirmation: dateOrderSelection.needsUserConfirmation,
         importReport,
+        autoApply,
       },
       { status: 201 },
     )

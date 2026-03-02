@@ -191,6 +191,8 @@ export async function PATCH(
     if (data.appCategory !== undefined) {
       updates['appCategory']    = data.appCategory  // null clears it
       updates['reviewedByUser'] = true
+      updates['assignedBy']     = data.appCategory ? 'manual' : null
+      updates['needsReview']    = false
     }
 
     // Resolve date ambiguity — user has chosen MM/DD or DD/MM interpretation

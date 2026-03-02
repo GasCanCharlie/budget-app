@@ -224,6 +224,14 @@ model Transaction {
   // canonicalRowHash: SHA-256(rawDate|rawDesc|rawAmount|bankCategoryRaw|rowIndex)
   canonicalRowHash       String?
 
+  // ── Manual-first categorization fields ────────────────────────────────────
+  // needsReview: true when an "ask" mode rule matched — user must confirm
+  needsReview            Boolean   @default(false)
+  // assignedBy: 'manual' = user, 'rule' = auto-applied, null = not yet assigned
+  assignedBy             String?
+  // appliedRuleId: which CategoryRule auto-assigned this (null if manual / unassigned)
+  appliedRuleId          String?
+
   // Balance chain validation (populated during Stage 4 reconciliation)
   balanceChainValid      Boolean?  // null = not yet checked
   // Stored as decimal strings for exact comparison
@@ -235,6 +243,7 @@ model Transaction {
   upload          Upload          @relation(fields: [uploadId], references: [id])
   category        Category?       @relation("CurrentCategory", fields: [categoryId], references: [id])
   overrideCategory Category?      @relation("OverrideCategory", fields: [userOverrideCategoryId], references: [id])
+  appliedRule     CategoryRule?   @relation("AppliedRule", fields: [appliedRuleId], references: [id])
   historyEntries  CategoryHistory[]
   linksAsA        TransactionLink[] @relation("LinkA")
   linksAsB        TransactionLink[] @relation("LinkB")
@@ -348,8 +357,19 @@ model CategoryRule {
   isSystem   Boolean  @default(true)
   createdAt  DateTime @default(now())
 
-  user     User?    @relation(fields: [userId], references: [id])
-  category Category @relation(fields: [categoryId], references: [id])
+  // ── Manual-first rules fields ──────────────────────────────────────────────
+  // mode: 'always' = auto-apply on import; 'ask' = route to Needs Review
+  mode           String  @default("always")
+  // confidence: only 'high' rules are auto-applied
+  confidence     String  @default("high")
+  // isEnabled: user can disable without deleting
+  isEnabled      Boolean @default(true)
+  // scopeAccountId: null = global, non-null = account-scoped rule
+  scopeAccountId String?
+
+  user       User?         @relation(fields: [userId], references: [id])
+  category   Category      @relation(fields: [categoryId], references: [id])
+  appliedTxs Transaction[] @relation("AppliedRule")
 
   @@map("category_rules")
 }

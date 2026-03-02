@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save } from 'lucide-react'
+import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { CategoryIcon } from '@/components/CategoryIcon'
@@ -507,6 +507,72 @@ function CategoryTransactionList({
   )
 }
 
+// ─── Remember This? Prompt ───────────────────────────────────────────────────
+
+interface RulePromptState {
+  vendor:     string   // display name (merchantNormalized)
+  catName:    string
+  categoryId: string
+}
+
+function RulePrompt({
+  state,
+  onAlways,
+  onAsk,
+  onDismiss,
+  isPending,
+}: {
+  state:     RulePromptState
+  onAlways:  () => void
+  onAsk:     () => void
+  onDismiss: () => void
+  isPending: boolean
+}) {
+  return (
+    <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
+      <div className="rounded-xl border border-accent-200 bg-white shadow-xl ring-1 ring-accent-100 p-4">
+        <div className="flex items-start gap-2.5 mb-3">
+          <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent-100">
+            <Zap size={14} className="text-accent-600" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-900">Remember this?</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              You&apos;ve assigned <strong>{state.vendor}</strong> → <strong>{state.catName}</strong> multiple times.
+            </p>
+          </div>
+          <button onClick={onDismiss} className="flex-shrink-0 text-slate-300 hover:text-slate-500 transition">
+            <X size={14} />
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={onAlways}
+            disabled={isPending}
+            className="flex-1 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-600 disabled:opacity-50 transition"
+          >
+            {isPending ? <Loader2 size={12} className="inline animate-spin" /> : 'Always assign'}
+          </button>
+          <button
+            onClick={onAsk}
+            disabled={isPending}
+            className="flex-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition"
+          >
+            Ask me next time
+          </button>
+          <button
+            onClick={onDismiss}
+            disabled={isPending}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 transition"
+          >
+            No
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CategorizePage() {
@@ -516,6 +582,14 @@ export default function CategorizePage() {
   const qc      = useQueryClient()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [, startTransition] = useTransition()
+
+  // ── "Remember this?" session tracking ──
+  // Maps normalizedVendor -> { catName, categoryId, count }
+  // After the 2nd consistent assignment we surface the rule prompt.
+  const sessionAssignMap = useRef<Map<string, { catName: string; categoryId: string; count: number }>>(new Map())
+  const [rulePrompt, setRulePrompt] = useState<RulePromptState | null>(null)
+  // Track vendors we've already prompted (don't show twice per session)
+  const promptedVendors = useRef<Set<string>>(new Set())
 
   // Debounced dashboard invalidation — prevents 30 refetches when bulk-categorizing
   const dashboardTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -695,11 +769,43 @@ export default function CategorizePage() {
     },
   })
 
+  // ── Rule creation mutation ──
+  const createRuleMutation = useMutation({
+    mutationFn: ({ matchValue, categoryId, mode }: { matchValue: string; categoryId: string; mode: 'always' | 'ask' }) =>
+      apiFetch('/api/rules', {
+        method: 'POST',
+        body: JSON.stringify({ matchType: 'vendor_exact', matchValue, categoryId, mode }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rules'] })
+      setRulePrompt(null)
+    },
+  })
+
   // ── Helpers ──
   const countSimilar = useCallback((merchant: string, amount: number) =>
     allTxs.filter(t => t.merchantNormalized === merchant && t.amount === amount && !t.appCategory).length,
     [allTxs]
   )
+
+  // Track a session assignment and maybe surface the "Remember this?" prompt
+  const trackSessionAssign = useCallback((vendor: string, catName: string, catId: string) => {
+    if (!vendor) return
+    const key = vendor.toLowerCase().trim()
+    if (promptedVendors.current.has(key)) return   // already prompted this session
+    const existing = sessionAssignMap.current.get(key)
+    if (existing && existing.catName === catName) {
+      const newCount = existing.count + 1
+      sessionAssignMap.current.set(key, { catName, categoryId: catId, count: newCount })
+      if (newCount >= 2) {
+        promptedVendors.current.add(key)
+        setRulePrompt({ vendor, catName, categoryId: catId })
+      }
+    } else {
+      // Different category or first time — reset counter
+      sessionAssignMap.current.set(key, { catName, categoryId: catId, count: 1 })
+    }
+  }, [])
 
   // initiateAssign: takes a Category object's id, looks up the cat, then sets appCategory = cat.name
   const initiateAssign = useCallback((tx: Transaction, categoryId: string) => {
@@ -708,11 +814,12 @@ export default function CategorizePage() {
     const similarCount = countSimilar(tx.merchantNormalized, tx.amount)
     if (similarCount <= 1) {
       updateMutation.mutate({ id: tx.id, appCategory: cat.name, applyToAll: false })
+      trackSessionAssign(tx.merchantNormalized, cat.name, cat.id)
       setSelectedIds(new Set()); setAnchorId(null)
       return
     }
     setConfirm({ transaction: tx, category: cat, similarCount })
-  }, [categories, countSimilar, updateMutation])
+  }, [categories, countSimilar, updateMutation, trackSessionAssign])
 
   // ── Click handler (multi-select) ──
   const handleTxClick = useCallback((tx: Transaction, e: React.MouseEvent) => {
@@ -1233,6 +1340,25 @@ export default function CategorizePage() {
       {/* Touch ghost element */}
       <TouchGhost tx={touchTx} pos={touchPos} />
 
+      {/* "Remember this?" rule prompt */}
+      {rulePrompt && (
+        <RulePrompt
+          state={rulePrompt}
+          isPending={createRuleMutation.isPending}
+          onAlways={() => createRuleMutation.mutate({
+            matchValue: rulePrompt.vendor,
+            categoryId: rulePrompt.categoryId,
+            mode: 'always',
+          })}
+          onAsk={() => createRuleMutation.mutate({
+            matchValue: rulePrompt.vendor,
+            categoryId: rulePrompt.categoryId,
+            mode: 'ask',
+          })}
+          onDismiss={() => setRulePrompt(null)}
+        />
+      )}
+
       {/* Confirmation modal */}
       {confirm && (
         <ConfirmModal
@@ -1242,13 +1368,19 @@ export default function CategorizePage() {
           onApplyOne={() => {
             updateMutation.mutate(
               { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: false },
-              { onSuccess: () => { setConfirm(null); setSelectedIds(new Set()); setAnchorId(null) } }
+              { onSuccess: () => {
+                trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
+                setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
+              } }
             )
           }}
           onApplyAll={() => {
             updateMutation.mutate(
               { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: true },
-              { onSuccess: () => { setConfirm(null); setSelectedIds(new Set()); setAnchorId(null) } }
+              { onSuccess: () => {
+                trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
+                setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
+              } }
             )
           }}
         />

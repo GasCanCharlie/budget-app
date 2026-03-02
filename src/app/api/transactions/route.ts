@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
   delete (baseWhere as Record<string, unknown>)['isPossibleDuplicate']
 
   try {
-  const [transactions, total, flaggedCount, duplicateCount] = await Promise.all([
+  const [transactions, total, flaggedCount, duplicateCount, uncategorizedCount] = await Promise.all([
     prisma.transaction.findMany({
       where: whereClause,
       include: {
@@ -100,6 +100,10 @@ export async function GET(req: NextRequest) {
     prisma.transaction.count({ where: { ...(baseWhere as any), ingestionStatus: { in: ['UNRESOLVED', 'WARNING'] } } }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     prisma.transaction.count({ where: { ...(baseWhere as any), isPossibleDuplicate: true } }),
+    // Global uncategorized count (not filtered by current view)
+    prisma.transaction.count({
+      where: { account: { userId: payload.userId }, isExcluded: false, appCategory: null },
+    }),
   ])
 
   const formatted = transactions.map(tx => {
@@ -149,6 +153,7 @@ export async function GET(req: NextRequest) {
     pages:          Math.ceil(total / limit),
     flaggedCount,
     duplicateCount,
+    uncategorizedCount,
   })
   } catch (e) {
     console.error('[/api/transactions] ERROR:', e)

@@ -58,6 +58,13 @@ export default function DashboardPage() {
     enabled:  !!user,
   })
 
+  const { data: uncatData } = useQuery<{ uncategorizedCount: number }>({
+    queryKey: ['uncategorized-count'],
+    queryFn:  () => apiFetch('/api/transactions?limit=1'),
+    enabled:  !!user,
+    staleTime: 30_000,
+  })
+
   const latestUpload = uploadsData?.uploads?.[0] as {
     id: string
     filename: string
@@ -183,6 +190,24 @@ export default function DashboardPage() {
             <p className="text-sm text-amber-800">
               <strong>Partial month</strong> — totals reflect only the imported date range, not the full month.
             </p>
+          </div>
+        )}
+
+        {/* ── Uncategorized transactions banner ────────────────────────────── */}
+        {(uncatData?.uncategorizedCount ?? 0) > 0 && (
+          <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+              {uncatData!.uncategorizedCount > 99 ? '99+' : uncatData!.uncategorizedCount}
+            </span>
+            <p className="flex-1 text-sm text-amber-800">
+              <strong>{uncatData!.uncategorizedCount}</strong> transaction{uncatData!.uncategorizedCount !== 1 ? 's' : ''} still need a category — charts reflect only categorized data.
+            </p>
+            <Link
+              href="/categorize"
+              className="flex-shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 transition"
+            >
+              Categorize Now →
+            </Link>
           </div>
         )}
 
