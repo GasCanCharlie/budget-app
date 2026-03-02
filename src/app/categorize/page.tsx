@@ -353,8 +353,7 @@ function TouchGhost({ tx, pos }: { tx: Transaction | null; pos: { x: number; y: 
   return (
     <div
       className="pointer-events-none fixed z-[100] max-w-[180px] rounded-lg p-2 shadow-lg backdrop-blur-sm"
-      style={{ background: 'rgba(11,16,32,.92)', border: '1px solid rgba(110,168,255,.35)' }}
-      style={{ left: pos.x - 90, top: pos.y - 30 }}
+      style={{ background: 'rgba(11,16,32,.92)', border: '1px solid rgba(110,168,255,.35)', left: pos.x - 90, top: pos.y - 30 }}
     >
       <p className="truncate text-xs font-semibold text-[#eaf0ff]">{tx.merchantNormalized || tx.description}</p>
       <p className="text-[10px] text-[#8b97c3]">{fmtAmt(tx.amount)}</p>
