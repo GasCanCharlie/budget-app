@@ -483,7 +483,7 @@ export interface ReconciliationReport {
   fileName: string
   /** First 16 hex chars of SHA-256 (never the full hash in UI) */
   fileHashTruncated: string
-  sourceType: 'CSV' | 'XLSX' | 'PDF'
+  sourceType: UploadSourceType
   /** ISO date string or null if period could not be detected */
   periodStart: string | null
   /** ISO date string or null */
@@ -544,10 +544,12 @@ export interface ReconciliationReport {
 // FILE ACCEPTANCE (Stage 0)
 // ─────────────────────────────────────────────────────────────────────────────
 
+export type UploadSourceType = 'CSV' | 'XLSX' | 'PDF' | 'OFX' | 'QFX' | 'QBO'
+
 export interface FileAcceptanceResult {
   accepted: boolean
   fileHash: string
-  sourceType: 'CSV' | 'XLSX' | 'PDF' | 'OFX' | null
+  sourceType: UploadSourceType | null
   /** Human-readable rejection reason; null if accepted */
   rejectionReason: string | null
   /**
@@ -562,6 +564,13 @@ export interface FileAcceptanceResult {
   fileSize: number
   /** Detected character encoding (CSV only); null for binary formats */
   encoding: string | null
+  /**
+   * If the file extension implies one type but content sniff says another,
+   * this is set to the content-detected type and formatMismatch = true.
+   * The upload proceeds with sourceType (content wins) but a warning is returned.
+   */
+  contentSniffedType?: UploadSourceType | null
+  formatMismatch?: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

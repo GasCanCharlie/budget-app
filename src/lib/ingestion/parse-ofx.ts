@@ -57,10 +57,30 @@ function field(block: string, tag: string): string {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-/** Returns true if the file looks like OFX/QFX (by extension or content). */
+/**
+ * Detect OFX family variant from file extension.
+ * All three share the same SGML structure — variant is purely cosmetic.
+ *   .ofx  → standard bank export (Chase, BofA, etc.)
+ *   .qfx  → Quicken WebConnect
+ *   .qbo  → QuickBooks Online bank download (same SGML, different extension)
+ */
+export function detectOfxVariant(fileName: string): 'OFX' | 'QFX' | 'QBO' {
+  const ext = fileName.slice(fileName.lastIndexOf('.')).toLowerCase()
+  if (ext === '.qfx') return 'QFX'
+  if (ext === '.qbo') return 'QBO'
+  return 'OFX'
+}
+
+/** Content-sniff: does the first 2 KB look like OFX SGML? */
+export function sniffIsOfxContent(text: string): boolean {
+  const head = text.slice(0, 2048)
+  return head.includes('OFXHEADER') || head.includes('<OFX>') || head.includes('<STMTTRN>')
+}
+
+/** Returns true if the file looks like OFX/QFX/QBO (by extension or content). */
 export function isOfxFile(buffer: Buffer, fileName: string): boolean {
   const ext = fileName.slice(fileName.lastIndexOf('.')).toLowerCase()
-  if (ext === '.ofx' || ext === '.qfx') return true
+  if (ext === '.ofx' || ext === '.qfx' || ext === '.qbo') return true
   const head = buffer.slice(0, 20).toString('ascii')
   return head.startsWith('OFXHEADER') || head.startsWith('<OFX>')
 }

@@ -134,8 +134,8 @@ export default function UploadPage() {
 
   const handleFile = useCallback((file: File) => {
     const nameLower = file.name.toLowerCase()
-    if (!nameLower.endsWith('.csv') && !nameLower.endsWith('.ofx') && !nameLower.endsWith('.qfx')) {
-      setResult({ success: false, error: 'Supported formats: CSV (.csv), OFX/QFX (.ofx, .qfx)' })
+    if (!nameLower.endsWith('.csv') && !nameLower.endsWith('.ofx') && !nameLower.endsWith('.qfx') && !nameLower.endsWith('.qbo')) {
+      setResult({ success: false, error: 'Supported formats: CSV (.csv), OFX (.ofx), QFX (.qfx), QBO (.qbo)' })
       return
     }
     setSelectedFile(file)
@@ -324,7 +324,7 @@ export default function UploadPage() {
             </div>
           ) : (
             <p className="text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-              No accounts yet — fill in the form above to create one, then upload your CSV.
+              No accounts yet — fill in the form above to create one, then upload your statement.
             </p>
           )}
         </div>
@@ -341,7 +341,7 @@ export default function UploadPage() {
             selectedFile ? 'border-green-400 bg-green-50' : ''
           )}
         >
-          <input ref={fileRef} type="file" accept=".csv,.CSV,.ofx,.OFX,.qfx,.QFX,text/csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+          <input ref={fileRef} type="file" accept=".csv,.CSV,.ofx,.OFX,.qfx,.QFX,.qbo,.QBO,text/csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
           {selectedFile ? (
             <div className="space-y-2">
               <div className="text-4xl">📄</div>
@@ -352,8 +352,8 @@ export default function UploadPage() {
             <div className="space-y-3">
               <Upload size={40} className="mx-auto text-slate-300" />
               <div>
-                <p className="font-bold text-slate-700">Drop your CSV here</p>
-                <p className="text-sm text-slate-400 mt-1">or click to browse files</p>
+                <p className="font-bold text-slate-700">Drop your statement here</p>
+                <p className="text-sm text-slate-400 mt-1">CSV · OFX · QFX · QBO — or click to browse</p>
               </div>
               <p className="text-xs text-slate-400">
                 Chase · BofA · Wells Fargo · Capital One · Discover · <span className="text-accent-500 font-medium">40+ formats</span>
@@ -526,6 +526,12 @@ export default function UploadPage() {
                     </div>
                   )
                 })()}
+                {Boolean((result.data as Record<string, unknown>).formatMismatch) && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                    ⚠️ File extension and content type don&apos;t match — processed as{' '}
+                    <strong>{String((result.data as Record<string, unknown>).formatDetected ?? 'detected format')}</strong>.
+                  </div>
+                )}
                 {Boolean((result.data as Record<string, unknown>).dateAmbiguous) && (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
                     ⚠️ Date format was ambiguous (MM/DD vs DD/MM). Please verify your transaction dates.

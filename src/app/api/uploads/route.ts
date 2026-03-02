@@ -82,7 +82,8 @@ export async function POST(req: NextRequest) {
     const encoding = acceptance.encoding ?? 'utf-8'
 
     // ── OFX fast-path (bypasses CSV stages 1–2) ───────────────────────────────
-    if (acceptance.sourceType === 'OFX') {
+    if (acceptance.sourceType === 'OFX' || acceptance.sourceType === 'QFX' || acceptance.sourceType === 'QBO') {
+      const ofxVariant = acceptance.sourceType  // 'OFX' | 'QFX' | 'QBO'
       const ofxResult = parseOfx(rawText)
 
       if (ofxResult.transactions.length === 0) {
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
           accountId,
           filename:            file.name,
           fileHash,
-          formatDetected:      'OFX',
+          formatDetected:      ofxVariant,
           version:             uploadVersion,
           reprocessedFromId:   acceptance.previousUploadId ?? undefined,
           rowCountRaw:         ofxResult.transactions.length,
@@ -256,7 +257,9 @@ export async function POST(req: NextRequest) {
           possibleDuplicates:   ofxDedupResult.possibleDuplicatesFound,
           crossUploadDuplicates: ofxDedupResult.crossUploadMatches,
           withinUploadDuplicates: ofxDedupResult.withinUploadMatches,
-          formatDetected:       'OFX',
+          formatDetected:       ofxVariant,
+          formatMismatch:       acceptance.formatMismatch ?? false,
+          contentSniffedType:   acceptance.contentSniffedType ?? null,
           dateAmbiguous:        false,
           dateFormatSample:     [],
           warnings:             [],

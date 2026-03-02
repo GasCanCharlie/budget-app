@@ -18,7 +18,7 @@ import { createHash } from 'crypto'
 import prisma from '@/lib/db'
 import type { FileAcceptanceResult } from '@/types/ingestion'
 import { MAX_FILE_SIZE_BYTES } from '@/types/ingestion'
-import { isOfxFile } from './parse-ofx'
+import { isOfxFile, detectOfxVariant, sniffIsOfxContent } from './parse-ofx'
 
 // ─── Magic byte detection ────────────────────────────────────────────────────
 
@@ -155,32 +155,36 @@ export async function acceptFile(
 
   const fromMagic = detectTypeFromMagicBytes(buffer)
 
-  let sourceType: 'CSV' | 'XLSX' | 'PDF' | 'OFX' | null = fromMagic
+  // Extension-based type detection
+  let sourceType: 'CSV' | 'XLSX' | 'PDF' | 'OFX' | 'QFX' | 'QBO' | null = fromMagic
   if (!sourceType) {
-    if (ext === '.csv')                       sourceType = 'CSV'
+    if (ext === '.csv')                         sourceType = 'CSV'
     else if (ext === '.xlsx' || ext === '.xls') sourceType = 'XLSX'
-    else if (ext === '.pdf')                  sourceType = 'PDF'
-    else if (isOfxFile(buffer, fileName))     sourceType = 'OFX'
+    else if (ext === '.pdf')                    sourceType = 'PDF'
+    else if (ext === '.ofx')                    sourceType = 'OFX'
+    else if (ext === '.qfx')                    sourceType = 'QFX'
+    else if (ext === '.qbo')                    sourceType = 'QBO'
+    else if (isOfxFile(buffer, fileName))       sourceType = 'OFX'
   }
 
   if (!sourceType) {
     result.rejectionReason =
-      `Unsupported file type (extension: "${ext || 'none'}"). Accepted formats: CSV (.csv), OFX/QFX (.ofx, .qfx), Excel (.xlsx), PDF (.pdf).`
+      `Unsupported file type (extension: "${ext || 'none'}"). Accepted formats: CSV (.csv), OFX (.ofx), QFX (.qfx), QBO (.qbo), Excel (.xlsx), PDF (.pdf).`
     return result
   }
 
   if (sourceType === 'XLSX') {
     result.rejectionReason =
-      'Excel (XLSX) support is coming soon. Please export your bank statement as a CSV or OFX file and re-upload.'
+      'Excel (XLSX) support is coming soon. Please export your bank statement as CSV or OFX/QFX/QBO and re-upload.'
     return result
   }
   if (sourceType === 'PDF') {
     result.rejectionReason =
-      'PDF statement parsing is coming in Phase 2. Please export your bank statement as a CSV or OFX file and re-upload.'
+      'PDF statement parsing is coming in Phase 2. Please export your bank statement as CSV or OFX/QFX/QBO and re-upload.'
     return result
   }
 
-  result.sourceType = sourceType // 'CSV' or 'OFX'
+  result.sourceType = sourceType
 
   // ── 4. SHA-256 of raw bytes ──────────────────────────────────────────────
   //  Hash the bytes BEFORE any decoding so it is stable regardless of how
@@ -209,8 +213,28 @@ export async function acceptFile(
   result.encoding = encoding
   const decodedText = decodeBuffer(buffer, encoding)
 
-  // ── 7. Truncation check (CSV only — OFX has container tags, not quoted fields) ──
-  if (result.sourceType !== 'OFX') {
+  // ── 7. Content sniff — detect mismatch between extension and actual content ──
+  //  e.g. a file named ".csv" that actually contains OFX SGML, or vice versa.
+  //  We default to the content-detected type and attach a warning.
+  const isOfxContent = sniffIsOfxContent(decodedText)
+  const extensionImpliesOfx = sourceType === 'OFX' || sourceType === 'QFX' || sourceType === 'QBO'
+  const extensionImpliesCsv = sourceType === 'CSV'
+
+  if (extensionImpliesCsv && isOfxContent) {
+    // Content looks like OFX but extension says CSV — upgrade to OFX
+    result.sourceType         = 'OFX'
+    result.contentSniffedType = 'OFX'
+    result.formatMismatch     = true
+  } else if (extensionImpliesOfx && !isOfxContent) {
+    // Extension says OFX family but content doesn't look like it — downgrade to CSV attempt
+    result.contentSniffedType = 'CSV'
+    result.formatMismatch     = true
+    // Keep sourceType as-is; the route will attempt OFX parse and fail gracefully
+  }
+
+  // ── 8. Truncation check (CSV only — OFX/QFX/QBO use container tags) ──────
+  const finalType = result.sourceType
+  if (finalType !== 'OFX' && finalType !== 'QFX' && finalType !== 'QBO') {
     const truncCheck = checkCsvTruncation(decodedText)
     if (!truncCheck.valid) {
       result.rejectionReason = `File appears truncated: ${truncCheck.reason}`
