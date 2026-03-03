@@ -1544,7 +1544,9 @@ export default function CategorizePage() {
         {/* DragOverlay — renders the ghost following the cursor */}
         <DragOverlay dropAnimation={null}>
           {activeDrag?.kind === 'tx' && (
-            <TxOverlay tx={activeDrag.tx} count={activeDrag.draggingIds.length} />
+            <div style={{ transform: 'scale(0.20)', transformOrigin: 'top center', opacity: 0.5, pointerEvents: 'none' }}>
+              <TxOverlay tx={activeDrag.tx} count={activeDrag.draggingIds.length} />
+            </div>
           )}
           {activeDrag?.kind === 'cat' && (() => {
             const cat = categories.find(c => c.id === activeDrag.catId)
