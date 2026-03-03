@@ -422,13 +422,6 @@ function ConfirmModal({
           </div>
         </div>
 
-        {state.similarCount > 1 && (
-          <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-            <strong>{state.similarCount}</strong> uncategorized transactions from{' '}
-            <strong>{state.transaction.merchantNormalized}</strong> found.
-            Apply to all?
-          </div>
-        )}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <button
