@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap } from 'lucide-react'
+import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText } from 'lucide-react'
 import clsx from 'clsx'
 import {
   DndContext,
@@ -1554,8 +1554,36 @@ export default function CategorizePage() {
         {/* DragOverlay — renders the ghost following the cursor */}
         <DragOverlay dropAnimation={null} modifiers={[snapPointerToTopLeft]}>
           {activeDrag?.kind === 'tx' && (
-            <div style={{ transform: 'scale(0.30)', transformOrigin: 'top left', opacity: 0.7, pointerEvents: 'none' }}>
-              <TxOverlay tx={activeDrag.tx} count={activeDrag.draggingIds.length} />
+            <div style={{
+              position: 'relative',
+              pointerEvents: 'none',
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.9), rgba(168,85,247,0.85))',
+              boxShadow: '0 0 0 6px rgba(99,102,241,0.18), 0 0 24px rgba(99,102,241,0.55), 0 8px 24px rgba(0,0,0,0.5)',
+              border: '1px solid rgba(168,85,247,0.5)',
+            }}>
+              <FileText size={22} color="white" strokeWidth={1.75} />
+              {activeDrag.draggingIds.length > 1 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -6,
+                  right: -6,
+                  background: 'rgba(255,180,60,0.95)',
+                  color: '#fff',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  borderRadius: 999,
+                  padding: '1px 5px',
+                  border: '1.5px solid rgba(0,0,0,0.2)',
+                }}>
+                  {activeDrag.draggingIds.length}
+                </span>
+              )}
             </div>
           )}
           {activeDrag?.kind === 'cat' && (() => {
