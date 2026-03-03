@@ -789,6 +789,10 @@ function deriveFormatName(
   if (h.includes('withdrawals') && h.includes('deposits'))       return 'PNC'
   if (h.includes('original description'))                        return 'USAA'
   if (h.includes('time') && h.includes('type'))                  return 'Ally'
-  if (mapping.date && mapping.description && mapping.amount)     return 'Generic (auto-detected)'
+  const hasDate   = !!(mapping.date || mapping.transactionDate || mapping.postedDate)
+  const hasDesc   = !!mapping.description
+  const hasAmount = !!(mapping.amount || (mapping.debit && mapping.credit))
+  if (hasDate && hasDesc && hasAmount) return 'CSV (auto-detected)'
+  if (hasDate || hasDesc || hasAmount) return 'CSV (partial match)'
   return 'Unknown'
 }
