@@ -248,7 +248,7 @@ function CategoryBucket({
           ? '[border:1px_solid_rgba(99,102,241,0.60)] [box-shadow:0_14px_30px_rgba(0,0,0,0.55),0_0_0_3px_rgba(99,102,241,0.18)]'
           : isReorderOver && isReorderDragging
             ? '[border:1px_solid_rgba(99,102,241,0.40)] [box-shadow:0_12px_26px_rgba(0,0,0,0.50),0_0_0_3px_rgba(99,102,241,0.14)]'
-            : '[border:1px_solid_rgba(255,255,255,0.06)] hover:[border-color:rgba(255,255,255,0.12)] hover:[box-shadow:0_10px_24px_rgba(0,0,0,0.45),0_0_0_2px_rgba(255,255,255,0.03)]',
+            : '[border:1px_solid_rgba(255,255,255,0.06)]',
       )}
     >
       {/* Icon box */}
