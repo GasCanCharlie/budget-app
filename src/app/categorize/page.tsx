@@ -263,7 +263,7 @@ function CategoryBucket({
         )}
       />
 
-      {/* Reorder grip */}
+      {/* Reorder grip — dual-bar industrial style */}
       <div
         draggable
         onDragStart={e => {
@@ -273,10 +273,11 @@ function CategoryBucket({
           onReorderDragStart(cat.id)
         }}
         onDragEnd={e => { e.stopPropagation(); onReorderDragEnd() }}
-        className="cursor-grab active:cursor-grabbing text-white/25 hover:text-white/60 flex-shrink-0 touch-none transition-colors duration-150"
+        className="flex-shrink-0 flex items-center justify-center gap-[4px] w-[18px] h-[22px] touch-none cursor-grab active:cursor-grabbing active:scale-95 opacity-40 group-hover:opacity-75 transition-all duration-150"
         title="Drag to reorder"
       >
-        <GripVertical size={13} />
+        <span className="block w-[2px] h-[14px] rounded-sm" style={{ background: 'rgba(255,255,255,0.35)' }} />
+        <span className="block w-[2px] h-[14px] rounded-sm" style={{ background: 'rgba(255,255,255,0.35)' }} />
       </div>
 
       {/* Icon box */}
