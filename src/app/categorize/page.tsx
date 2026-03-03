@@ -217,7 +217,7 @@ function TxCard({
           ? 'opacity-50 border-dashed border-white/[.14] shadow-none translate-y-0 cursor-grabbing'
           : isSelected
             ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50 cursor-grab'
-            : 'border-white/[.08] hover:border-[rgba(140,190,255,.22)] hover:-translate-y-px hover:[box-shadow:0_0_0_3px_rgba(120,170,255,.10),0_10px_30px_rgba(0,0,0,.35)] cursor-grab',
+            : 'border-white/[.08] hover:border-[rgba(140,190,255,.22)] hover:[box-shadow:0_0_0_3px_rgba(120,170,255,.10),0_10px_30px_rgba(0,0,0,.35)] cursor-grab',
       )}
       style={!isSelected ? { background: 'linear-gradient(180deg,#0E162B,#101B33)' } : undefined}
     >
