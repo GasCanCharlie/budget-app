@@ -69,6 +69,7 @@ function fmtDate(iso: string) {
 function TxCard({
   tx,
   isSelected,
+  isDragSource,
   onClick,
   onDragStart,
   onDragEnd,
@@ -76,75 +77,91 @@ function TxCard({
 }: {
   tx: Transaction
   isSelected: boolean
+  isDragSource: boolean
   onClick: (tx: Transaction, e: React.MouseEvent) => void
   onDragStart: (tx: Transaction) => void
   onDragEnd: () => void
   onTouchStart: (tx: Transaction, e: React.TouchEvent) => void
 }) {
+  const rowRef = useRef<HTMLDivElement>(null)
+
   return (
     <div
-      draggable
-      onDragStart={e => {
-        e.dataTransfer.setData('text/plain', tx.id)
-        e.dataTransfer.effectAllowed = 'move'
-
-        // Build a 60%-scaled ghost so it doesn't obscure the drop target
-        const el = e.currentTarget as HTMLElement
-        const rect = el.getBoundingClientRect()
-        const scale = 0.6
-        const ghost = document.createElement('div')
-        ghost.style.cssText = `position:fixed;top:-9999px;left:-9999px;width:${rect.width * scale}px;height:${rect.height * scale}px;overflow:hidden;border-radius:12px;pointer-events:none;`
-        const inner = el.cloneNode(true) as HTMLElement
-        inner.style.cssText += `transform:scale(${scale});transform-origin:top left;width:${rect.width}px;margin:0;`
-        ghost.appendChild(inner)
-        document.body.appendChild(ghost)
-        e.dataTransfer.setDragImage(ghost, (rect.width * scale) / 2, (rect.height * scale) / 2)
-        setTimeout(() => document.body.removeChild(ghost), 0)
-
-        onDragStart(tx)
-      }}
+      ref={rowRef}
       onDragEnd={onDragEnd}
       onTouchStart={e => onTouchStart(tx, e)}
       onClick={e => onClick(tx, e)}
       tabIndex={0}
       className={clsx(
-        'group relative flex cursor-grab items-start gap-3 rounded-xl border p-3 transition-all active:cursor-grabbing touch-none select-none',
-        isSelected
-          ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50'
-          : 'border-white/10 hover:border-white/20 hover:-translate-y-px'
+        'group relative flex items-start gap-3 rounded-xl border p-3 transition-all duration-[140ms] ease-[cubic-bezier(.2,.8,.2,1)] touch-none select-none cursor-default',
+        isDragSource
+          ? 'opacity-50 border-dashed border-white/[.14] shadow-none translate-y-0'
+          : isSelected
+            ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50'
+            : 'border-white/[.08] hover:border-[rgba(140,190,255,.22)] hover:-translate-y-px hover:[box-shadow:0_0_0_3px_rgba(120,170,255,.10),0_10px_30px_rgba(0,0,0,.35)]',
       )}
-      style={!isSelected ? { background: 'rgba(0,0,0,.18)' } : undefined}
+      style={!isSelected ? { background: 'linear-gradient(180deg,#0E162B,#101B33)' } : undefined}
     >
-      <div className="mt-0.5 flex-shrink-0 text-white/25 group-hover:text-white/50">
-        <GripVertical size={16} />
+      {/* Drag handle — 3×3 dot grid, only this initiates drag */}
+      <div
+        draggable
+        onDragStart={e => {
+          e.stopPropagation()
+          e.dataTransfer.setData('text/plain', tx.id)
+          e.dataTransfer.effectAllowed = 'move'
+
+          // Crisp ghost from the full row, slightly scaled down
+          const el = rowRef.current
+          if (el) {
+            const rect = el.getBoundingClientRect()
+            const scale = 0.65
+            const ghost = document.createElement('div')
+            ghost.style.cssText = `position:fixed;top:-9999px;left:-9999px;width:${rect.width * scale}px;height:${rect.height * scale}px;overflow:hidden;border-radius:14px;pointer-events:none;box-shadow:0 16px 50px rgba(0,0,0,.55);border:1px solid rgba(140,190,255,.35);`
+            const inner = el.cloneNode(true) as HTMLElement
+            inner.style.cssText += `transform:scale(${scale});transform-origin:top left;width:${rect.width}px;margin:0;background:linear-gradient(180deg,#0E162B,#101B33);border:none;box-shadow:none;opacity:1;`
+            ghost.appendChild(inner)
+            document.body.appendChild(ghost)
+            e.dataTransfer.setDragImage(ghost, (rect.width * scale) / 2, (rect.height * scale) / 2)
+            setTimeout(() => document.body.removeChild(ghost), 0)
+          }
+
+          onDragStart(tx)
+        }}
+        onDragEnd={onDragEnd}
+        aria-label="Drag transaction"
+        className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-[10px] flex items-center justify-center border border-transparent bg-white/[.02] opacity-70 group-hover:opacity-100 cursor-grab active:cursor-grabbing active:scale-95 transition-all duration-[140ms]"
+      >
+        <div className="grid grid-cols-3 gap-[3px]" aria-hidden="true">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <span key={i} className="block w-[3px] h-[3px] rounded-sm bg-white/55" />
+          ))}
+        </div>
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-semibold text-slate-900">
+          <p className="truncate text-sm font-semibold text-[rgba(255,255,255,.92)]">
             {tx.merchantNormalized || tx.description}
           </p>
-          <p className={clsx('flex-shrink-0 text-sm font-bold', tx.amount < 0 ? 'text-red-600' : 'text-green-600')}>
+          <p className={clsx('flex-shrink-0 text-sm font-bold tabular-nums', tx.amount < 0 ? 'text-[#FF5B78]' : 'text-[#2EE59D]')}>
             {fmtAmt(tx.amount)}
           </p>
         </div>
 
-        <p className="mt-0.5 truncate text-xs text-slate-400">{fmtDate(tx.date)}</p>
+        <p className="mt-0.5 truncate text-xs text-[rgba(255,255,255,.55)]">{fmtDate(tx.date)}</p>
 
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          {/* App category (user-assigned) */}
           {tx.appCategory ? (
-            <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700 border border-green-200">
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border" style={{ background: 'rgba(46,229,157,.12)', color: '#2EE59D', borderColor: 'rgba(46,229,157,.25)' }}>
               ✓ {tx.appCategory}
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border" style={{ background: 'rgba(255,180,60,.10)', color: 'rgba(255,180,60,.9)', borderColor: 'rgba(255,180,60,.22)' }}>
               Uncategorized
             </span>
           )}
-          {/* Bank category (read-only) */}
           {tx.bankCategoryRaw && (
-            <span className="text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full font-medium">
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border" style={{ background: 'rgba(120,170,255,.14)', color: 'rgba(160,200,255,.95)', borderColor: 'rgba(120,170,255,.22)' }}>
               🏦 {tx.bankCategoryRaw}
             </span>
           )}
@@ -240,11 +257,16 @@ function CategoryBucket({
       onClick={() => {
         if (!isDragging) onToggleExpand(cat.id)
       }}
-      style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))' }}
+      style={isHovered && isDragging
+        ? { background: 'linear-gradient(180deg, rgba(120,170,255,.10), rgba(255,255,255,.02))' }
+        : { background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))' }
+      }
       className={clsx(
         'relative flex items-center gap-3 rounded-[14px] px-4 py-3.5 min-h-[54px]',
         'transition-all duration-[160ms] ease-out select-none cursor-pointer overflow-hidden',
-        '[border:1px_solid_rgba(255,255,255,0.06)] hover:[border-color:rgba(255,255,255,0.12)] hover:[box-shadow:0_10px_24px_rgba(0,0,0,0.45),0_0_0_2px_rgba(255,255,255,0.03)]',
+        isHovered && isDragging
+          ? '[border:1px_solid_rgba(120,170,255,.35)] [box-shadow:0_0_0_3px_rgba(120,170,255,.16),0_10px_30px_rgba(0,0,0,.35)] -translate-y-px'
+          : '[border:1px_solid_rgba(255,255,255,0.06)] hover:[border-color:rgba(255,255,255,0.12)] hover:[box-shadow:0_10px_24px_rgba(0,0,0,0.45),0_0_0_2px_rgba(255,255,255,0.03)]',
       )}
     >
       {/* Icon box */}
@@ -257,7 +279,14 @@ function CategoryBucket({
 
       <span className="flex-1 min-w-0 truncate text-[13.5px] font-semibold tracking-[-0.01em] text-[rgba(255,255,255,0.90)]">{cat.name}</span>
 
-      {txCount != null && txCount > 0 && (
+      {/* "Drop to assign" hint — only visible while hovering with a drag */}
+      {isDragging && isHovered && (
+        <span className="flex-shrink-0 text-[11px] font-medium text-[rgba(160,200,255,.9)]">
+          Drop to assign
+        </span>
+      )}
+
+      {txCount != null && txCount > 0 && !isHovered && (
         <span
           className="flex-shrink-0 text-[11.5px] font-medium px-2 py-0.5 rounded-full text-[rgba(255,255,255,0.72)]"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -1327,6 +1356,7 @@ export default function CategorizePage() {
                     key={tx.id}
                     tx={tx}
                     isSelected={selectedIds.has(tx.id)}
+                    isDragSource={dragging?.id === tx.id || draggingIds.includes(tx.id)}
                     onClick={handleTxClick}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
