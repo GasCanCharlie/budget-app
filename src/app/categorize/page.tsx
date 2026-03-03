@@ -152,33 +152,24 @@ function TxOverlay({ tx, count }: { tx: Transaction; count: number }) {
 
 // ─── DragOverlay ghost for a category ────────────────────────────────────────
 
-function CatOverlay({ cat, txCount }: { cat: Category; txCount: number }) {
+function CatOverlay({ cat }: { cat: Category; txCount: number }) {
   return (
     <div
       style={{
-        background: 'linear-gradient(180deg, rgba(120,170,255,.12), rgba(255,255,255,.03))',
-        border: '1px solid rgba(120,170,255,.35)',
-        boxShadow: '0 16px 50px rgba(0,0,0,.55)',
+        position: 'relative',
+        pointerEvents: 'none',
+        width: 48,
+        height: 48,
         borderRadius: 14,
-        padding: '10px 16px',
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
-        cursor: 'grabbing',
-        minWidth: 160,
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.9), rgba(168,85,247,0.85))',
+        boxShadow: '0 0 0 6px rgba(99,102,241,0.18), 0 0 24px rgba(99,102,241,0.55), 0 8px 24px rgba(0,0,0,0.5)',
+        border: '1px solid rgba(168,85,247,0.5)',
       }}
     >
-      <div style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <CategoryIcon name={cat.icon} color={cat.color} size={15} />
-      </div>
-      <span style={{ flex: 1, fontWeight: 600, fontSize: 13.5, color: 'rgba(255,255,255,0.90)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {cat.name}
-      </span>
-      {txCount > 0 && (
-        <span style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 500, padding: '1px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.72)' }}>
-          {txCount}
-        </span>
-      )}
+      <CategoryIcon name={cat.icon} color="white" size={22} />
     </div>
   )
 }
