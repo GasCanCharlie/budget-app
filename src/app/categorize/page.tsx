@@ -20,6 +20,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type CollisionDetection,
+  type Modifier,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -694,6 +695,15 @@ function RulePrompt({
 }
 
 // ─── Custom collision detection ───────────────────────────────────────────────
+// Modifier: snap the top-left corner of the overlay to the cursor tip
+const snapPointerToTopLeft: Modifier = ({ transform, activatorEvent, draggingNodeRect }) => {
+  if (!activatorEvent || !draggingNodeRect) return transform
+  const evt = activatorEvent as PointerEvent
+  const grabX = evt.clientX - draggingNodeRect.left
+  const grabY = evt.clientY - draggingNodeRect.top
+  return { ...transform, x: transform.x + grabX, y: transform.y + grabY }
+}
+
 // When dragging a transaction: use pointerWithin for category drop targets
 // When dragging a category (sort): use closestCenter for sortable items
 function buildCollisionDetector(activeKind: 'tx' | 'cat' | null): CollisionDetection {
@@ -1542,9 +1552,9 @@ export default function CategorizePage() {
         )}
 
         {/* DragOverlay — renders the ghost following the cursor */}
-        <DragOverlay dropAnimation={null}>
+        <DragOverlay dropAnimation={null} modifiers={[snapPointerToTopLeft]}>
           {activeDrag?.kind === 'tx' && (
-            <div style={{ transform: 'scale(0.20)', transformOrigin: 'top center', opacity: 0.5, pointerEvents: 'none' }}>
+            <div style={{ transform: 'scale(0.20)', transformOrigin: 'top left', opacity: 0.7, pointerEvents: 'none' }}>
               <TxOverlay tx={activeDrag.tx} count={activeDrag.draggingIds.length} />
             </div>
           )}
