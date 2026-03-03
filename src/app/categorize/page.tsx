@@ -242,7 +242,7 @@ function CategoryBucket({
       }}
       style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))' }}
       className={clsx(
-        'relative flex items-center gap-3 rounded-[14px] pl-4 pr-4 py-3.5 min-h-[54px]',
+        'relative flex items-center gap-3 rounded-[14px] px-4 py-3.5 min-h-[54px]',
         'transition-all duration-[160ms] ease-out select-none cursor-pointer overflow-hidden',
         isHovered && isDragging
           ? '[border:1px_solid_rgba(99,102,241,0.60)] [box-shadow:0_14px_30px_rgba(0,0,0,0.55),0_0_0_3px_rgba(99,102,241,0.18)]'
@@ -251,32 +251,6 @@ function CategoryBucket({
             : '[border:1px_solid_rgba(255,255,255,0.06)] hover:[border-color:rgba(255,255,255,0.12)] hover:[box-shadow:0_10px_24px_rgba(0,0,0,0.45),0_0_0_2px_rgba(255,255,255,0.03)]',
       )}
     >
-      {/* Left accent bar — white on CSS hover, indigo gradient on drag-over / reorder-over */}
-      <span
-        aria-hidden="true"
-        className={clsx(
-          'pointer-events-none absolute left-2.5 top-3 bottom-3 w-[3px] rounded-full',
-          'transition-all duration-[160ms] ease-out',
-          isHovered && isDragging || isReorderOver && isReorderDragging
-            ? 'opacity-100 [background:linear-gradient(180deg,rgba(99,102,241,0.95),rgba(168,85,247,0.85))]'
-            : 'opacity-0',
-        )}
-      />
-
-      {/* Reorder grip — invisible draggable strip */}
-      <div
-        draggable
-        onDragStart={e => {
-          e.stopPropagation()
-          e.dataTransfer.setData('text/plain', 'reorder:' + cat.id)
-          e.dataTransfer.effectAllowed = 'move'
-          onReorderDragStart(cat.id)
-        }}
-        onDragEnd={e => { e.stopPropagation(); onReorderDragEnd() }}
-        className="flex-shrink-0 w-2 h-full touch-none cursor-grab active:cursor-grabbing"
-        title="Drag to reorder"
-      />
-
       {/* Icon box */}
       <div
         className="flex-shrink-0 w-7 h-7 rounded-[9px] flex items-center justify-center"
