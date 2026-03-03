@@ -84,7 +84,25 @@ function TxCard({
   return (
     <div
       draggable
-      onDragStart={e => { e.dataTransfer.setData('text/plain', tx.id); e.dataTransfer.effectAllowed = 'move'; onDragStart(tx) }}
+      onDragStart={e => {
+        e.dataTransfer.setData('text/plain', tx.id)
+        e.dataTransfer.effectAllowed = 'move'
+
+        // Build a 60%-scaled ghost so it doesn't obscure the drop target
+        const el = e.currentTarget as HTMLElement
+        const rect = el.getBoundingClientRect()
+        const scale = 0.6
+        const ghost = document.createElement('div')
+        ghost.style.cssText = `position:fixed;top:-9999px;left:-9999px;width:${rect.width * scale}px;height:${rect.height * scale}px;overflow:hidden;border-radius:12px;pointer-events:none;`
+        const inner = el.cloneNode(true) as HTMLElement
+        inner.style.cssText += `transform:scale(${scale});transform-origin:top left;width:${rect.width}px;margin:0;`
+        ghost.appendChild(inner)
+        document.body.appendChild(ghost)
+        e.dataTransfer.setDragImage(ghost, (rect.width * scale) / 2, (rect.height * scale) / 2)
+        setTimeout(() => document.body.removeChild(ghost), 0)
+
+        onDragStart(tx)
+      }}
       onDragEnd={onDragEnd}
       onTouchStart={e => onTouchStart(tx, e)}
       onClick={e => onClick(tx, e)}
