@@ -337,7 +337,7 @@ function CategoryBucket({
         'relative flex items-center gap-3 rounded-[14px] px-4 py-3.5 min-h-[54px]',
         'transition-all duration-[160ms] ease-out select-none cursor-pointer overflow-hidden',
         showOver
-          ? '[border:1px_solid_rgba(120,170,255,.35)] [box-shadow:0_0_0_3px_rgba(120,170,255,.16),0_10px_30px_rgba(0,0,0,.35)] -translate-y-px'
+          ? '[border:1px_solid_rgba(120,170,255,.35)] [box-shadow:0_0_0_3px_rgba(120,170,255,.16),0_10px_30px_rgba(0,0,0,.35)]'
           : '[border:1px_solid_rgba(255,255,255,0.06)] hover:[border-color:rgba(255,255,255,0.12)] hover:[box-shadow:0_10px_24px_rgba(0,0,0,0.45),0_0_0_2px_rgba(255,255,255,0.03)]',
       )}
     >
