@@ -222,18 +222,27 @@ function CategoryBucket({
       onClick={() => {
         if (!isDragging) onToggleExpand(cat.id)
       }}
+      style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.015))' }}
       className={clsx(
-        'flex items-center gap-2 rounded-lg px-3 py-2.5 transition-all duration-100',
+        'relative flex items-center gap-2.5 rounded-[14px] px-3.5 py-3 min-h-[50px]',
+        'transition-all duration-150 select-none cursor-pointer',
         isHovered && isDragging
-          ? 'border-2 border-solid border-accent-500 bg-accent-100 [box-shadow:0_0_0_3px_rgba(110,168,255,.35),0_8px_24px_rgba(0,0,0,.4)]'
-          : isDragging
-            ? 'border-2 border-dashed border-white/20 bg-white/[.04]'
-            : isReorderOver && isReorderDragging
-              ? 'border-2 border-dashed border-accent-400 bg-accent-50'
-              : 'border-2 border-dashed border-transparent bg-white/[.03] hover:bg-white/[.06]',
-        hasSelected && !isDragging ? 'cursor-pointer hover:border-white/20' : !isDragging ? 'cursor-pointer' : '',
+          ? '[border:1px_solid_rgba(99,102,241,0.55)] [box-shadow:0_0_0_3px_rgba(99,102,241,0.18)]'
+          : isReorderOver && isReorderDragging
+            ? '[border:1px_solid_rgba(99,102,241,0.40)] [box-shadow:0_0_0_2px_rgba(99,102,241,0.12)]'
+            : '[border:1px_solid_rgba(255,255,255,0.06)] hover:[border-color:rgba(255,255,255,0.09)] hover:[box-shadow:0_6px_18px_rgba(0,0,0,0.35)]',
+        isDragging && !isHovered ? 'opacity-[.82]' : '',
       )}
     >
+      {/* Gradient drop indicator bar — appears at bottom when drag is hovering */}
+      {isDragging && isHovered && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-3 bottom-2 h-[3px] rounded-full"
+          style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.9), rgba(168,85,247,0.9))' }}
+        />
+      )}
+
       {/* Reorder grip */}
       <div
         draggable
@@ -250,13 +259,25 @@ function CategoryBucket({
         <GripVertical size={14} />
       </div>
 
-      <CategoryIcon name={cat.icon} color={cat.color} size={20} />
-      <span className="flex-1 text-sm font-medium text-[#eaf0ff]">{cat.name}</span>
+      {/* Icon in a small square box */}
+      <div
+        className="flex-shrink-0 w-7 h-7 rounded-[10px] flex items-center justify-center"
+        style={{ background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <CategoryIcon name={cat.icon} color={cat.color} size={15} />
+      </div>
+
+      <span className="flex-1 min-w-0 truncate text-sm font-semibold text-[rgba(255,255,255,0.92)]">{cat.name}</span>
+
       {txCount != null && txCount > 0 && (
-        <span className="inline-flex items-center rounded-full bg-white/[.06] px-2 py-0.5 text-[11px] font-medium text-[#8b97c3]">
+        <span
+          className="flex-shrink-0 text-[12px] px-2 py-0.5 rounded-full text-[rgba(255,255,255,0.78)]"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}
+        >
           {txCount}
         </span>
       )}
+
       {!isDragging && (
         <ChevronRight
           size={14}
@@ -265,11 +286,6 @@ function CategoryBucket({
             isExpanded ? 'rotate-90' : ''
           )}
         />
-      )}
-      {isDragging && isHovered && (
-        <span className="flex-shrink-0 rounded-full bg-accent-500 px-2 py-0.5 text-[10px] font-bold text-white animate-pulse">
-          DROP
-        </span>
       )}
     </div>
   )
