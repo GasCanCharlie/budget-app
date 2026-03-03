@@ -5,6 +5,32 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap } from 'lucide-react'
 import clsx from 'clsx'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  pointerWithin,
+  rectIntersection,
+  MeasuringStrategy,
+  type DragStartEvent,
+  type DragEndEvent,
+  type DragOverEvent,
+  type CollisionDetection,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { useDroppable } from '@dnd-kit/core'
+import { useDraggable } from '@dnd-kit/core'
 import { AppShell } from '@/components/AppShell'
 import { CategoryIcon } from '@/components/CategoryIcon'
 import { useAuthStore } from '@/store/auth'
@@ -44,6 +70,11 @@ interface ConfirmState {
   similarCount: number
 }
 
+// Active drag item — discriminated union so we know which overlay to render
+type ActiveDragItem =
+  | { kind: 'tx'; tx: Transaction; draggingIds: string[] }
+  | { kind: 'cat'; catId: string }
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const CATEGORY_ORDER = [
@@ -64,6 +95,93 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// ─── DragOverlay ghost for a transaction ─────────────────────────────────────
+
+function TxOverlay({ tx, count }: { tx: Transaction; count: number }) {
+  return (
+    <div
+      style={{
+        background: 'linear-gradient(180deg,#0E162B,#101B33)',
+        border: '1px solid rgba(140,190,255,.35)',
+        boxShadow: '0 16px 50px rgba(0,0,0,.55)',
+        borderRadius: 14,
+        padding: '10px 12px',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+        cursor: 'grabbing',
+        minWidth: 220,
+        maxWidth: 400,
+      }}
+    >
+      {/* dot handle */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 3, marginTop: 2, flexShrink: 0 }} aria-hidden>
+        {Array.from({ length: 9 }).map((_, i) => (
+          <span key={i} style={{ display: 'block', width: 3, height: 3, borderRadius: 2, background: 'rgba(255,255,255,.55)' }} />
+        ))}
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <p style={{ fontWeight: 600, fontSize: 13, color: 'rgba(255,255,255,.92)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+            {tx.merchantNormalized || tx.description}
+          </p>
+          <p style={{ flexShrink: 0, fontWeight: 700, fontSize: 13, color: tx.amount < 0 ? '#FF5B78' : '#2EE59D', margin: 0 }}>
+            {fmtAmt(tx.amount)}
+          </p>
+        </div>
+        <p style={{ marginTop: 2, fontSize: 11, color: 'rgba(255,255,255,.55)', margin: '2px 0 0' }}>
+          {fmtDate(tx.date)}
+        </p>
+        <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+          {tx.bankCategoryRaw && (
+            <span style={{ background: 'rgba(120,170,255,.14)', color: 'rgba(160,200,255,.95)', border: '1px solid rgba(120,170,255,.22)', borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 500 }}>
+              {tx.bankCategoryRaw}
+            </span>
+          )}
+          {count > 1 && (
+            <span style={{ background: 'rgba(255,180,60,.12)', color: 'rgba(255,180,60,.9)', border: '1px solid rgba(255,180,60,.22)', borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 600 }}>
+              {count} selected
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── DragOverlay ghost for a category ────────────────────────────────────────
+
+function CatOverlay({ cat, txCount }: { cat: Category; txCount: number }) {
+  return (
+    <div
+      style={{
+        background: 'linear-gradient(180deg, rgba(120,170,255,.12), rgba(255,255,255,.03))',
+        border: '1px solid rgba(120,170,255,.35)',
+        boxShadow: '0 16px 50px rgba(0,0,0,.55)',
+        borderRadius: 14,
+        padding: '10px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        cursor: 'grabbing',
+        minWidth: 160,
+      }}
+    >
+      <div style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <CategoryIcon name={cat.icon} color={cat.color} size={15} />
+      </div>
+      <span style={{ flex: 1, fontWeight: 600, fontSize: 13.5, color: 'rgba(255,255,255,0.90)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {cat.name}
+      </span>
+      {txCount > 0 && (
+        <span style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 500, padding: '1px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.72)' }}>
+          {txCount}
+        </span>
+      )}
+    </div>
+  )
+}
+
 // ─── Transaction Card ────────────────────────────────────────────────────────
 
 function TxCard({
@@ -71,65 +189,42 @@ function TxCard({
   isSelected,
   isDragSource,
   onClick,
-  onDragStart,
-  onDragEnd,
-  onTouchStart,
 }: {
   tx: Transaction
   isSelected: boolean
   isDragSource: boolean
   onClick: (tx: Transaction, e: React.MouseEvent) => void
-  onDragStart: (tx: Transaction) => void
-  onDragEnd: () => void
-  onTouchStart: (tx: Transaction, e: React.TouchEvent) => void
 }) {
-  const rowRef = useRef<HTMLDivElement>(null)
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `tx-${tx.id}`,
+    data: { kind: 'tx', tx },
+  })
+
+  // isDragging from useDraggable is true while this specific item is being dragged
+  const isSource = isDragSource || isDragging
 
   return (
     <div
-      ref={rowRef}
-      onDragEnd={onDragEnd}
-      onTouchStart={e => onTouchStart(tx, e)}
+      ref={setNodeRef}
+      {...attributes}
       onClick={e => onClick(tx, e)}
       tabIndex={0}
       className={clsx(
-        'group relative flex items-start gap-3 rounded-xl border p-3 transition-all duration-[140ms] ease-[cubic-bezier(.2,.8,.2,1)] touch-none select-none cursor-default',
-        isDragSource
-          ? 'opacity-50 border-dashed border-white/[.14] shadow-none translate-y-0'
+        'group relative flex items-start gap-3 rounded-xl border p-3 transition-all duration-[140ms] ease-[cubic-bezier(.2,.8,.2,1)] touch-none select-none',
+        isSource
+          ? 'opacity-50 border-dashed border-white/[.14] shadow-none translate-y-0 cursor-grabbing'
           : isSelected
-            ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50'
-            : 'border-white/[.08] hover:border-[rgba(140,190,255,.22)] hover:-translate-y-px hover:[box-shadow:0_0_0_3px_rgba(120,170,255,.10),0_10px_30px_rgba(0,0,0,.35)]',
+            ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50 cursor-grab'
+            : 'border-white/[.08] hover:border-[rgba(140,190,255,.22)] hover:-translate-y-px hover:[box-shadow:0_0_0_3px_rgba(120,170,255,.10),0_10px_30px_rgba(0,0,0,.35)] cursor-grab',
       )}
       style={!isSelected ? { background: 'linear-gradient(180deg,#0E162B,#101B33)' } : undefined}
     >
-      {/* Drag handle — 3×3 dot grid, only this initiates drag */}
+      {/* Drag handle — 3×3 dot grid (entire row is the activator, dots are visual hint) */}
       <div
-        draggable
-        onDragStart={e => {
-          e.stopPropagation()
-          e.dataTransfer.setData('text/plain', tx.id)
-          e.dataTransfer.effectAllowed = 'move'
-
-          // Crisp ghost from the full row, slightly scaled down
-          const el = rowRef.current
-          if (el) {
-            const rect = el.getBoundingClientRect()
-            const scale = 0.65
-            const ghost = document.createElement('div')
-            ghost.style.cssText = `position:fixed;top:-9999px;left:-9999px;width:${rect.width * scale}px;height:${rect.height * scale}px;overflow:hidden;border-radius:14px;pointer-events:none;box-shadow:0 16px 50px rgba(0,0,0,.55);border:1px solid rgba(140,190,255,.35);`
-            const inner = el.cloneNode(true) as HTMLElement
-            inner.style.cssText += `transform:scale(${scale});transform-origin:top left;width:${rect.width}px;margin:0;background:linear-gradient(180deg,#0E162B,#101B33);border:none;box-shadow:none;opacity:1;`
-            ghost.appendChild(inner)
-            document.body.appendChild(ghost)
-            e.dataTransfer.setDragImage(ghost, (rect.width * scale) / 2, (rect.height * scale) / 2)
-            setTimeout(() => document.body.removeChild(ghost), 0)
-          }
-
-          onDragStart(tx)
-        }}
-        onDragEnd={onDragEnd}
+        {...listeners}
         aria-label="Drag transaction"
-        className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-[10px] flex items-center justify-center border border-transparent bg-white/[.02] opacity-70 group-hover:opacity-100 cursor-grab active:cursor-grabbing active:scale-95 transition-all duration-[140ms]"
+        className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-[10px] flex items-center justify-center border border-transparent bg-white/[.02] opacity-70 group-hover:opacity-100 transition-all duration-[140ms]"
+        style={{ cursor: isSource ? 'grabbing' : 'grab' }}
       >
         <div className="grid grid-cols-3 gap-[3px]" aria-hidden="true">
           {Array.from({ length: 9 }).map((_, i) => (
@@ -167,7 +262,6 @@ function TxCard({
           )}
         </div>
       </div>
-
     </div>
   )
 }
@@ -176,99 +270,89 @@ function TxCard({
 
 function CategoryBucket({
   cat,
-  isDragging,
-  isHovered,
+  isDraggingTx,
   hasSelected,
   isExpanded,
-  isReorderDragging,
-  isReorderOver,
-  onDragOver,
-  onDragEnter,
-  onDragLeave,
-  onDrop,
-  onRegisterRef,
   onClickAssign,
   onToggleExpand,
-  onReorderDragStart,
-  onReorderDragOver,
-  onReorderDrop,
-  onReorderDragEnd,
   txCount,
+  children,
 }: {
   cat: Category
-  isDragging: boolean
-  isHovered: boolean
+  isDraggingTx: boolean
   hasSelected: boolean
   isExpanded: boolean
-  isReorderDragging: boolean
-  isReorderOver: boolean
-  onDragOver: (e: React.DragEvent) => void
-  onDragEnter: (id: string) => void
-  onDragLeave: () => void
-  onDrop: (id: string) => void
-  onRegisterRef: (cat: Category, el: HTMLDivElement | null) => void
   onClickAssign: (id: string) => void
   onToggleExpand: (id: string) => void
-  onReorderDragStart: (id: string) => void
-  onReorderDragOver: (id: string) => void
-  onReorderDrop: (id: string) => void
-  onReorderDragEnd: () => void
   txCount?: number
+  children?: React.ReactNode
 }) {
-  const ref = useRef<HTMLDivElement>(null)
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `cat-${cat.id}`,
+    data: { kind: 'cat', catId: cat.id },
+  })
 
-  useEffect(() => {
-    onRegisterRef(cat, ref.current)
-    return () => onRegisterRef(cat, null)
-  }, [cat, onRegisterRef])
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortRef,
+    transform,
+    transition,
+    isDragging: isSortDragging,
+  } = useSortable({
+    id: `sort-cat-${cat.id}`,
+    data: { kind: 'cat', catId: cat.id },
+  })
+
+  // Merge drop ref + sort ref onto the same element
+  const setRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      setDropRef(el)
+      setSortRef(el)
+    },
+    [setDropRef, setSortRef]
+  )
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isSortDragging ? 0.4 : 1,
+  }
+
+  const showOver = isOver && isDraggingTx
 
   return (
     <div
-      ref={ref}
-      onDragOver={e => {
-        e.preventDefault()
-        if (isReorderDragging) {
-          e.dataTransfer.dropEffect = 'move'
-          onReorderDragOver(cat.id)
-        } else {
-          e.dataTransfer.dropEffect = 'move'
-          onDragOver(e)
-        }
-      }}
-      onDragEnter={e => {
-        e.preventDefault()
-        if (!isReorderDragging) onDragEnter(cat.id)
-      }}
-      onDragLeave={e => {
-        // Only fire when the cursor truly leaves this element (not just entering a child)
-        if (!ref.current?.contains(e.relatedTarget as Node)) {
-          onDragLeave()
-        }
-      }}
-      onDrop={e => {
-        e.preventDefault()
-        const data = e.dataTransfer.getData('text/plain')
-        if (data.startsWith('reorder:')) {
-          onReorderDrop(cat.id)
-        } else {
-          onDrop(cat.id)
-        }
+      ref={setRef}
+      style={{
+        ...style,
+        background: showOver
+          ? 'linear-gradient(180deg, rgba(120,170,255,.10), rgba(255,255,255,.02))'
+          : 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))',
       }}
       onClick={() => {
-        if (!isDragging) onToggleExpand(cat.id)
+        if (!isDraggingTx) onToggleExpand(cat.id)
       }}
-      style={isHovered && isDragging
-        ? { background: 'linear-gradient(180deg, rgba(120,170,255,.10), rgba(255,255,255,.02))' }
-        : { background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))' }
-      }
       className={clsx(
         'relative flex items-center gap-3 rounded-[14px] px-4 py-3.5 min-h-[54px]',
         'transition-all duration-[160ms] ease-out select-none cursor-pointer overflow-hidden',
-        isHovered && isDragging
+        showOver
           ? '[border:1px_solid_rgba(120,170,255,.35)] [box-shadow:0_0_0_3px_rgba(120,170,255,.16),0_10px_30px_rgba(0,0,0,.35)] -translate-y-px'
           : '[border:1px_solid_rgba(255,255,255,0.06)] hover:[border-color:rgba(255,255,255,0.12)] hover:[box-shadow:0_10px_24px_rgba(0,0,0,0.45),0_0_0_2px_rgba(255,255,255,0.03)]',
       )}
     >
+      {/* Reorder grip — this is the sort activator */}
+      <div
+        {...attributes}
+        {...listeners}
+        onClick={e => e.stopPropagation()}
+        aria-label="Reorder category"
+        className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-40 hover:!opacity-80 transition-opacity duration-100"
+        style={{ cursor: isSortDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+      >
+        <GripVertical size={13} className="text-white/50" />
+      </div>
+
       {/* Icon box */}
       <div
         className="flex-shrink-0 w-7 h-7 rounded-[9px] flex items-center justify-center"
@@ -279,14 +363,14 @@ function CategoryBucket({
 
       <span className="flex-1 min-w-0 truncate text-[13.5px] font-semibold tracking-[-0.01em] text-[rgba(255,255,255,0.90)]">{cat.name}</span>
 
-      {/* "Drop to assign" hint — only visible while hovering with a drag */}
-      {isDragging && isHovered && (
+      {/* "Drop to assign" hint — only visible while hovering with a tx drag */}
+      {showOver && (
         <span className="flex-shrink-0 text-[11px] font-medium text-[rgba(160,200,255,.9)]">
           Drop to assign
         </span>
       )}
 
-      {txCount != null && txCount > 0 && !isHovered && (
+      {txCount != null && txCount > 0 && !showOver && (
         <span
           className="flex-shrink-0 text-[11.5px] font-medium px-2 py-0.5 rounded-full text-[rgba(255,255,255,0.72)]"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -295,7 +379,7 @@ function CategoryBucket({
         </span>
       )}
 
-      {!isDragging && (
+      {!isDraggingTx && (
         <ChevronRight
           size={13}
           className={clsx(
@@ -379,7 +463,7 @@ function ConfirmModal({
   )
 }
 
-// ─── Touch Ghost ──────────────────────────────────────────────────────────────
+// ─── Touch Ghost (kept for fallback — TouchGhost is now less needed but harmless) ──
 
 function TouchGhost({ tx, pos }: { tx: Transaction | null; pos: { x: number; y: number } | null }) {
   if (!tx || !pos) return null
@@ -610,6 +694,21 @@ function RulePrompt({
   )
 }
 
+// ─── Custom collision detection ───────────────────────────────────────────────
+// When dragging a transaction: use pointerWithin for category drop targets
+// When dragging a category (sort): use closestCenter for sortable items
+function buildCollisionDetector(activeKind: 'tx' | 'cat' | null): CollisionDetection {
+  return (args) => {
+    if (activeKind === 'cat') {
+      return closestCenter(args)
+    }
+    // For tx drags: prefer pointerWithin, fall back to rectIntersection
+    const pointerHits = pointerWithin(args)
+    if (pointerHits.length > 0) return pointerHits
+    return rectIntersection(args)
+  }
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CategorizePage() {
@@ -621,14 +720,11 @@ export default function CategorizePage() {
   const [, startTransition] = useTransition()
 
   // ── "Remember this?" session tracking ──
-  // Maps normalizedVendor -> { catName, categoryId, count }
-  // After the 2nd consistent assignment we surface the rule prompt.
   const sessionAssignMap = useRef<Map<string, { catName: string; categoryId: string; count: number }>>(new Map())
   const [rulePrompt, setRulePrompt] = useState<RulePromptState | null>(null)
-  // Track vendors we've already prompted (don't show twice per session)
   const promptedVendors = useRef<Set<string>>(new Set())
 
-  // Debounced dashboard invalidation — prevents 30 refetches when bulk-categorizing
+  // Debounced dashboard invalidation
   const dashboardTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const invalidateDashboard = useCallback(() => {
     if (dashboardTimer.current) clearTimeout(dashboardTimer.current)
@@ -643,21 +739,20 @@ export default function CategorizePage() {
   const [filterMode,    setFilterMode]    = useState<FilterMode>('needs-review')
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
   const [anchorId,      setAnchorId]      = useState<string | null>(null)
-  const [dragging,      setDragging]      = useState<Transaction | null>(null)
-  const [draggingIds,   setDraggingIds]   = useState<string[]>([])
-  const [hoveredCatId,  setHoveredCatId]  = useState<string | null>(null)
   const [confirm,       setConfirm]       = useState<ConfirmState | null>(null)
   const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
 
-  // Touch drag state
+  // Active dnd-kit drag item (replaces dragging / hoveredCatId / reorderDragId / reorderOverId)
+  const [activeDrag, setActiveDrag] = useState<ActiveDragItem | null>(null)
+
+  // Derived: which tx ids are being dragged right now
+  const draggingIds: string[] = activeDrag?.kind === 'tx' ? activeDrag.draggingIds : []
+
+  // Touch drag state (kept for mobile fallback)
   const [touchTx,    setTouchTx]    = useState<Transaction | null>(null)
   const [touchPos,   setTouchPos]   = useState<{ x: number; y: number } | null>(null)
   const [touchCatId, setTouchCatId] = useState<string | null>(null)
   const catRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-
-  // Reorder drag state
-  const [reorderDragId, setReorderDragId] = useState<string | null>(null)
-  const [reorderOverId, setReorderOverId] = useState<string | null>(null)
 
   // Sort + vendor filter state (persisted to localStorage)
   const [sortKey, setSortKey] = useState<CatSortKey>(() => {
@@ -703,7 +798,6 @@ export default function CategorizePage() {
     } catch { /* ignore */ }
     return []
   })
-  // originalOrder = the order as last saved to the backend (dirty comparison baseline)
   const [originalOrder,  setOriginalOrder]  = useState<string[]>([])
   const [saveConfirmed,  setSaveConfirmed]  = useState(false)
 
@@ -732,7 +826,6 @@ export default function CategorizePage() {
       }),
   })
 
-  // When backend data arrives, sync local order AND set the dirty-check baseline
   useEffect(() => {
     if (prefData?.order && Array.isArray(prefData.order) && prefData.order.length > 0) {
       setCatOrder(prefData.order)
@@ -752,7 +845,6 @@ export default function CategorizePage() {
     [allTxs]
   )
 
-  // Filtered + sorted view of the queue
   const sortedQueueTxs = useMemo(() => {
     const q = vendorQuery.trim().toLowerCase()
     const filtered = q
@@ -763,7 +855,6 @@ export default function CategorizePage() {
     return sortCategorizeTransactions(filtered, sortKey, sortDir)
   }, [queueTxs, sortKey, sortDir, vendorQuery])
 
-  // Count transactions per category bucket (by appCategory matching cat.name)
   const txCountByCat = useMemo(() => {
     const map = new Map<string, number>()
     for (const tx of allTxs) {
@@ -802,7 +893,7 @@ export default function CategorizePage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
-      invalidateDashboard()   // debounced — collapses rapid changes into one refetch
+      invalidateDashboard()
     },
   })
 
@@ -825,11 +916,10 @@ export default function CategorizePage() {
     [allTxs]
   )
 
-  // Track a session assignment and maybe surface the "Remember this?" prompt
   const trackSessionAssign = useCallback((vendor: string, catName: string, catId: string) => {
     if (!vendor) return
     const key = vendor.toLowerCase().trim()
-    if (promptedVendors.current.has(key)) return   // already prompted this session
+    if (promptedVendors.current.has(key)) return
     const existing = sessionAssignMap.current.get(key)
     if (existing && existing.catName === catName) {
       const newCount = existing.count + 1
@@ -839,12 +929,10 @@ export default function CategorizePage() {
         setRulePrompt({ vendor, catName, categoryId: catId })
       }
     } else {
-      // Different category or first time — reset counter
       sessionAssignMap.current.set(key, { catName, categoryId: catId, count: 1 })
     }
   }, [])
 
-  // initiateAssign: takes a Category object's id, looks up the cat, then sets appCategory = cat.name
   const initiateAssign = useCallback((tx: Transaction, categoryId: string) => {
     const cat = categories.find(c => c.id === categoryId)
     if (!cat) return
@@ -887,40 +975,21 @@ export default function CategorizePage() {
     }
   }, [anchorId, sortedQueueTxs])
 
-  // ── Drag handlers ──
-  const handleDragEnd = useCallback(() => {
-    setDragging(null)
-    setDraggingIds([])
-    setHoveredCatId(null)
-  }, [])
-
-  const handleDragStart = useCallback((tx: Transaction) => {
-    if (selectedIds.has(tx.id) && selectedIds.size > 1) {
-      setDraggingIds([...selectedIds])
-    } else {
-      setDraggingIds([tx.id])
-    }
-    setDragging(tx)
-  }, [selectedIds])
-
-  const handleDrop = useCallback((categoryId: string) => {
+  // ── handleDrop (used by dnd-kit onDragEnd and click-assign) ──
+  const handleDrop = useCallback((categoryId: string, txsToDrop: string[], primaryTx: Transaction | null) => {
     const cat = categories.find(c => c.id === categoryId)
-    if (!cat) { setDragging(null); setDraggingIds([]); setHoveredCatId(null); return }
+    if (!cat) return
 
-    if (draggingIds.length > 1) {
-      // Bulk assign all selected — no confirm modal
-      draggingIds.forEach(id => {
+    if (txsToDrop.length > 1) {
+      txsToDrop.forEach(id => {
         updateMutation.mutate({ id, appCategory: cat.name, applyToAll: false })
       })
       setSelectedIds(new Set())
       setAnchorId(null)
-    } else if (dragging) {
-      initiateAssign(dragging, categoryId)
+    } else if (primaryTx) {
+      initiateAssign(primaryTx, categoryId)
     }
-    setDragging(null)
-    setDraggingIds([])
-    setHoveredCatId(null)
-  }, [dragging, draggingIds, categories, initiateAssign, updateMutation])
+  }, [categories, initiateAssign, updateMutation])
 
   const handleClickAssign = useCallback((categoryId: string) => {
     const anchored = sortedQueueTxs.find(t => t.id === anchorId)
@@ -949,40 +1018,22 @@ export default function CategorizePage() {
     setVendorQuery('')
   }
 
-  // ── Reorder handlers ──
-  const handleCatReorderStart = useCallback((catId: string) => {
-    setReorderDragId(catId)
-  }, [])
-
-  const handleCatReorderOver = useCallback((catId: string) => {
-    setReorderOverId(catId)
-  }, [])
-
-  const handleCatReorderDrop = useCallback((targetId: string) => {
-    if (!reorderDragId || reorderDragId === targetId) {
-      setReorderDragId(null); setReorderOverId(null); return
-    }
+  // ── Category reorder (dnd-kit arrayMove) ──
+  const handleCatReorderDrop = useCallback((dragId: string, overId: string) => {
+    if (dragId === overId) return
     setCatOrder(prev => {
       const order = prev.length > 0 ? prev : categories.map(c => c.id)
-      const from  = order.indexOf(reorderDragId)
-      const to    = order.indexOf(targetId)
+      const from  = order.indexOf(dragId)
+      const to    = order.indexOf(overId)
       if (from === -1 || to === -1) return prev
-      const next = [...order]
-      next.splice(from, 1)
-      next.splice(to, 0, reorderDragId)
+      const next = arrayMove(order, from, to)
       localStorage.setItem('budgetlens:cat-order', JSON.stringify(next))
       return next
     })
-    setReorderDragId(null); setReorderOverId(null)
-  }, [reorderDragId, categories])
-
-  const handleCatReorderEnd = useCallback(() => {
-    setReorderDragId(null); setReorderOverId(null)
-  }, [])
+  }, [categories])
 
   // ── Finish Categorizing ──
   function handleFinishCategorizing() {
-    // Cancel pending debounce and flush immediately so Dashboard gets fresh data
     if (dashboardTimer.current) { clearTimeout(dashboardTimer.current); dashboardTimer.current = null }
     qc.invalidateQueries({ queryKey: ['summary'] })
     qc.invalidateQueries({ queryKey: ['trends'] })
@@ -1007,7 +1058,7 @@ export default function CategorizePage() {
     })
   }
 
-  // ── Touch drag ──
+  // ── Touch drag (kept for mobile) ──
   const registerCatRef = useCallback((cat: Category, el: HTMLDivElement | null) => {
     if (el) catRefs.current.set(cat.id, el)
     else    catRefs.current.delete(cat.id)
@@ -1017,7 +1068,6 @@ export default function CategorizePage() {
     const t = e.touches[0]
     setTouchTx(tx)
     setTouchPos({ x: t.clientX, y: t.clientY })
-    setDragging(tx)
   }, [])
 
   useEffect(() => {
@@ -1034,13 +1084,12 @@ export default function CategorizePage() {
           found = catId
       })
       setTouchCatId(found)
-      setHoveredCatId(found)
     }
 
     const onEnd = () => {
       if (touchCatId && touchTx) initiateAssign(touchTx, touchCatId)
-      setTouchTx(null); setTouchPos(null); setDragging(null)
-      setHoveredCatId(null); setTouchCatId(null)
+      setTouchTx(null); setTouchPos(null)
+      setTouchCatId(null)
     }
 
     document.addEventListener('touchmove', onMove, { passive: false })
@@ -1093,6 +1142,78 @@ export default function CategorizePage() {
     setAnchorId(null)
   }, [filterMode])
 
+  // ── dnd-kit sensors ──
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  // Sortable IDs for category panel
+  const sortableCatIds = useMemo(
+    () => categories.map(c => `sort-cat-${c.id}`),
+    [categories]
+  )
+
+  // Collision detection — switches strategy based on active drag kind
+  const activeKind = activeDrag?.kind ?? null
+  const collisionDetection = useMemo(
+    () => buildCollisionDetector(activeKind),
+    [activeKind]
+  )
+
+  // ── dnd-kit event handlers ──
+  const onDragStart = useCallback((event: DragStartEvent) => {
+    const data = event.active.data.current as { kind: string; tx?: Transaction; catId?: string } | undefined
+    if (!data) return
+
+    if (data.kind === 'tx' && data.tx) {
+      const tx = data.tx
+      const ids = selectedIds.has(tx.id) && selectedIds.size > 1
+        ? [...selectedIds]
+        : [tx.id]
+      setActiveDrag({ kind: 'tx', tx, draggingIds: ids })
+    } else if (data.kind === 'cat' && data.catId) {
+      setActiveDrag({ kind: 'cat', catId: data.catId })
+    }
+  }, [selectedIds])
+
+  const onDragOver = useCallback((_event: DragOverEvent) => {
+    // nothing needed — useDroppable isOver handles visual feedback
+  }, [])
+
+  const onDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over) {
+      setActiveDrag(null)
+      return
+    }
+
+    const activeData = active.data.current as { kind: string; tx?: Transaction; catId?: string } | undefined
+    const overData   = over.data.current   as { kind: string; catId?: string } | undefined
+
+    if (activeData?.kind === 'tx' && overData?.kind === 'cat' && overData.catId) {
+      // Transaction dropped on category bucket
+      const tx = activeData.tx
+      if (tx) {
+        const ids = selectedIds.has(tx.id) && selectedIds.size > 1
+          ? [...selectedIds]
+          : [tx.id]
+        handleDrop(overData.catId, ids, tx)
+      }
+    } else if (activeData?.kind === 'cat' && activeData.catId) {
+      // Category reorder — over.id is a sortable cat id like "sort-cat-{catId}"
+      const dragCatId = activeData.catId
+      // Extract actual cat id from over.id string or from overData
+      const overCatId = overData?.catId ?? (typeof over.id === 'string' ? over.id.replace('sort-cat-', '') : null)
+      if (overCatId && dragCatId !== overCatId) {
+        handleCatReorderDrop(dragCatId, overCatId)
+      }
+    }
+
+    setActiveDrag(null)
+  }, [selectedIds, handleDrop, handleCatReorderDrop])
+
   // ── Render ──
   if (!user) return null
 
@@ -1121,308 +1242,318 @@ export default function CategorizePage() {
     )
   }
 
+  const isDraggingTx = activeDrag?.kind === 'tx'
+
   return (
     <AppShell>
-      <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
-        {/* Header */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Categorize</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Bank categories (blue) are imported automatically. Drag transactions to assign your own App Category.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {needsReviewCount > 0 && (
-              <span className="badge bg-amber-100 text-amber-700">
-                {needsReviewCount} uncategorized
-              </span>
-            )}
-            <div className="flex rounded-lg border border-white/10 overflow-hidden text-sm font-semibold">
-              <button
-                onClick={() => setFilterMode('needs-review')}
-                className={clsx('px-3 py-1.5 transition', filterMode === 'needs-review' ? 'bg-accent-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
-              >
-                Uncategorized
-              </button>
-              <button
-                onClick={() => setFilterMode('all')}
-                className={clsx('px-3 py-1.5 transition', filterMode === 'all' ? 'bg-accent-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
-              >
-                All
-              </button>
-            </div>
-            <button
-              onClick={handleFinishCategorizing}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700 transition"
-            >
-              Finish Categorizing →
-            </button>
-          </div>
-        </div>
-
-        {queueTxs.length === 0 ? (
-          /* All caught up */
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 size={32} className="text-green-600" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-800">All caught up!</h2>
-            <p className="mt-2 max-w-sm text-sm text-slate-500">
-              {filterMode === 'needs-review'
-                ? 'Every transaction has an app category. New imports will appear here.'
-                : 'No transactions to show.'}
-            </p>
-            <button onClick={() => router.push('/dashboard')} className="btn-primary mt-6">
-              Go to Dashboard →
-            </button>
-          </div>
-        ) : (
-          /* Two-column layout */
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-            {/* LEFT: Category drop targets */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetection}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragEnd={onDragEnd}
+      >
+        <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
+          {/* Header */}
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
-              {/* Panel header: label + Save Layout button */}
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Categories
+              <h1 className="text-2xl font-bold text-slate-900">Categorize</h1>
+              <p className="text-sm text-slate-500 mt-0.5">
+                Bank categories (blue) are imported automatically. Drag transactions to assign your own App Category.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {needsReviewCount > 0 && (
+                <span className="badge bg-amber-100 text-amber-700">
+                  {needsReviewCount} uncategorized
                 </span>
+              )}
+              <div className="flex rounded-lg border border-white/10 overflow-hidden text-sm font-semibold">
                 <button
-                  onClick={handleSaveLayout}
-                  disabled={(!isDirty && !saveConfirmed) || savePrefMutation.isPending}
-                  className={clsx(
-                    'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition',
-                    saveConfirmed
-                      ? 'border-green-300 bg-green-50 text-green-700'
-                      : isDirty
-                        ? 'border-accent-500 bg-accent-500 text-white hover:bg-accent-600'
-                        : 'border-white/10 bg-white/[.03] text-white/20 cursor-not-allowed'
-                  )}
+                  onClick={() => setFilterMode('needs-review')}
+                  className={clsx('px-3 py-1.5 transition', filterMode === 'needs-review' ? 'bg-accent-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
                 >
-                  {savePrefMutation.isPending
-                    ? <><Loader2 size={12} className="animate-spin" /> Saving…</>
-                    : saveConfirmed
-                      ? <>✓ Saved</>
-                      : <><Save size={12} /> Save Layout</>
-                  }
+                  Uncategorized
+                </button>
+                <button
+                  onClick={() => setFilterMode('all')}
+                  className={clsx('px-3 py-1.5 transition', filterMode === 'all' ? 'bg-accent-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
+                >
+                  All
                 </button>
               </div>
-
-              {/* Category rows — grouped into pairs so the accordion expands inline under its row */}
-              <div className="max-h-[calc(100vh-270px)] overflow-x-hidden overflow-y-auto px-1 py-0.5">
-                {Array.from({ length: Math.ceil(categories.length / 2) }, (_, rowIdx) => {
-                  const row = categories.slice(rowIdx * 2, rowIdx * 2 + 2)
-                  const expandedCat = row.find(c => c.id === expandedCatId)
-                    ? categories.find(c => c.id === expandedCatId)!
-                    : null
-                  return (
-                    <div key={rowIdx}>
-                      <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-                        {row.map(cat => (
-                          <CategoryBucket
-                            key={cat.id}
-                            cat={cat}
-                            isDragging={!!dragging}
-                            isHovered={hoveredCatId === cat.id}
-                            hasSelected={selectedIds.size > 0}
-                            isExpanded={expandedCatId === cat.id}
-                            isReorderDragging={!!reorderDragId}
-                            isReorderOver={reorderOverId === cat.id}
-                            onDragOver={() => {}}
-                            onDragEnter={setHoveredCatId}
-                            onDragLeave={() => setHoveredCatId(null)}
-                            onDrop={handleDrop}
-                            onRegisterRef={registerCatRef}
-                            onClickAssign={handleClickAssign}
-                            onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
-                            onReorderDragStart={handleCatReorderStart}
-                            onReorderDragOver={handleCatReorderOver}
-                            onReorderDrop={handleCatReorderDrop}
-                            onReorderDragEnd={handleCatReorderEnd}
-                            txCount={txCountByCat.get(cat.name) ?? 0}
-                          />
-                        ))}
-                        {/* Fill empty cell if odd number of categories */}
-                        {row.length === 1 && <div />}
-                      </div>
-
-                      {/* Inline accordion — spans full width, appears directly under this row */}
-                      {expandedCat && (
-                        <div className="mb-2 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.02)' }}>
-                          <div className="flex items-center justify-between px-3 py-2 border-b border-white/[.07]" style={{ background: 'rgba(255,255,255,.04)' }}>
-                            <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-                              <CategoryIcon name={expandedCat.icon} color={expandedCat.color} size={14} />
-                              {expandedCat.name}
-                            </span>
-                            <button
-                              onClick={() => setExpandedCatId(null)}
-                              className="text-xs text-slate-400 hover:text-slate-600 transition"
-                            >
-                              ✕ close
-                            </button>
-                          </div>
-                          <CategoryTransactionList
-                            catName={expandedCat.name}
-                            txs={allTxs.filter(t => t.appCategory === expandedCat.name)}
-                            categories={categories}
-                            onMove={(txId, newCatName, applyToAll) => {
-                              updateMutation.mutate({ id: txId, appCategory: newCatName, applyToAll })
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* RIGHT: Transaction queue */}
-            <div>
-              {/* ── Sort + filter controls ──────────────────────────── */}
-              <div className="mb-2 space-y-2">
-                {/* Sort buttons row */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-0.5">Sort:</span>
-                  {(['date', 'amount', 'vendor'] as CatSortKey[]).map(key => {
-                    const active = sortKey === key
-                    const Icon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
-                    const label = key === 'date' ? 'Date' : key === 'amount' ? 'Amount' : 'Vendor'
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => handleCatSort(key)}
-                        className={clsx(
-                          'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
-                          active
-                            ? 'border-accent-400 bg-accent-50 text-accent-700'
-                            : 'border-white/10 bg-white/[.04] text-[#8b97c3] hover:border-white/20 hover:text-[#c8d4f5]'
-                        )}
-                      >
-                        {label}<Icon size={11} />
-                      </button>
-                    )
-                  })}
-                  {(sortKey !== 'date' || sortDir !== 'desc' || vendorQuery) && (
-                    <button
-                      onClick={resetSort}
-                      className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.04] px-2 py-1 text-xs text-[#8b97c3] hover:text-[#c8d4f5] transition"
-                      title="Reset to default sort"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-
-                {/* Vendor filter */}
-                <div className="relative">
-                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="Filter by vendor…"
-                    value={vendorQuery}
-                    onChange={e => setVendorQuery(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 py-1.5 pl-7 pr-7 text-xs text-[#c8d4f5] placeholder-slate-400 outline-none focus:border-accent-400 transition" style={{ background: 'rgba(255,255,255,.06)' }}
-                  />
-                  {vendorQuery && (
-                    <button
-                      onClick={() => setVendorQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Count label */}
-              <div className="mb-2 flex items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  {sortedQueueTxs.length}
-                  {vendorQuery && queueTxs.length !== sortedQueueTxs.length ? ` of ${queueTxs.length}` : ''}
-                  {' '}transaction{sortedQueueTxs.length !== 1 ? 's' : ''}
-                </p>
-                {selectedIds.size > 1 && (
-                  <span className="text-xs font-semibold text-accent-600 bg-accent-50 border border-accent-200 rounded-full px-2 py-0.5">
-                    {selectedIds.size} selected
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
-                {sortedQueueTxs.map((tx) => (
-                  <TxCard
-                    key={tx.id}
-                    tx={tx}
-                    isSelected={selectedIds.has(tx.id)}
-                    isDragSource={dragging?.id === tx.id || draggingIds.includes(tx.id)}
-                    onClick={handleTxClick}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={handleTouchStart}
-                  />
-                ))}
-                {sortedQueueTxs.length === 0 && vendorQuery && (
-                  <div className="py-8 text-center text-sm text-slate-400">
-                    No transactions match &ldquo;{vendorQuery}&rdquo;
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={handleFinishCategorizing}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700 transition"
+              >
+                Finish Categorizing →
+              </button>
             </div>
           </div>
+
+          {queueTxs.length === 0 ? (
+            /* All caught up */
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle2 size={32} className="text-green-600" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800">All caught up!</h2>
+              <p className="mt-2 max-w-sm text-sm text-slate-500">
+                {filterMode === 'needs-review'
+                  ? 'Every transaction has an app category. New imports will appear here.'
+                  : 'No transactions to show.'}
+              </p>
+              <button onClick={() => router.push('/dashboard')} className="btn-primary mt-6">
+                Go to Dashboard →
+              </button>
+            </div>
+          ) : (
+            /* Two-column layout */
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+              {/* LEFT: Category drop targets */}
+              <div>
+                {/* Panel header: label + Save Layout button */}
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Categories
+                  </span>
+                  <button
+                    onClick={handleSaveLayout}
+                    disabled={(!isDirty && !saveConfirmed) || savePrefMutation.isPending}
+                    className={clsx(
+                      'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition',
+                      saveConfirmed
+                        ? 'border-green-300 bg-green-50 text-green-700'
+                        : isDirty
+                          ? 'border-accent-500 bg-accent-500 text-white hover:bg-accent-600'
+                          : 'border-white/10 bg-white/[.03] text-white/20 cursor-not-allowed'
+                    )}
+                  >
+                    {savePrefMutation.isPending
+                      ? <><Loader2 size={12} className="animate-spin" /> Saving…</>
+                      : saveConfirmed
+                        ? <>✓ Saved</>
+                        : <><Save size={12} /> Save Layout</>
+                    }
+                  </button>
+                </div>
+
+                {/* Category rows — grouped into pairs so accordion expands inline */}
+                <div className="max-h-[calc(100vh-270px)] overflow-x-hidden overflow-y-auto px-1 py-0.5">
+                  <SortableContext items={sortableCatIds} strategy={verticalListSortingStrategy}>
+                    {Array.from({ length: Math.ceil(categories.length / 2) }, (_, rowIdx) => {
+                      const row = categories.slice(rowIdx * 2, rowIdx * 2 + 2)
+                      const expandedCat = row.find(c => c.id === expandedCatId)
+                        ? categories.find(c => c.id === expandedCatId)!
+                        : null
+                      return (
+                        <div key={rowIdx}>
+                          <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                            {row.map(cat => (
+                              <CategoryBucket
+                                key={cat.id}
+                                cat={cat}
+                                isDraggingTx={isDraggingTx}
+                                hasSelected={selectedIds.size > 0}
+                                isExpanded={expandedCatId === cat.id}
+                                onClickAssign={handleClickAssign}
+                                onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
+                                txCount={txCountByCat.get(cat.name) ?? 0}
+                              />
+                            ))}
+                            {/* Fill empty cell if odd number of categories */}
+                            {row.length === 1 && <div />}
+                          </div>
+
+                          {/* Inline accordion — spans full width, appears directly under this row */}
+                          {expandedCat && (
+                            <div className="mb-2 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.02)' }}>
+                              <div className="flex items-center justify-between px-3 py-2 border-b border-white/[.07]" style={{ background: 'rgba(255,255,255,.04)' }}>
+                                <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                                  <CategoryIcon name={expandedCat.icon} color={expandedCat.color} size={14} />
+                                  {expandedCat.name}
+                                </span>
+                                <button
+                                  onClick={() => setExpandedCatId(null)}
+                                  className="text-xs text-slate-400 hover:text-slate-600 transition"
+                                >
+                                  ✕ close
+                                </button>
+                              </div>
+                              <CategoryTransactionList
+                                catName={expandedCat.name}
+                                txs={allTxs.filter(t => t.appCategory === expandedCat.name)}
+                                categories={categories}
+                                onMove={(txId, newCatName, applyToAll) => {
+                                  updateMutation.mutate({ id: txId, appCategory: newCatName, applyToAll })
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </SortableContext>
+                </div>
+              </div>
+
+              {/* RIGHT: Transaction queue */}
+              <div>
+                {/* Sort + filter controls */}
+                <div className="mb-2 space-y-2">
+                  {/* Sort buttons row */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-0.5">Sort:</span>
+                    {(['date', 'amount', 'vendor'] as CatSortKey[]).map(key => {
+                      const active = sortKey === key
+                      const Icon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+                      const label = key === 'date' ? 'Date' : key === 'amount' ? 'Amount' : 'Vendor'
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => handleCatSort(key)}
+                          className={clsx(
+                            'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
+                            active
+                              ? 'border-accent-400 bg-accent-50 text-accent-700'
+                              : 'border-white/10 bg-white/[.04] text-[#8b97c3] hover:border-white/20 hover:text-[#c8d4f5]'
+                          )}
+                        >
+                          {label}<Icon size={11} />
+                        </button>
+                      )
+                    })}
+                    {(sortKey !== 'date' || sortDir !== 'desc' || vendorQuery) && (
+                      <button
+                        onClick={resetSort}
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.04] px-2 py-1 text-xs text-[#8b97c3] hover:text-[#c8d4f5] transition"
+                        title="Reset to default sort"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Vendor filter */}
+                  <div className="relative">
+                    <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Filter by vendor…"
+                      value={vendorQuery}
+                      onChange={e => setVendorQuery(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 py-1.5 pl-7 pr-7 text-xs text-[#c8d4f5] placeholder-slate-400 outline-none focus:border-accent-400 transition" style={{ background: 'rgba(255,255,255,.06)' }}
+                    />
+                    {vendorQuery && (
+                      <button
+                        onClick={() => setVendorQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Count label */}
+                <div className="mb-2 flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    {sortedQueueTxs.length}
+                    {vendorQuery && queueTxs.length !== sortedQueueTxs.length ? ` of ${queueTxs.length}` : ''}
+                    {' '}transaction{sortedQueueTxs.length !== 1 ? 's' : ''}
+                  </p>
+                  {selectedIds.size > 1 && (
+                    <span className="text-xs font-semibold text-accent-600 bg-accent-50 border border-accent-200 rounded-full px-2 py-0.5">
+                      {selectedIds.size} selected
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
+                  {sortedQueueTxs.map((tx) => (
+                    <TxCard
+                      key={tx.id}
+                      tx={tx}
+                      isSelected={selectedIds.has(tx.id)}
+                      isDragSource={draggingIds.includes(tx.id)}
+                      onClick={handleTxClick}
+                    />
+                  ))}
+                  {sortedQueueTxs.length === 0 && vendorQuery && (
+                    <div className="py-8 text-center text-sm text-slate-400">
+                      No transactions match &ldquo;{vendorQuery}&rdquo;
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+
+        {/* Touch ghost element */}
+        <TouchGhost tx={touchTx} pos={touchPos} />
+
+        {/* "Remember this?" rule prompt */}
+        {rulePrompt && (
+          <RulePrompt
+            state={rulePrompt}
+            isPending={createRuleMutation.isPending}
+            onAlways={() => createRuleMutation.mutate({
+              matchValue: rulePrompt.vendor,
+              categoryId: rulePrompt.categoryId,
+              mode: 'always',
+            })}
+            onAsk={() => createRuleMutation.mutate({
+              matchValue: rulePrompt.vendor,
+              categoryId: rulePrompt.categoryId,
+              mode: 'ask',
+            })}
+            onDismiss={() => setRulePrompt(null)}
+          />
         )}
 
-      </main>
+        {/* Confirmation modal */}
+        {confirm && (
+          <ConfirmModal
+            state={confirm}
+            isPending={updateMutation.isPending}
+            onCancel={() => setConfirm(null)}
+            onApplyOne={() => {
+              updateMutation.mutate(
+                { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: false },
+                { onSuccess: () => {
+                  trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
+                  setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
+                } }
+              )
+            }}
+            onApplyAll={() => {
+              updateMutation.mutate(
+                { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: true },
+                { onSuccess: () => {
+                  trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
+                  setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
+                } }
+              )
+            }}
+          />
+        )}
 
-      {/* Touch ghost element */}
-      <TouchGhost tx={touchTx} pos={touchPos} />
-
-      {/* "Remember this?" rule prompt */}
-      {rulePrompt && (
-        <RulePrompt
-          state={rulePrompt}
-          isPending={createRuleMutation.isPending}
-          onAlways={() => createRuleMutation.mutate({
-            matchValue: rulePrompt.vendor,
-            categoryId: rulePrompt.categoryId,
-            mode: 'always',
-          })}
-          onAsk={() => createRuleMutation.mutate({
-            matchValue: rulePrompt.vendor,
-            categoryId: rulePrompt.categoryId,
-            mode: 'ask',
-          })}
-          onDismiss={() => setRulePrompt(null)}
-        />
-      )}
-
-      {/* Confirmation modal */}
-      {confirm && (
-        <ConfirmModal
-          state={confirm}
-          isPending={updateMutation.isPending}
-          onCancel={() => setConfirm(null)}
-          onApplyOne={() => {
-            updateMutation.mutate(
-              { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: false },
-              { onSuccess: () => {
-                trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
-                setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
-              } }
-            )
-          }}
-          onApplyAll={() => {
-            updateMutation.mutate(
-              { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: true },
-              { onSuccess: () => {
-                trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
-                setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
-              } }
-            )
-          }}
-        />
-      )}
+        {/* DragOverlay — renders the ghost following the cursor */}
+        <DragOverlay dropAnimation={null}>
+          {activeDrag?.kind === 'tx' && (
+            <TxOverlay tx={activeDrag.tx} count={activeDrag.draggingIds.length} />
+          )}
+          {activeDrag?.kind === 'cat' && (() => {
+            const cat = categories.find(c => c.id === activeDrag.catId)
+            if (!cat) return null
+            return <CatOverlay cat={cat} txCount={txCountByCat.get(cat.name) ?? 0} />
+          })()}
+        </DragOverlay>
+      </DndContext>
     </AppShell>
   )
 }
