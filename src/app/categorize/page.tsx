@@ -1554,7 +1554,7 @@ export default function CategorizePage() {
         {/* DragOverlay — renders the ghost following the cursor */}
         <DragOverlay dropAnimation={null} modifiers={[snapPointerToTopLeft]}>
           {activeDrag?.kind === 'tx' && (
-            <div style={{ transform: 'scale(0.20)', transformOrigin: 'top left', opacity: 0.7, pointerEvents: 'none' }}>
+            <div style={{ transform: 'scale(0.30)', transformOrigin: 'top left', opacity: 0.7, pointerEvents: 'none' }}>
               <TxOverlay tx={activeDrag.tx} count={activeDrag.draggingIds.length} />
             </div>
           )}
