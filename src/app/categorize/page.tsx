@@ -418,6 +418,10 @@ function ConfirmModal({
             <h3 className="font-bold text-[#eaf0ff]">Move to {state.category.name}?</h3>
             <p className="text-sm text-slate-500">
               &ldquo;{state.transaction.merchantNormalized || state.transaction.description}&rdquo;
+              {' · '}
+              <span className={state.transaction.amount < 0 ? 'text-[#FF5B78]' : 'text-[#2EE59D]'}>
+                {fmtAmt(state.transaction.amount)}
+              </span>
             </p>
           </div>
         </div>
