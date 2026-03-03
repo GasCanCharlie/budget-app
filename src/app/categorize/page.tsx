@@ -242,7 +242,7 @@ function CategoryBucket({
       }}
       style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))' }}
       className={clsx(
-        'group relative flex items-center gap-3 rounded-[14px] pl-5 pr-4 py-3.5 min-h-[54px]',
+        'relative flex items-center gap-3 rounded-[14px] pl-4 pr-4 py-3.5 min-h-[54px]',
         'transition-all duration-[160ms] ease-out select-none cursor-pointer overflow-hidden',
         isHovered && isDragging
           ? '[border:1px_solid_rgba(99,102,241,0.60)] [box-shadow:0_14px_30px_rgba(0,0,0,0.55),0_0_0_3px_rgba(99,102,241,0.18)]'
@@ -259,11 +259,11 @@ function CategoryBucket({
           'transition-all duration-[160ms] ease-out',
           isHovered && isDragging || isReorderOver && isReorderDragging
             ? 'opacity-100 [background:linear-gradient(180deg,rgba(99,102,241,0.95),rgba(168,85,247,0.85))]'
-            : 'opacity-0 bg-white/[.18] group-hover:opacity-100',
+            : 'opacity-0',
         )}
       />
 
-      {/* Reorder grip — dual-bar industrial style */}
+      {/* Reorder grip — invisible draggable strip */}
       <div
         draggable
         onDragStart={e => {
@@ -273,12 +273,9 @@ function CategoryBucket({
           onReorderDragStart(cat.id)
         }}
         onDragEnd={e => { e.stopPropagation(); onReorderDragEnd() }}
-        className="flex-shrink-0 flex items-center justify-center gap-[4px] w-[18px] h-[22px] touch-none cursor-grab active:cursor-grabbing active:scale-95 opacity-40 group-hover:opacity-75 transition-all duration-150"
+        className="flex-shrink-0 w-2 h-full touch-none cursor-grab active:cursor-grabbing"
         title="Drag to reorder"
-      >
-        <span className="block w-[2px] h-[14px] rounded-sm" style={{ background: 'rgba(255,255,255,0.35)' }} />
-        <span className="block w-[2px] h-[14px] rounded-sm" style={{ background: 'rgba(255,255,255,0.35)' }} />
-      </div>
+      />
 
       {/* Icon box */}
       <div
