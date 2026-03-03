@@ -207,6 +207,7 @@ function TxCard({
     <div
       ref={setNodeRef}
       {...attributes}
+      {...listeners}
       onClick={e => onClick(tx, e)}
       tabIndex={0}
       className={clsx(
@@ -219,12 +220,10 @@ function TxCard({
       )}
       style={!isSelected ? { background: 'linear-gradient(180deg,#0E162B,#101B33)' } : undefined}
     >
-      {/* Drag handle — 3×3 dot grid (entire row is the activator, dots are visual hint) */}
+      {/* Drag handle — 3×3 dot grid (visual affordance only, whole row is activator) */}
       <div
-        {...listeners}
-        aria-label="Drag transaction"
+        aria-hidden="true"
         className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-[10px] flex items-center justify-center border border-transparent bg-white/[.02] opacity-70 group-hover:opacity-100 transition-all duration-[140ms]"
-        style={{ cursor: isSource ? 'grabbing' : 'grab' }}
       >
         <div className="grid grid-cols-3 gap-[3px]" aria-hidden="true">
           {Array.from({ length: 9 }).map((_, i) => (
