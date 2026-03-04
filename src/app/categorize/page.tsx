@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText } from 'lucide-react'
+import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText, Equal } from 'lucide-react'
 import clsx from 'clsx'
 import {
   DndContext,
@@ -63,7 +63,7 @@ interface Transaction {
   appCategory?: string | null
 }
 
-type FilterMode = 'needs-review' | 'all'
+type FilterMode = 'needs-review' | 'all' | 'same-price'
 
 interface ConfirmState {
   transaction: Transaction
@@ -841,11 +841,26 @@ export default function CategorizePage() {
     }
   }, [prefData])
 
+  // Amounts that appear on 2+ transactions (excluding transfers)
+  const samePriceAmounts = useMemo(() => {
+    const counts = new Map<number, number>()
+    for (const t of allTxs) {
+      if (!t.isTransfer) counts.set(t.amount, (counts.get(t.amount) ?? 0) + 1)
+    }
+    return new Set([...counts.entries()].filter(([, n]) => n > 1).map(([amt]) => amt))
+  }, [allTxs])
+
+  const samePriceCount = useMemo(
+    () => allTxs.filter(t => !t.isTransfer && samePriceAmounts.has(t.amount)).length,
+    [allTxs, samePriceAmounts]
+  )
+
   // Queue = transactions without an appCategory
   const queueTxs: Transaction[] = useMemo(() => {
     if (filterMode === 'all') return allTxs.filter(t => !t.isTransfer)
+    if (filterMode === 'same-price') return allTxs.filter(t => !t.isTransfer && samePriceAmounts.has(t.amount))
     return allTxs.filter(t => !t.isTransfer && !t.appCategory)
-  }, [allTxs, filterMode])
+  }, [allTxs, filterMode, samePriceAmounts])
 
   const needsReviewCount = useMemo(
     () => allTxs.filter(t => !t.isTransfer && !t.appCategory).length,
@@ -1290,6 +1305,13 @@ export default function CategorizePage() {
                 >
                   All
                 </button>
+                <button
+                  onClick={() => setFilterMode('same-price')}
+                  className={clsx('px-3 py-1.5 transition flex items-center gap-1.5', filterMode === 'same-price' ? 'bg-teal-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
+                >
+                  <Equal size={12} />
+                  Same Price{samePriceCount > 0 && ` (${samePriceCount})`}
+                </button>
               </div>
               <button
                 onClick={handleFinishCategorizing}
@@ -1310,6 +1332,8 @@ export default function CategorizePage() {
               <p className="mt-2 max-w-sm text-sm text-slate-500">
                 {filterMode === 'needs-review'
                   ? 'Every transaction has an app category. New imports will appear here.'
+                  : filterMode === 'same-price'
+                  ? 'No transactions share an identical amount.'
                   : 'No transactions to show.'}
               </p>
               <button onClick={() => router.push('/dashboard')} className="btn-primary mt-6">
