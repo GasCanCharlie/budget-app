@@ -33,13 +33,34 @@ export async function POST(
       await tx.transactionLink.deleteMany({ where: { transactionBId: { in: txIds } } })
     }
 
-    // 4. Delete Transactions
+    // 4. Delete RuleHits → StagingTransactions → StagingUploads
+    //    (StagingTransaction.transactionId FK blocks Transaction deletion;
+    //     StagingUpload.uploadId FK blocks Upload deletion)
+    const uploadIds = (await tx.upload.findMany({
+      where: { accountId: params.id },
+      select: { id: true },
+    })).map(u => u.id)
+    if (uploadIds.length > 0) {
+      const stagingTxIds = (await tx.stagingTransaction.findMany({
+        where: { uploadId: { in: uploadIds } },
+        select: { id: true },
+      })).map(s => s.id)
+      if (stagingTxIds.length > 0) {
+        await tx.ruleHit.deleteMany({ where: { stagingTxId: { in: stagingTxIds } } })
+      }
+      await tx.stagingTransaction.deleteMany({ where: { uploadId: { in: uploadIds } } })
+      await tx.stagingUpload.deleteMany({ where: { uploadId: { in: uploadIds } } })
+      await tx.ingestionIssue.deleteMany({ where: { uploadId: { in: uploadIds } } })
+      await tx.auditLogEntry.deleteMany({ where: { uploadId: { in: uploadIds } } })
+    }
+
+    // 5. Delete Transactions
     const { count: deletedTransactions } = await tx.transaction.deleteMany({ where: { accountId: params.id } })
 
-    // 5. Delete TransactionRaw
+    // 6. Delete TransactionRaw
     await tx.transactionRaw.deleteMany({ where: { accountId: params.id } })
 
-    // 6. Delete Uploads — file hashes are cleared so same CSV can be re-uploaded
+    // 7. Delete Uploads — file hashes are cleared so same CSV can be re-uploaded
     const { count: deletedUploads } = await tx.upload.deleteMany({ where: { accountId: params.id } })
 
     // 7. Clean up MonthSummary/MonthCategoryTotal for months now empty

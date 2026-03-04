@@ -53,13 +53,28 @@ export async function DELETE(
       await tx.auditLogEntry.deleteMany({ where: { uploadId: { in: uploadIds } } })
     }
 
-    // 6. Delete Transactions
+    // 6. Delete RuleHits → StagingTransactions → StagingUploads
+    //    (StagingTransaction.transactionId FK blocks Transaction deletion;
+    //     StagingUpload.uploadId FK blocks Upload deletion)
+    if (uploadIds.length > 0) {
+      const stagingTxIds = (await tx.stagingTransaction.findMany({
+        where: { uploadId: { in: uploadIds } },
+        select: { id: true },
+      })).map(s => s.id)
+      if (stagingTxIds.length > 0) {
+        await tx.ruleHit.deleteMany({ where: { stagingTxId: { in: stagingTxIds } } })
+      }
+      await tx.stagingTransaction.deleteMany({ where: { uploadId: { in: uploadIds } } })
+      await tx.stagingUpload.deleteMany({ where: { uploadId: { in: uploadIds } } })
+    }
+
+    // 7. Delete Transactions
     const { count: deletedTransactions } = await tx.transaction.deleteMany({ where: { accountId: params.id } })
 
-    // 7. Delete TransactionRaw
+    // 8. Delete TransactionRaw
     await tx.transactionRaw.deleteMany({ where: { accountId: params.id } })
 
-    // 8. Delete Uploads (clears file hashes)
+    // 9. Delete Uploads (clears file hashes)
     await tx.upload.deleteMany({ where: { accountId: params.id } })
 
     // 9. Clean up MonthSummary/MonthCategoryTotal for months now empty
