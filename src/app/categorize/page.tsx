@@ -500,7 +500,11 @@ function CategoryTransactionList({
 
   return (
     <div className="mt-1.5 mb-1 ml-2 mr-1 rounded-xl overflow-y-auto max-h-72" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
-      {txs.map(tx => (
+      {txs.map(tx => {
+        const moveCat = pendingMove?.txId === tx.id
+          ? categories.find(c => c.name === pendingMove.catName)
+          : undefined
+        return (
         <div key={tx.id} className="px-3 py-2.5 hover:bg-white/[.04] transition-colors border-b border-white/[.06] last:border-0">
           <div className="flex items-start gap-2.5">
             <div className="flex-1 min-w-0">
@@ -532,29 +536,34 @@ function CategoryTransactionList({
 
               {/* Move picker */}
               {pendingMove?.txId === tx.id ? (
-                <div className="mt-2 rounded-lg p-2.5 text-xs" style={{ background: 'rgba(11,16,32,.96)', border: '1px solid rgba(255,255,255,.12)' }}>
-                  <p className="font-medium mb-2 text-[#eaf0ff]">
-                    {pendingMove.count} transactions from <strong>{tx.merchantNormalized}</strong> found.
-                    Move all to <strong>{pendingMove.catName}</strong>?
-                  </p>
-                  <div className="flex gap-2">
+                <div className="mt-2 rounded-2xl p-4" style={{ background: 'rgba(11,16,32,.96)', border: '1px solid rgba(255,255,255,.12)' }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-100">
+                      <CategoryIcon name={moveCat?.icon ?? 'tag'} color={moveCat?.color ?? '#6366f1'} size={20} />
+                    </span>
+                    <div>
+                      <p className="font-bold text-sm text-[#eaf0ff]">Move to {pendingMove.catName}?</p>
+                      <p className="text-xs text-slate-500">{pendingMove.count} transactions from <strong className="text-slate-400">{tx.merchantNormalized}</strong> found.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => { setPendingMove(null); setMovingId(null); setCatSearch('') }}
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#8b97c3] hover:bg-white/[.06] transition" style={{ border: '1px solid rgba(255,255,255,.12)' }}
+                    >
+                      Cancel
+                    </button>
                     <button
                       onClick={() => { onMove(pendingMove.txId, pendingMove.catName, false); setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="px-2.5 py-1 rounded font-medium transition text-[#8b97c3] hover:text-[#eaf0ff]" style={{ border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.06)' }}
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-accent-300 hover:bg-accent-500/10 transition" style={{ border: '1px solid rgba(99,102,241,.35)' }}
                     >
                       Just this one
                     </button>
                     <button
                       onClick={() => { onMove(pendingMove.txId, pendingMove.catName, true); setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="px-2.5 py-1 rounded bg-accent-500 text-white font-medium hover:bg-accent-600 transition"
+                      className="rounded-lg px-3 py-1.5 text-xs bg-accent-500 text-white font-medium hover:bg-accent-600 transition"
                     >
                       Move all {pendingMove.count}
-                    </button>
-                    <button
-                      onClick={() => { setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="px-2 py-1 text-slate-500 hover:text-slate-300 transition"
-                    >
-                      ✕
                     </button>
                   </div>
                 </div>
@@ -611,7 +620,8 @@ function CategoryTransactionList({
             </div>
           </div>
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
