@@ -927,18 +927,19 @@ export default function CategorizePage() {
     if (!vendor) return
     const key = vendor.toLowerCase().trim()
     if (promptedVendors.current.has(key)) return
+    // Show prompt immediately if vendor appears 2+ times in the uncategorized queue
+    // (repeatable vendor), otherwise wait until they assign it a second time
+    const vendorCountInQueue = allTxs.filter(
+      t => t.merchantNormalized.toLowerCase().trim() === key && !t.appCategory
+    ).length
     const existing = sessionAssignMap.current.get(key)
-    if (existing && existing.catName === catName) {
-      const newCount = existing.count + 1
-      sessionAssignMap.current.set(key, { catName, categoryId: catId, count: newCount })
-      if (newCount >= 2) {
-        promptedVendors.current.add(key)
-        setRulePrompt({ vendor, catName, categoryId: catId })
-      }
-    } else {
-      sessionAssignMap.current.set(key, { catName, categoryId: catId, count: 1 })
+    const newCount = existing ? existing.count + 1 : 1
+    sessionAssignMap.current.set(key, { catName, categoryId: catId, count: newCount })
+    if (newCount >= 2 || vendorCountInQueue >= 1) {
+      promptedVendors.current.add(key)
+      setRulePrompt({ vendor, catName, categoryId: catId })
     }
-  }, [])
+  }, [allTxs])
 
   const initiateAssign = useCallback((tx: Transaction, categoryId: string) => {
     const cat = categories.find(c => c.id === categoryId)
