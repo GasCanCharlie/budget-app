@@ -66,17 +66,29 @@ export async function GET(req: NextRequest) {
   } else if (ingestionFilter === 'duplicate') {
     where['isPossibleDuplicate'] = true
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const whereClause = where as any
-
-  // Base where (without ingestionFilter) for sidebar counts
-  const baseWhere = { ...where }
-  delete (baseWhere as Record<string, unknown>)['ingestionStatus']
-  delete (baseWhere as Record<string, unknown>)['isPossibleDuplicate']
+  // 'same-price' is applied below after computing shared amounts
 
   try {
-  const [transactions, total, flaggedCount, duplicateCount, uncategorizedCount] = await Promise.all([
+  // Base where (without ingestionFilter-specific keys) for sidebar counts + groupBy
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const baseWhere: any = { ...where }
+  delete baseWhere['ingestionStatus']
+  delete baseWhere['isPossibleDuplicate']
+
+  // Find amounts shared by 2+ transactions within the current filter context
+  const amountGroups = await prisma.transaction.groupBy({
+    by: ['amount'],
+    where: baseWhere,
+    _count: { _all: true },
+  })
+  const sharedPriceAmounts = amountGroups.filter(g => g._count._all > 1).map(g => g.amount)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const whereClause: any = ingestionFilter === 'same-price'
+    ? { ...where, amount: { in: sharedPriceAmounts } }
+    : where
+
+  const [transactions, total, flaggedCount, duplicateCount, uncategorizedCount, samePriceCount] = await Promise.all([
     prisma.transaction.findMany({
       where: whereClause,
       include: {
@@ -96,13 +108,15 @@ export async function GET(req: NextRequest) {
       take: limit,
     }),
     prisma.transaction.count({ where: whereClause }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    prisma.transaction.count({ where: { ...(baseWhere as any), ingestionStatus: { in: ['UNRESOLVED', 'WARNING'] } } }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    prisma.transaction.count({ where: { ...(baseWhere as any), isPossibleDuplicate: true } }),
+    prisma.transaction.count({ where: { ...baseWhere, ingestionStatus: { in: ['UNRESOLVED', 'WARNING'] } } }),
+    prisma.transaction.count({ where: { ...baseWhere, isPossibleDuplicate: true } }),
     // Global uncategorized count (not filtered by current view)
     prisma.transaction.count({
       where: { account: { userId: payload.userId }, isExcluded: false, appCategory: null },
+    }),
+    // Transactions that share an exact amount with at least one other transaction
+    prisma.transaction.count({
+      where: { ...baseWhere, amount: { in: sharedPriceAmounts } },
     }),
   ])
 
@@ -154,6 +168,7 @@ export async function GET(req: NextRequest) {
     flaggedCount,
     duplicateCount,
     uncategorizedCount,
+    samePriceCount,
   })
   } catch (e) {
     console.error('[/api/transactions] ERROR:', e)

@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-react'
+import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown, X, Equal } from 'lucide-react'
 import clsx from 'clsx'
 import { CategoryIcon } from '@/components/CategoryIcon'
 
@@ -20,7 +20,7 @@ const SOURCE_LABELS: Record<string, string> = {
   user: '✏️ You',
 }
 
-type IngestionFilter = '' | 'flagged' | 'duplicate'
+type IngestionFilter = '' | 'flagged' | 'duplicate' | 'same-price'
 type SortBy  = 'date' | 'vendor' | 'amount'
 type SortDir = 'asc' | 'desc'
 
@@ -148,8 +148,9 @@ function TransactionsPageInner() {
   const transactions: Transaction[] = data?.transactions ?? []
   const total         = data?.total         ?? 0
   const pages         = data?.pages         ?? 1
-  const flaggedCount  = data?.flaggedCount  ?? 0
+  const flaggedCount   = data?.flaggedCount   ?? 0
   const duplicateCount = data?.duplicateCount ?? 0
+  const samePriceCount = data?.samePriceCount ?? 0
 
   // ── Category update mutation ───────────────────────────────────────────────
 
@@ -320,7 +321,7 @@ function TransactionsPageInner() {
         )}
 
         {/* ── Ingestion filter tabs ────────────────────────────────────── */}
-        {(flaggedCount > 0 || duplicateCount > 0 || ingestionFilter !== '') && (
+        {(flaggedCount > 0 || duplicateCount > 0 || samePriceCount > 0 || ingestionFilter !== '') && (
           <div className="flex gap-1.5 flex-wrap">
             <button
               onClick={() => switchFilter('')}
@@ -361,6 +362,20 @@ function TransactionsPageInner() {
                 Duplicates{duplicateCount > 0 && ` (${duplicateCount})`}
               </button>
             )}
+            {(samePriceCount > 0 || ingestionFilter === 'same-price') && (
+              <button
+                onClick={() => switchFilter('same-price')}
+                className={clsx(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold transition border flex items-center gap-1.5',
+                  ingestionFilter === 'same-price'
+                    ? 'bg-teal-500 text-white border-teal-500'
+                    : 'bg-teal-50 text-teal-700 border-teal-200 hover:border-teal-400'
+                )}
+              >
+                <Equal size={11}/>
+                Same Price{samePriceCount > 0 && ` (${samePriceCount})`}
+              </button>
+            )}
           </div>
         )}
 
@@ -375,12 +390,15 @@ function TransactionsPageInner() {
           <div className="card text-center py-12">
             <p className="text-4xl mb-3">{ingestionFilter ? '✅' : '🔍'}</p>
             <p className="font-bold text-slate-700">
-              {ingestionFilter === 'flagged'   ? 'No flagged transactions'  :
-               ingestionFilter === 'duplicate' ? 'No possible duplicates'   :
+              {ingestionFilter === 'flagged'     ? 'No flagged transactions'        :
+               ingestionFilter === 'duplicate'   ? 'No possible duplicates'         :
+               ingestionFilter === 'same-price'  ? 'No repeated amounts'            :
                'No transactions found'}
             </p>
             <p className="text-sm text-slate-400 mt-1">
-              {ingestionFilter
+              {ingestionFilter === 'same-price'
+                ? 'No transactions share an identical amount.'
+                : ingestionFilter
                 ? 'All ingestion issues have been resolved.'
                 : 'Try adjusting your search or filters'}
             </p>
