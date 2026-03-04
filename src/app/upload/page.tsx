@@ -542,6 +542,14 @@ export default function UploadPage() {
                         </div>
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {Boolean((result.data as Record<string, unknown>).stagingUploadId) && (
+                          <button
+                            onClick={() => router.push(`/staging/${String((result.data as Record<string, unknown>).stagingUploadId)}`)}
+                            style={{ width: '100%', padding: '12px 20px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.90))', color: '#fff', fontWeight: 850, fontSize: 13, cursor: 'pointer', boxShadow: '0 12px 30px rgba(99,102,241,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                          >
+                            Review &amp; Add to Budget →
+                          </button>
+                        )}
                         <button
                           onClick={() => router.push(`/upload/${String(result.data.uploadId)}`)}
                           style={{ width: '100%', padding: '12px 20px', borderRadius: 14, border: '1px solid rgba(255,255,255,.14)', background: 'rgba(255,255,255,.06)', color: '#eaf0ff', fontWeight: 750, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
@@ -550,7 +558,7 @@ export default function UploadPage() {
                         </button>
                         <button
                           onClick={() => router.push('/dashboard')}
-                          style={{ width: '100%', padding: '12px 20px', borderRadius: 14, border: '1px solid rgba(255,255,255,.14)', background: 'linear-gradient(135deg, rgba(110,168,255,.95), rgba(138,125,255,.92))', color: '#fff', fontWeight: 850, fontSize: 13, cursor: 'pointer', boxShadow: '0 12px 30px rgba(110,168,255,.18)' }}
+                          style={{ width: '100%', padding: '12px 20px', borderRadius: 14, border: '1px solid rgba(255,255,255,.14)', background: 'rgba(255,255,255,.06)', color: '#8b97c3', fontWeight: 750, fontSize: 13, cursor: 'pointer' }}
                         >
                           View Dashboard →
                         </button>

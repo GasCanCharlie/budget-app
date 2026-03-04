@@ -22,6 +22,8 @@ model User {
   monthSummaries   MonthSummary[]
   monthCatTotals   MonthCategoryTotal[]
   uploads          Upload[]
+  stagingUploads   StagingUpload[]
+  stagingTxs       StagingTransaction[]
 
   @@map("users")
 }
@@ -107,6 +109,7 @@ model Upload {
   transactions    Transaction[]
   auditLogEntries AuditLogEntry[]
   ingestionIssues IngestionIssue[]
+  stagingUpload   StagingUpload?
 
   @@map("uploads")
 }
@@ -248,6 +251,7 @@ model Transaction {
   linksAsA        TransactionLink[] @relation("LinkA")
   linksAsB        TransactionLink[] @relation("LinkB")
   ingestionIssues IngestionIssue[]
+  stagingTx       StagingTransaction?
 
   @@index([accountId, date])
   @@index([accountId, appCategory])
@@ -343,6 +347,7 @@ model Category {
   historyOld        CategoryHistory[] @relation("OldCategory")
   historyNew        CategoryHistory[] @relation("NewCategory")
   monthTotals       MonthCategoryTotal[]
+  stagingTxs        StagingTransaction[]
 
   @@map("categories")
 }
@@ -356,6 +361,7 @@ model CategoryRule {
   priority   Int      @default(0)
   isSystem   Boolean  @default(true)
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
 
   // ── Manual-first rules fields ──────────────────────────────────────────────
   // mode: 'always' = auto-apply on import; 'ask' = route to Needs Review
@@ -367,11 +373,120 @@ model CategoryRule {
   // scopeAccountId: null = global, non-null = account-scoped rule
   scopeAccountId String?
 
-  user       User?         @relation(fields: [userId], references: [id])
-  category   Category      @relation(fields: [categoryId], references: [id])
-  appliedTxs Transaction[] @relation("AppliedRule")
+  // ── Structured matching fields (staging / learning rules) ─────────────────
+  // name: user-visible label, auto-generated if null
+  name             String?
+  // vendorKey: normalized vendor string (lowercase, stripped bank prefixes)
+  vendorKey        String  @default("")
+  // amountExact: integer cents for exact-amount matching
+  amountExact      Int?
+  // amountMin/amountMax: for range matching (inclusive, integer cents)
+  amountMin        Int?
+  amountMax        Int?
+  // containsText: substring to match in description (lowercased)
+  containsText     String?
+  // appliesTo: which transaction direction this rule applies to
+  appliesTo        String  @default("both")  // debits | credits | both
+  // hit tracking
+  hitCount         Int       @default(0)
+  lastHitAt        DateTime?
+  // audit: which staging transaction IDs triggered rule creation
+  createdFromTxIds String    @default("[]")  // JSON array
+
+  user            User?               @relation(fields: [userId], references: [id])
+  category        Category            @relation(fields: [categoryId], references: [id])
+  appliedTxs      Transaction[]       @relation("AppliedRule")
+  stagingTxs      StagingTransaction[] @relation("StagingAppliedRule")
+  ruleHits        RuleHit[]
 
   @@map("category_rules")
+}
+
+// ─── Staging ──────────────────────────────────────────────────────────────────
+// Transactions live here after upload, before user commits them to the ledger.
+
+model StagingUpload {
+  id          String   @id @default(cuid())
+  userId      String
+  uploadId    String   @unique  // parent Upload record
+  // status: ready | committed | discarded
+  status      String   @default("ready")
+  rowCount    Int      @default(0)
+  autoCount   Int      @default(0)  // auto-categorized by rules
+  reviewCount Int      @default(0)  // flagged needs_review
+  newVendors  Int      @default(0)  // first-time vendors
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id])
+  upload       Upload             @relation(fields: [uploadId], references: [id])
+  transactions StagingTransaction[]
+
+  @@index([userId, status])
+  @@map("staging_uploads")
+}
+
+model StagingTransaction {
+  id              String    @id @default(cuid())
+  stagingUploadId String
+  userId          String
+  // Source upload id for convenience queries
+  uploadId        String
+
+  // Normalized fields from the ingestion pipeline
+  date            DateTime?
+  vendorRaw       String    @default("")
+  vendorKey       String    @default("")   // normalized vendor
+  amountCents     Int       @default(0)   // signed integer cents
+  description     String    @default("")
+  bankCategoryRaw String?
+
+  // Categorization
+  categoryId      String?
+  // categorySource: none | manual | rule | bank
+  categorySource  String    @default("none")
+  ruleId          String?
+  ruleReason      String?   // e.g. "Vendor + Exact Amount"
+
+  // status: uncategorized | categorized | needs_review | excluded | transfer
+  status          String    @default("uncategorized")
+
+  // Set when committed to ledger
+  committedAt     DateTime?
+  transactionId   String?   @unique  // FK to Transaction after commit
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  stagingUpload   StagingUpload  @relation(fields: [stagingUploadId], references: [id])
+  user            User           @relation(fields: [userId], references: [id])
+  category        Category?      @relation(fields: [categoryId], references: [id])
+  appliedRule     CategoryRule?  @relation("StagingAppliedRule", fields: [ruleId], references: [id])
+  transaction     Transaction?   @relation(fields: [transactionId], references: [id])
+  ruleHits        RuleHit[]
+
+  @@index([stagingUploadId, status])
+  @@index([userId, status])
+  @@index([vendorKey])
+  @@map("staging_transactions")
+}
+
+model RuleHit {
+  id              String   @id @default(cuid())
+  ruleId          String
+  stagingTxId     String
+  uploadId        String
+  // null = pending commit, true = committed with this category, false = overridden
+  wasAccepted     Boolean?
+  finalCategoryId String?
+  createdAt       DateTime @default(now())
+
+  rule      CategoryRule       @relation(fields: [ruleId], references: [id])
+  stagingTx StagingTransaction @relation(fields: [stagingTxId], references: [id])
+
+  @@index([ruleId])
+  @@index([stagingTxId])
+  @@map("rule_hits")
 }
 
 model CategoryHistory {

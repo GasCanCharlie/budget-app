@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Upload, ReceiptText, Tags, FolderKanban,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2, Inbox
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -26,6 +26,7 @@ const navItems = [
   { href: '/categorize',   label: 'Categorize',   icon: FolderKanban },
   { href: '/categories',   label: 'Categories',   icon: Tags },
   { href: '/rules',        label: 'Rules',        icon: Repeat2 },
+  { href: '/staging',      label: 'Inbox',        icon: Inbox },
 ]
 
 export function AppShell({ children, year, month, availableMonths, onMonthChange }: AppShellProps) {
@@ -71,7 +72,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         {/* Nav links */}
         <nav className="p-3 space-y-0.5 flex-1">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href === '/upload' && pathname.startsWith('/upload'))
+            const active = pathname === href || (href === '/upload' && pathname.startsWith('/upload')) || (href === '/staging' && pathname.startsWith('/staging'))
             return (
               <Link
                 key={href}

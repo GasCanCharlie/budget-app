@@ -23,6 +23,20 @@ import type { CsvXlsxSourceLocator } from '@/types/ingestion'
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+function normalizeVendor(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/^(pos |ach |debit |credit |purchase |tsq?\*|sq \*|sq\*|tst\*|dda |wdrl |wd |chk |chkcd |preauth |preauthorized |online |recurring )/gi, '')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80)
+}
+
+function amountToCents(amount: number): number {
+  return Math.round(amount * 100)
+}
+
 /**
  * Compute the sourceRowHash for TransactionRaw dedup.
  * Scoped to accountId so the same line in two different accounts doesn't collide.
@@ -715,6 +729,50 @@ export async function POST(req: NextRequest) {
     // Auto-apply user rules to newly imported transactions
     const autoApply = await applyRulesToUpload(upload.id, payload.userId, accountId)
 
+    // ── Create Staging records ──────────────────────────────────────────────────
+    // Fetch the transactions just created for this upload
+    const createdTxs = await prisma.transaction.findMany({
+      where: { uploadId: upload.id },
+      select: {
+        id: true,
+        date: true,
+        merchantNormalized: true,
+        descriptionRaw: true,
+        amount: true,
+        bankCategoryRaw: true,
+        ingestionStatus: true,
+      }
+    })
+
+    // Create the StagingUpload
+    const stagingUpload = await prisma.stagingUpload.create({
+      data: {
+        userId: payload.userId,
+        uploadId: upload.id,
+        status: 'ready',
+        rowCount: createdTxs.length,
+      }
+    })
+
+    // Create StagingTransaction for each (excluding REJECTED)
+    const stagingRows = createdTxs.filter(tx => tx.ingestionStatus !== 'REJECTED')
+    if (stagingRows.length > 0) {
+      await prisma.stagingTransaction.createMany({
+        data: stagingRows.map(tx => ({
+          stagingUploadId: stagingUpload.id,
+          userId: payload.userId,
+          uploadId: upload.id,
+          date: tx.date,
+          vendorRaw: tx.merchantNormalized || tx.descriptionRaw || '',
+          vendorKey: normalizeVendor(tx.merchantNormalized || tx.descriptionRaw || ''),
+          amountCents: amountToCents(tx.amount),
+          description: tx.descriptionRaw || '',
+          bankCategoryRaw: tx.bankCategoryRaw || null,
+          status: 'uncategorized',
+        }))
+      })
+    }
+
     return NextResponse.json(
       {
         uploadId:                   upload.id,
@@ -741,6 +799,8 @@ export async function POST(req: NextRequest) {
         dateOrderNeedsConfirmation: dateOrderSelection.needsUserConfirmation,
         importReport,
         autoApply,
+        stagingUploadId: stagingUpload.id,
+        stagingRowCount: stagingRows.length,
       },
       { status: 201 },
     )
