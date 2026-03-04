@@ -185,8 +185,16 @@ export async function DELETE(
       const stillPresentSet = new Set(stillPresent.map(t => t.merchantNormalized))
       const orphanedMerchants = deletedMerchants.filter(m => !stillPresentSet.has(m))
       if (orphanedMerchants.length > 0) {
+        const lowerMerchants = orphanedMerchants.map(m => m.toLowerCase())
         await tx.categoryRule.deleteMany({
-          where: { userId: payload.userId, isSystem: false, merchantNormalized: { in: orphanedMerchants } },
+          where: {
+            userId: payload.userId,
+            isSystem: false,
+            OR: [
+              { matchValue: { in: lowerMerchants } },
+              { vendorKey:  { in: lowerMerchants } },
+            ],
+          },
         })
       }
     }
