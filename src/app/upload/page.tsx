@@ -115,6 +115,9 @@ export default function UploadPage() {
     mutationFn: (id: string) => apiFetch(`/api/accounts/${id}/reset`, { method: 'POST' }),
     onSuccess: () => {
       setConfirmState(null)
+      // Clear persisted sort/filter state so the categorize page starts fresh
+      localStorage.removeItem('budgetlens:cat-sort-key')
+      localStorage.removeItem('budgetlens:cat-sort-dir')
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
@@ -127,6 +130,9 @@ export default function UploadPage() {
     onSuccess: (_: unknown, id: string) => {
       setConfirmState(null)
       if (accountId === id) setAccountId('')
+      // Clear persisted sort/filter state so the categorize page starts fresh
+      localStorage.removeItem('budgetlens:cat-sort-key')
+      localStorage.removeItem('budgetlens:cat-sort-dir')
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
