@@ -1456,7 +1456,20 @@ export default function CategorizePage() {
                       </button>
                     )}
                     <button
-                      onClick={() => setSamePriceOnly(v => !v)}
+                      onClick={() => {
+                        if (!samePriceOnly) {
+                          setSamePriceOnly(true)
+                          setSortKey('amount')
+                          setSortDir('desc')
+                          localStorage.setItem('budgetlens:cat-sort-key', 'amount')
+                          localStorage.setItem('budgetlens:cat-sort-dir', 'desc')
+                        } else {
+                          // already on — toggle direction
+                          const next: CatSortDir = sortDir === 'desc' ? 'asc' : 'desc'
+                          setSortDir(next)
+                          localStorage.setItem('budgetlens:cat-sort-dir', next)
+                        }
+                      }}
                       className={clsx(
                         'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
                         samePriceOnly
@@ -1466,6 +1479,10 @@ export default function CategorizePage() {
                     >
                       <Equal size={11} />
                       Same Price{samePriceCount > 0 && ` (${samePriceCount})`}
+                      {samePriceOnly
+                        ? (sortDir === 'desc' ? <ArrowDown size={11} /> : <ArrowUp size={11} />)
+                        : <ArrowUpDown size={11} />
+                      }
                     </button>
                   </div>
 
