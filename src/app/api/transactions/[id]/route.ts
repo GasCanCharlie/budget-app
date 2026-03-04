@@ -225,6 +225,7 @@ export async function PATCH(
         where: {
           account: { userId: payload.userId },
           merchantNormalized: tx.merchantNormalized,
+          amount: tx.amount,
           id: { not: tx.id },
         },
         select: { id: true },
@@ -242,6 +243,7 @@ export async function PATCH(
         where: {
           account: { userId: payload.userId },
           merchantNormalized: tx.merchantNormalized,
+          amount: tx.amount,
           id: { not: tx.id },
           reviewedByUser: false,
         }
