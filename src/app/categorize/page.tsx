@@ -918,10 +918,10 @@ export default function CategorizePage() {
 
   // ── Rule creation mutation ──
   const createRuleMutation = useMutation({
-    mutationFn: ({ matchValue, categoryId, mode }: { matchValue: string; categoryId: string; mode: 'always' | 'ask' }) =>
+    mutationFn: ({ matchValue, amountExact, categoryId, mode }: { matchValue: string; amountExact?: number; categoryId: string; mode: 'always' | 'ask' }) =>
       apiFetch('/api/rules', {
         method: 'POST',
-        body: JSON.stringify({ matchType: 'vendor_exact', matchValue, categoryId, mode }),
+        body: JSON.stringify({ matchType: 'vendor_exact_amount', matchValue, amountExact, categoryId, mode }),
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rules'] })
@@ -959,6 +959,15 @@ export default function CategorizePage() {
     const similarCount = countSimilar(tx.merchantNormalized, tx.amount)
     if (similarCount <= 1) {
       updateMutation.mutate({ id: tx.id, appCategory: cat.name, applyToAll: false })
+      // Auto-save vendor+amount rule silently so next upload remembers this
+      if (tx.merchantNormalized) {
+        createRuleMutation.mutate({
+          matchValue:  tx.merchantNormalized,
+          amountExact: Math.round(tx.amount * 100),
+          categoryId,
+          mode: 'always',
+        })
+      }
       trackSessionAssign(tx.merchantNormalized, cat.name, cat.id)
       setSelectedIds(new Set()); setAnchorId(null)
       return
@@ -1546,24 +1555,7 @@ export default function CategorizePage() {
         {/* Touch ghost element */}
         <TouchGhost tx={touchTx} pos={touchPos} />
 
-        {/* "Remember this?" rule prompt */}
-        {rulePrompt && (
-          <RulePrompt
-            state={rulePrompt}
-            isPending={createRuleMutation.isPending}
-            onAlways={() => createRuleMutation.mutate({
-              matchValue: rulePrompt.vendor,
-              categoryId: rulePrompt.categoryId,
-              mode: 'always',
-            })}
-            onAsk={() => createRuleMutation.mutate({
-              matchValue: rulePrompt.vendor,
-              categoryId: rulePrompt.categoryId,
-              mode: 'ask',
-            })}
-            onDismiss={() => setRulePrompt(null)}
-          />
-        )}
+        {/* Rules are now auto-saved silently on every categorize — no prompt needed */}
 
         {/* Confirmation modal */}
         {confirm && (
@@ -1575,6 +1567,14 @@ export default function CategorizePage() {
               updateMutation.mutate(
                 { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: false },
                 { onSuccess: () => {
+                  if (confirm.transaction.merchantNormalized) {
+                    createRuleMutation.mutate({
+                      matchValue:  confirm.transaction.merchantNormalized,
+                      amountExact: Math.round(confirm.transaction.amount * 100),
+                      categoryId:  confirm.category.id,
+                      mode: 'always',
+                    })
+                  }
                   trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
                   setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
                 } }
@@ -1584,6 +1584,14 @@ export default function CategorizePage() {
               updateMutation.mutate(
                 { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: true },
                 { onSuccess: () => {
+                  if (confirm.transaction.merchantNormalized) {
+                    createRuleMutation.mutate({
+                      matchValue:  confirm.transaction.merchantNormalized,
+                      amountExact: Math.round(confirm.transaction.amount * 100),
+                      categoryId:  confirm.category.id,
+                      mode: 'always',
+                    })
+                  }
                   trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
                   setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
                 } }

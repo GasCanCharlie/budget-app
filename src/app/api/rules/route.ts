@@ -26,8 +26,9 @@ export async function GET(req: NextRequest) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const createSchema = z.object({
-  matchType:      z.enum(['vendor_exact', 'contains']),
+  matchType:      z.enum(['vendor_exact', 'contains', 'vendor_exact_amount']),
   matchValue:     z.string().min(1).max(200),
+  amountExact:    z.number().int().optional(),
   categoryId:     z.string().min(1),
   mode:           z.enum(['always', 'ask']).default('always'),
   confidence:     z.enum(['high', 'low']).default('high'),
@@ -54,14 +55,13 @@ export async function POST(req: NextRequest) {
     })
     if (!category) return NextResponse.json({ error: 'Category not found' }, { status: 404 })
 
-    // Upsert: same matchType + matchValue + user → update existing rule
+    const isAmountRule = data.matchType === 'vendor_exact_amount'
+
+    // Upsert: find existing rule by vendor+amount (for price rules) or matchType+matchValue
     const existing = await prisma.categoryRule.findFirst({
-      where: {
-        userId:    payload.userId,
-        matchType: data.matchType,
-        matchValue: normalizedValue,
-        isSystem:  false,
-      },
+      where: isAmountRule
+        ? { userId: payload.userId, vendorKey: normalizedValue, amountExact: data.amountExact ?? null, isSystem: false }
+        : { userId: payload.userId, matchType: data.matchType, matchValue: normalizedValue, isSystem: false },
     })
 
     let rule
@@ -84,11 +84,13 @@ export async function POST(req: NextRequest) {
           categoryId:     data.categoryId,
           matchType:      data.matchType,
           matchValue:     normalizedValue,
+          vendorKey:      isAmountRule ? normalizedValue : '',
+          amountExact:    isAmountRule ? (data.amountExact ?? null) : null,
           mode:           data.mode,
           confidence:     data.confidence,
           isEnabled:      true,
           isSystem:       false,
-          priority:       20,
+          priority:       isAmountRule ? 30 : 20,
           scopeAccountId: data.scopeAccountId ?? null,
         },
         include: { category: { select: { id: true, name: true, icon: true, color: true } } },
