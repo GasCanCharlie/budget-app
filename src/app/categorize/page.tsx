@@ -543,7 +543,7 @@ function CategoryTransactionList({
                     </span>
                     <div>
                       <p className="font-bold text-sm text-[#eaf0ff]">Move to {pendingMove.catName}?</p>
-                      <p className="text-xs text-slate-500">{pendingMove.count} transactions from <strong className="text-slate-400">{tx.merchantNormalized}</strong> found.</p>
+                      <p className="text-xs text-slate-500">{tx.merchantNormalized}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 justify-end">
