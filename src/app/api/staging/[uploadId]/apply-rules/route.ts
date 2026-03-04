@@ -32,7 +32,7 @@ export async function POST(
 
     let applied  = 0
     let review   = 0
-    let unchanged = dryRun.unmatched
+    const unchanged = dryRun.unmatched
 
     for (const match of dryRun.matches) {
       if (match.status === 'auto') {

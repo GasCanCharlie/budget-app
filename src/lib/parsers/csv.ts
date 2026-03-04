@@ -246,7 +246,7 @@ export function parseCSV(rawText: string, accountId: string): ParseResult {
   const transactions: ParsedTransaction[] = []
 
   // Strip BOM
-  let text = rawText.replace(/^\uFEFF/, '')
+  const text = rawText.replace(/^\uFEFF/, '')
   // Normalize line endings
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
 

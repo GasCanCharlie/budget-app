@@ -148,8 +148,6 @@ export default function RulesPage() {
   const { apiFetch } = useApi()
   const qc     = useQueryClient()
 
-  if (!user) { router.replace('/login'); return null }
-
   const { data, isLoading, isError } = useQuery<{ rules: Rule[] }>({
     queryKey: ['rules'],
     queryFn:  () => apiFetch('/api/rules'),
@@ -183,6 +181,8 @@ export default function RulesPage() {
   const isPending = updateMutation.isPending || deleteMutation.isPending
 
   // ── Render ──────────────────────────────────────────────────────────────────
+
+  if (!user) { router.replace('/login'); return null }
 
   if (isLoading) {
     return (
