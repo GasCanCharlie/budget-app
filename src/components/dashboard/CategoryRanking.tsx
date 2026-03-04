@@ -16,12 +16,14 @@ interface CategoryItem {
 interface Props {
   categories: CategoryItem[]
   totalSpending: number
+  year: number
+  month: number
 }
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
 
-export function CategoryRanking({ categories, totalSpending }: Props) {
+export function CategoryRanking({ categories, totalSpending, year, month }: Props) {
   const top = categories.slice(0, 10)
 
   return (
@@ -44,7 +46,7 @@ export function CategoryRanking({ categories, totalSpending }: Props) {
             return (
               <Link
                 key={cat.categoryId}
-                href={'/transactions?displayCategory=' + encodeURIComponent(cat.categoryName)}
+                href={`/transactions?displayCategory=${encodeURIComponent(cat.categoryName)}&year=${year}&month=${month}`}
                 className="group flex items-center gap-3 -mx-2 px-2 py-2.5 rounded-xl hover:bg-slate-50 transition-colors"
               >
                 {/* Rank number */}

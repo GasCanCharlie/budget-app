@@ -293,6 +293,8 @@ export default function DashboardPage() {
         <CategoryRanking
           categories={spendingCategories}
           totalSpending={summary.totalSpending as number}
+          year={year}
+          month={month}
         />
 
         {/* ── Section 4: Financial Control Panel ───────────────────────────── */}

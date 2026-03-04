@@ -112,6 +112,8 @@ function TransactionsPageInner() {
   const [search,           setSearch]           = useState('')
   const [category,         setCategory]         = useState(searchParams.get('category') || '')
   const [displayCategory,  setDisplayCategory]  = useState(searchParams.get('displayCategory') || '')
+  const [yearFilter,       setYearFilter]        = useState(searchParams.get('year') || '')
+  const [monthFilter,      setMonthFilter]       = useState(searchParams.get('month') || '')
   const [ingestionFilter,  setIngestionFilter]  = useState<IngestionFilter>('')
   const [sortBy,           setSortBy]           = useState<SortBy>('date')
   const [sortDir,          setSortDir]          = useState<SortDir>('desc')
@@ -132,12 +134,14 @@ function TransactionsPageInner() {
   const categories = catData?.categories ?? []
 
   const { data, isLoading } = useQuery({
-    queryKey: ['transactions', search, category, displayCategory, ingestionFilter, sortBy, sortDir, page],
+    queryKey: ['transactions', search, category, displayCategory, yearFilter, monthFilter, ingestionFilter, sortBy, sortDir, page],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), limit: '50' })
       if (search)           params.set('search',          search)
       if (category)         params.set('category',        category)
       if (displayCategory)  params.set('displayCategory', displayCategory)
+      if (yearFilter)       params.set('year',            yearFilter)
+      if (monthFilter)      params.set('month',           monthFilter)
       if (ingestionFilter)  params.set('ingestionFilter', ingestionFilter)
       params.set('sortBy',  sortBy)
       params.set('sortDir', sortDir)
@@ -302,6 +306,23 @@ function TransactionsPageInner() {
           <SortBtn label="Vendor" field="vendor" active={sortBy === 'vendor'} dir={sortDir} onClick={handleSort} />
           <SortBtn label="Amount" field="amount" active={sortBy === 'amount'} dir={sortDir} onClick={handleSort} />
         </div>
+
+        {/* ── Active month filter pill ─────────────────────────────────── */}
+        {yearFilter && monthFilter && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">Month:</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 border border-indigo-200">
+              {new Date(Number(yearFilter), Number(monthFilter) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              <button
+                onClick={() => { setYearFilter(''); setMonthFilter(''); setPage(1) }}
+                className="ml-0.5 hover:text-indigo-900 leading-none"
+                aria-label="Clear month filter"
+              >
+                ×
+              </button>
+            </span>
+          </div>
+        )}
 
         {/* ── Active display-category filter pill ──────────────────────── */}
         {displayCategory && (
