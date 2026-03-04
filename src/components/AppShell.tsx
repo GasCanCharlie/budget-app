@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Upload, ReceiptText, Tags, FolderKanban,
@@ -34,9 +35,11 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
   const router   = useRouter()
   const logout   = useAuthStore(s => s.logout)
   const user     = useAuthStore(s => s.user)
+  const qc       = useQueryClient()
 
   function handleLogout() {
     logout()
+    qc.clear()
     router.push('/')
   }
 

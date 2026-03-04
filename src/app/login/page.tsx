@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
+import { useQueryClient } from '@tanstack/react-query'
 import '@/styles/auth.css'
 
 function LoginForm() {
@@ -13,6 +14,7 @@ function LoginForm() {
   const setAuth      = useAuthStore(s => s.setAuth)
   const user         = useAuthStore(s => s.user)
   const { apiFetch } = useApi()
+  const qc           = useQueryClient()
 
   const [mode,     setMode]     = useState<'login' | 'register'>(
     params.get('mode') === 'register' ? 'register' : 'login'
@@ -43,6 +45,7 @@ function LoginForm() {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       })
+      qc.clear()
       setAuth(data.user, data.token)
       router.push('/dashboard')
     } catch (err) {
