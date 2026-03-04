@@ -63,7 +63,7 @@ interface Transaction {
   appCategory?: string | null
 }
 
-type FilterMode = 'needs-review' | 'all' | 'same-price'
+type FilterMode = 'needs-review' | 'all'
 
 interface ConfirmState {
   transaction: Transaction
@@ -770,7 +770,8 @@ export default function CategorizePage() {
     try { return (localStorage.getItem('budgetlens:cat-sort-dir') as CatSortDir) || 'desc' }
     catch { return 'desc' }
   })
-  const [vendorQuery, setVendorQuery] = useState('')
+  const [vendorQuery,    setVendorQuery]    = useState('')
+  const [samePriceOnly,  setSamePriceOnly]  = useState(false)
 
   // ── Data ──
   const { data: txData, isLoading: txLoading, error: txError } = useQuery({
@@ -858,9 +859,8 @@ export default function CategorizePage() {
   // Queue = transactions without an appCategory
   const queueTxs: Transaction[] = useMemo(() => {
     if (filterMode === 'all') return allTxs.filter(t => !t.isTransfer)
-    if (filterMode === 'same-price') return allTxs.filter(t => !t.isTransfer && samePriceAmounts.has(t.amount))
     return allTxs.filter(t => !t.isTransfer && !t.appCategory)
-  }, [allTxs, filterMode, samePriceAmounts])
+  }, [allTxs, filterMode])
 
   const needsReviewCount = useMemo(
     () => allTxs.filter(t => !t.isTransfer && !t.appCategory).length,
@@ -869,13 +869,10 @@ export default function CategorizePage() {
 
   const sortedQueueTxs = useMemo(() => {
     const q = vendorQuery.trim().toLowerCase()
-    const filtered = q
-      ? queueTxs.filter(t =>
-          (t.merchantNormalized || t.description || '').toLowerCase().includes(q)
-        )
-      : queueTxs
+    let filtered = samePriceOnly ? queueTxs.filter(t => samePriceAmounts.has(t.amount)) : queueTxs
+    if (q) filtered = filtered.filter(t => (t.merchantNormalized || t.description || '').toLowerCase().includes(q))
     return sortCategorizeTransactions(filtered, sortKey, sortDir)
-  }, [queueTxs, sortKey, sortDir, vendorQuery])
+  }, [queueTxs, sortKey, sortDir, vendorQuery, samePriceOnly, samePriceAmounts])
 
   const txCountByCat = useMemo(() => {
     const map = new Map<string, number>()
@@ -1039,6 +1036,7 @@ export default function CategorizePage() {
     localStorage.setItem('budgetlens:cat-sort-key', 'date')
     localStorage.setItem('budgetlens:cat-sort-dir', 'desc')
     setVendorQuery('')
+    setSamePriceOnly(false)
   }
 
   // ── Category reorder (dnd-kit arrayMove) ──
@@ -1305,13 +1303,6 @@ export default function CategorizePage() {
                 >
                   All
                 </button>
-                <button
-                  onClick={() => setFilterMode('same-price')}
-                  className={clsx('px-3 py-1.5 transition flex items-center gap-1.5', filterMode === 'same-price' ? 'bg-teal-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
-                >
-                  <Equal size={12} />
-                  Same Price{samePriceCount > 0 && ` (${samePriceCount})`}
-                </button>
               </div>
               <button
                 onClick={handleFinishCategorizing}
@@ -1332,8 +1323,6 @@ export default function CategorizePage() {
               <p className="mt-2 max-w-sm text-sm text-slate-500">
                 {filterMode === 'needs-review'
                   ? 'Every transaction has an app category. New imports will appear here.'
-                  : filterMode === 'same-price'
-                  ? 'No transactions share an identical amount.'
                   : 'No transactions to show.'}
               </p>
               <button onClick={() => router.push('/dashboard')} className="btn-primary mt-6">
@@ -1457,7 +1446,7 @@ export default function CategorizePage() {
                         </button>
                       )
                     })}
-                    {(sortKey !== 'date' || sortDir !== 'desc' || vendorQuery) && (
+                    {(sortKey !== 'date' || sortDir !== 'desc' || vendorQuery || samePriceOnly) && (
                       <button
                         onClick={resetSort}
                         className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.04] px-2 py-1 text-xs text-[#8b97c3] hover:text-[#c8d4f5] transition"
@@ -1466,6 +1455,18 @@ export default function CategorizePage() {
                         Reset
                       </button>
                     )}
+                    <button
+                      onClick={() => setSamePriceOnly(v => !v)}
+                      className={clsx(
+                        'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
+                        samePriceOnly
+                          ? 'border-teal-400 bg-teal-500/20 text-teal-300'
+                          : 'border-white/10 bg-white/[.04] text-[#8b97c3] hover:border-white/20 hover:text-[#c8d4f5]'
+                      )}
+                    >
+                      <Equal size={11} />
+                      Same Price{samePriceCount > 0 && ` (${samePriceCount})`}
+                    </button>
                   </div>
 
                   {/* Vendor filter */}
