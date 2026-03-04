@@ -532,15 +532,15 @@ function CategoryTransactionList({
 
               {/* Move picker */}
               {pendingMove?.txId === tx.id ? (
-                <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs">
-                  <p className="text-amber-800 font-medium mb-2">
+                <div className="mt-2 rounded-lg p-2.5 text-xs" style={{ background: 'rgba(11,16,32,.96)', border: '1px solid rgba(255,255,255,.12)' }}>
+                  <p className="font-medium mb-2 text-[#eaf0ff]">
                     {pendingMove.count} transactions from <strong>{tx.merchantNormalized}</strong> found.
                     Move all to <strong>{pendingMove.catName}</strong>?
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => { onMove(pendingMove.txId, pendingMove.catName, false); setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="px-2.5 py-1 rounded border border-white/10 text-[#c8d4f5] hover:border-white/20 font-medium transition" style={{ background: 'rgba(255,255,255,.06)' }}
+                      className="px-2.5 py-1 rounded font-medium transition text-[#8b97c3] hover:text-[#eaf0ff]" style={{ border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.06)' }}
                     >
                       Just this one
                     </button>
@@ -552,7 +552,7 @@ function CategoryTransactionList({
                     </button>
                     <button
                       onClick={() => { setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="px-2 py-1 text-slate-400 hover:text-slate-600 transition"
+                      className="px-2 py-1 text-slate-500 hover:text-slate-300 transition"
                     >
                       ✕
                     </button>
