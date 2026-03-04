@@ -151,6 +151,17 @@ export async function DELETE(
     // 5. Delete AuditLogEntries (depends on uploadId)
     await tx.auditLogEntry.deleteMany({ where: { uploadId: params.id } })
 
+    // 5b. Delete RuleHits → StagingTransactions → StagingUpload (FK constraints)
+    const stagingTxIds = (await tx.stagingTransaction.findMany({
+      where: { uploadId: params.id },
+      select: { id: true },
+    })).map(s => s.id)
+    if (stagingTxIds.length > 0) {
+      await tx.ruleHit.deleteMany({ where: { stagingTxId: { in: stagingTxIds } } })
+    }
+    await tx.stagingTransaction.deleteMany({ where: { uploadId: params.id } })
+    await tx.stagingUpload.deleteMany({ where: { uploadId: params.id } })
+
     // 6. Delete Transactions (depends on categoryId, uploadId)
     const { count: deletedTransactions } = await tx.transaction.deleteMany({ where: { uploadId: params.id } })
 
