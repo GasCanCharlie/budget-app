@@ -127,12 +127,13 @@ export async function DELETE(
   if (!upload) return NextResponse.json({ error: 'Upload not found' }, { status: 404 })
 
   const result = await prisma.$transaction(async tx => {
-    // 1. Get all transaction IDs for this upload
+    // 1. Get all transaction IDs + merchants for this upload
     const txRows = await tx.transaction.findMany({
       where: { uploadId: params.id },
-      select: { id: true, date: true },
+      select: { id: true, date: true, merchantNormalized: true },
     })
     const txIds = txRows.map(t => t.id)
+    const deletedMerchants = [...new Set(txRows.map(t => t.merchantNormalized).filter(Boolean))]
 
     // 2. Delete CategoryHistory (depends on transactionId)
     if (txIds.length > 0) {
@@ -170,6 +171,25 @@ export async function DELETE(
 
     // 8. Delete the Upload record itself
     await tx.upload.delete({ where: { id: params.id } })
+
+    // 8b. Clean up rules for merchants that no longer have any transactions
+    if (deletedMerchants.length > 0) {
+      const stillPresent = await tx.transaction.findMany({
+        where: {
+          account: { userId: payload.userId },
+          merchantNormalized: { in: deletedMerchants },
+        },
+        select: { merchantNormalized: true },
+        distinct: ['merchantNormalized'],
+      })
+      const stillPresentSet = new Set(stillPresent.map(t => t.merchantNormalized))
+      const orphanedMerchants = deletedMerchants.filter(m => !stillPresentSet.has(m))
+      if (orphanedMerchants.length > 0) {
+        await tx.categoryRule.deleteMany({
+          where: { userId: payload.userId, isSystem: false, merchantNormalized: { in: orphanedMerchants } },
+        })
+      }
+    }
 
     // 9. Recompute or clean up monthly summaries for affected months
     // If no other transactions remain for a given month/user, remove the summary
