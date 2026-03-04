@@ -265,21 +265,25 @@ export async function PATCH(
         appliedCount++
       }
 
-      // Save as user rule so future uploads auto-categorize the same merchant
+      // Save as vendor+exact-amount rule so future uploads auto-categorize
+      // only this specific vendor+price combination (not every price from this vendor)
+      const vendorKey   = tx.merchantNormalized.toLowerCase()
+      const amountCents = Math.round(Number(tx.amount) * 100)
       await prisma.categoryRule.upsert({
         where: {
-          // create unique constraint workaround — find existing
           id: (await prisma.categoryRule.findFirst({
-            where: { userId: payload.userId, matchValue: tx.merchantNormalized.toLowerCase() }
+            where: { userId: payload.userId, vendorKey, amountExact: amountCents }
           }))?.id ?? 'new-rule-placeholder',
         },
         create: {
-          userId:     payload.userId,
-          categoryId: data.categoryId!,
-          matchType:  'contains',
-          matchValue: tx.merchantNormalized.toLowerCase(),
-          priority:   20,
-          isSystem:   false,
+          userId:      payload.userId,
+          categoryId:  data.categoryId!,
+          matchType:   'vendor_exact_amount',
+          matchValue:  vendorKey,
+          vendorKey,
+          amountExact: amountCents,
+          priority:    30,
+          isSystem:    false,
         },
         update: { categoryId: data.categoryId! },
       }).catch(() => {

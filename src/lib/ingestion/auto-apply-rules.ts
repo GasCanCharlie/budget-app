@@ -72,6 +72,7 @@ export async function applyRulesToUpload(
       merchantNormalized: true,
       descriptionRaw: true,
       accountId: true,
+      amount: true,
     },
   })
 
@@ -82,6 +83,7 @@ export async function applyRulesToUpload(
     id: tx.id,
     key: normalizeForRule(tx.merchantNormalized || tx.descriptionRaw),
     accountId: tx.accountId,
+    amountCents: Math.round(Number(tx.amount) * 100),
   }))
 
   // For each transaction, find matching rules
@@ -90,7 +92,10 @@ export async function applyRulesToUpload(
       // Account scope check
       if (rule.scopeAccountId && rule.scopeAccountId !== tx.accountId) return false
 
-      const mv = rule.matchValue.toLowerCase().trim()
+      const mv = (rule.vendorKey || rule.matchValue).toLowerCase().trim()
+      if (rule.matchType === 'vendor_exact_amount') {
+        return tx.key === mv && rule.amountExact !== null && tx.amountCents === rule.amountExact
+      }
       if (rule.matchType === 'vendor_exact') return tx.key === mv
       if (rule.matchType === 'contains')     return tx.key.includes(mv) || mv.includes(tx.key)
       return false
