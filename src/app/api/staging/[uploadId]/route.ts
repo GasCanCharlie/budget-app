@@ -19,6 +19,11 @@ export async function GET(
   try {
     const stagingUpload = await prisma.stagingUpload.findFirst({
       where: { id: uploadId, userId: user.userId },
+      include: {
+        upload: {
+          select: { id: true, filename: true, formatDetected: true, rowCountAccepted: true },
+        },
+      },
     })
     if (!stagingUpload) {
       return NextResponse.json({ error: 'Staging upload not found' }, { status: 404 })
