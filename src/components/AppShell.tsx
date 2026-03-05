@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Upload, ReceiptText, Tags, FolderKanban,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2, Inbox, History
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2, Inbox, History, MessageCircle
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -28,6 +28,7 @@ const navItems = [
   { href: '/categorize',   label: 'Categorize',   icon: FolderKanban },
   { href: '/categories',   label: 'Categories',   icon: Tags },
   { href: '/rules',        label: 'Rules',        icon: Repeat2 },
+  { href: '/chat',         label: 'Chat',         icon: MessageCircle },
   { href: '/staging',      label: 'Inbox',        icon: Inbox },
 ]
 
