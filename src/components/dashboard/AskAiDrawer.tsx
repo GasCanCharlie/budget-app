@@ -234,7 +234,7 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
       <div style={overlayStyle} onClick={handleClose} aria-hidden="true" />
 
       {/* Drawer */}
-      <div style={drawerStyle} role="dialog" aria-label="Ask AI">
+      <div style={drawerStyle} role="dialog" aria-label="Ask">
         {/* ── Header ── */}
         <div
           style={{
@@ -260,7 +260,7 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
                 <Sparkles size={13} style={{ color: '#6ea8ff' }} />
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#eaf0ff' }}>Ask AI</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#eaf0ff' }}>Ask</div>
                 <div style={{ fontSize: 10, color: '#8b97c3' }}>{monthLabel}</div>
               </div>
             </div>
@@ -503,7 +503,7 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
   )
 }
 
-// ─── Floating Ask AI FAB ───────────────────────────────────────────────────────
+// ─── Floating Ask FAB ───────────────────────────────────────────────────────
 
 interface AskAiFabProps {
   onClick: () => void
@@ -537,10 +537,10 @@ export function AskAiFab({ onClick }: AskAiFabProps) {
         (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(59,91,219,0.40)'
         ;(e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'
       }}
-      aria-label="Ask AI about your finances"
+      aria-label="Ask about your finances"
     >
       <MessageCircle size={18} style={{ color: 'white' }} />
-      <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Ask AI</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Ask</span>
     </button>
   )
 }

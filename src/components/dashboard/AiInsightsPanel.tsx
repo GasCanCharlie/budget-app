@@ -197,7 +197,7 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
           </div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#eaf0ff', lineHeight: 1.2 }}>
-              AI Insights
+              Insights
             </div>
             <div style={{ fontSize: 11, color: '#8b97c3', lineHeight: 1.2 }}>
               {monthLabel} · structured data only

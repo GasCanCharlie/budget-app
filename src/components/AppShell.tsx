@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Upload, ReceiptText, Tags, FolderKanban,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2, Inbox, History, MessageCircle
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2, Inbox, History, MessageCircle, Lightbulb
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -22,6 +22,7 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 
 const navItems = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/insights',     label: 'Insights',     icon: Lightbulb },
   { href: '/history',      label: 'History',      icon: History },
   { href: '/upload',       label: 'Upload',       icon: Upload },
   { href: '/transactions', label: 'Transactions', icon: ReceiptText },
@@ -77,7 +78,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         {/* Nav links */}
         <nav className="p-3 space-y-0.5 flex-1">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href === '/upload' && pathname.startsWith('/upload')) || (href === '/staging' && pathname.startsWith('/staging'))
+            const active = pathname === href || (href === '/upload' && pathname.startsWith('/upload')) || (href === '/staging' && pathname.startsWith('/staging')) || (href === '/insights' && pathname.startsWith('/insights'))
             return (
               <Link
                 key={href}

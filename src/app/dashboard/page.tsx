@@ -10,7 +10,6 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { AlertTriangle, Info, X, Loader2 } from 'lucide-react'
 import { FinancialSummaryHeader } from '@/components/dashboard/FinancialSummaryHeader'
-import { AiInsightsPanel } from '@/components/dashboard/AiInsightsPanel'
 import { AskAiDrawer, AskAiFab } from '@/components/dashboard/AskAiDrawer'
 import { CategoryRanking } from '@/components/dashboard/CategoryRanking'
 import { FinancialControlPanel } from '@/components/dashboard/FinancialControlPanel'
@@ -295,10 +294,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Section 2: AI Insights ────────────────────────────────────────── */}
-        <AiInsightsPanel year={year} month={month} />
-
-        {/* ── Section 3: Category Ranking (expense only) ───────────────────── */}
+        {/* ── Section 2: Category Ranking (expense only) ───────────────────── */}
         <CategoryRanking
           categories={spendingCategories}
           totalSpending={summary.totalSpending as number}
