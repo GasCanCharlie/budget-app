@@ -112,6 +112,16 @@ IMPORTANT: Only reference the data shown above. Do not invent any numbers, merch
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handleChat(req)
+  } catch (err) {
+    console.error('[insights/chat] unhandled error:', err)
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: `Chat error: ${msg}` }, { status: 500 })
+  }
+}
+
+async function handleChat(req: NextRequest) {
   // Auth is optional for AI chat — low-risk endpoint (no PII, only aggregated
   // numeric context supplied by the client). We still log the userId when
   // present so server logs are attributable, but we do NOT hard-reject
