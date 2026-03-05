@@ -163,6 +163,17 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[insights/chat] unhandled error:', err)
     const msg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: `Chat error: ${msg}` }, { status: 500 })
+    const type = err instanceof Error ? err.constructor.name : 'UnknownError'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cause = (err as any)?.cause
+    const causeMsg = cause instanceof Error ? cause.message : cause ? String(cause) : undefined
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const status = (err as any)?.status
+    return NextResponse.json({
+      error: `${type}: ${msg}`,
+      cause: causeMsg,
+      httpStatus: status,
+      nodeVersion: process.version,
+    }, { status: 500 })
   }
 }
