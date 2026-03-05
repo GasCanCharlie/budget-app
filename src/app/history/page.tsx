@@ -157,17 +157,17 @@ export default function HistoryPage() {
                     </td>
 
                     {/* Income */}
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap font-mono text-[#2ee59d]">
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap tabular-nums font-semibold">
                       {fmtAmt(m.totalIncome)}
                     </td>
 
                     {/* Spending */}
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap font-mono text-[#c8d4f5]">
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap tabular-nums">
                       {fmtAmt(m.totalSpending)}
                     </td>
 
                     {/* Net */}
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap font-mono font-semibold" style={{ color: netColor }}>
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap tabular-nums font-semibold" style={{ color: netColor }}>
                       {isPositive ? '+' : '-'}{fmtAmt(m.net)}
                     </td>
 

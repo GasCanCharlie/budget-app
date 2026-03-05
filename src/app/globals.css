@@ -90,6 +90,8 @@ html, body {
 
 @layer base {
   body {
+    font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     background:
       radial-gradient(900px 600px at 15%  8%,  rgba(110,168,255,.14), transparent 55%),
       radial-gradient(800px 600px at 85% 12%, rgba(138,125,255,.12), transparent 55%),

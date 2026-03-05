@@ -170,7 +170,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
 
             {/* User email + theme toggle */}
             <div className="flex items-center gap-2">
-              <div className="text-xs font-mono hidden sm:block truncate max-w-[200px]" style={{ color: 'var(--text-secondary)' }}>
+              <div className="text-xs hidden sm:block truncate max-w-[200px]" style={{ color: 'var(--text-secondary)' }}>
                 {user?.email}
               </div>
               <ThemeToggle />
