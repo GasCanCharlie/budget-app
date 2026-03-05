@@ -1,5 +1,7 @@
 'use client'
 
+import type React from 'react'
+
 interface CategoryItem {
   categoryName: string
   total: number
@@ -57,17 +59,17 @@ function computeCashFlowStreak(
 function SpendingGauge({ ratio }: { ratio: number }) {
   const clamped = Math.min(ratio, 120)
   const barPct = Math.min((clamped / 120) * 100, 100)
-  const color = ratio > 95 ? '#ef4444' : ratio > 80 ? '#f59e0b' : '#10b981'
+  const color = ratio > 95 ? 'var(--danger)' : ratio > 80 ? 'var(--warn)' : 'var(--success)'
   const statusLabel = ratio > 95 ? 'Critical' : ratio > 85 ? 'Elevated' : ratio > 70 ? 'Moderate' : 'Healthy'
-  const statusColor = ratio > 95 ? 'text-red-400' : ratio > 85 ? 'text-amber-400' : ratio > 70 ? 'text-amber-300' : 'text-emerald-400'
+  const statusColor = ratio > 95 ? 'var(--danger)' : ratio > 85 ? 'var(--warn)' : 'var(--success)'
 
   return (
     <div>
       <div className="flex items-baseline justify-between mb-2.5">
-        <span className="text-3xl font-extrabold text-white tabular-nums">{ratio}%</span>
-        <span className={`text-xs font-semibold ${statusColor}`}>{statusLabel}</span>
+        <span className="text-3xl font-extrabold tabular-nums" style={{ color: 'var(--text)' }}>{ratio}%</span>
+        <span className="text-xs font-semibold" style={{ color: statusColor }}>{statusLabel}</span>
       </div>
-      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--track)' }}>
         <div
           className="h-full rounded-full transition-all"
           style={{ width: `${barPct}%`, backgroundColor: color }}
@@ -93,12 +95,29 @@ export function FinancialControlPanel({
   // Largest transaction
   const largest = topTransactions[0] ?? null
 
+  const metricCard: React.CSSProperties = {
+    background: 'var(--surface2)',
+    border: '1px solid var(--border)',
+    borderRadius: 12,
+    padding: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  }
+
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-2xl shadow-xl p-5">
+    <div style={{
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 16,
+      boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)',
+      padding: 20,
+    }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold text-white/80">Financial Control</h2>
-        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 tracking-wide">
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Financial Control</h2>
+        <span className="text-xs font-bold px-2.5 py-1 rounded-full tracking-wide"
+          style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--border2)' }}>
           PRO
         </span>
       </div>
@@ -107,79 +126,78 @@ export function FinancialControlPanel({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 
         {/* 1. Spending Ratio */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
-          <p className="text-xs font-medium text-white/40 uppercase tracking-wider">Spending Ratio</p>
+        <div style={metricCard}>
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Spending Ratio</p>
           {spendingRatio !== null ? (
             <SpendingGauge ratio={spendingRatio} />
           ) : (
-            <p className="text-3xl font-bold text-white/20">—</p>
+            <p className="text-3xl font-bold" style={{ color: 'var(--text-secondary)' }}>—</p>
           )}
-          <p className="text-xs text-white/30 mt-auto">of monthly income</p>
+          <p className="text-xs mt-auto" style={{ color: 'var(--text-secondary)' }}>of monthly income</p>
         </div>
 
         {/* 2. Cash Flow Stability */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
-          <p className="text-xs font-medium text-white/40 uppercase tracking-wider">Cash Flow</p>
+        <div style={metricCard}>
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Cash Flow</p>
           <div>
             <div className="flex items-baseline gap-1.5 mb-1">
-              <span className={`text-3xl font-extrabold tabular-nums ${
-                direction === 'positive' ? 'text-emerald-400' : 'text-red-400'
-              }`}>
+              <span className="text-3xl font-extrabold tabular-nums"
+                style={{ color: direction === 'positive' ? 'var(--success)' : 'var(--danger)' }}>
                 {streak}
               </span>
-              <span className="text-lg text-white/40 font-light">mo</span>
+              <span className="text-lg font-light" style={{ color: 'var(--text-secondary)' }}>mo</span>
             </div>
-            <p className={`text-xs font-semibold ${
-              direction === 'positive' ? 'text-emerald-400' : 'text-red-400'
-            }`}>
+            <p className="text-xs font-semibold"
+              style={{ color: direction === 'positive' ? 'var(--success)' : 'var(--danger)' }}>
               {direction === 'positive' ? '↑ Positive streak' : '↓ Deficit streak'}
             </p>
           </div>
-          <p className="text-xs text-white/30 mt-auto">consecutive months</p>
+          <p className="text-xs mt-auto" style={{ color: 'var(--text-secondary)' }}>consecutive months</p>
         </div>
 
         {/* 3. Top 3 Concentration */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
-          <p className="text-xs font-medium text-white/40 uppercase tracking-wider">Concentration</p>
+        <div style={metricCard}>
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Concentration</p>
           {top3Pct !== null ? (
             <div>
-              <p className="text-3xl font-extrabold text-white tabular-nums mb-1">{top3Pct}%</p>
+              <p className="text-3xl font-extrabold tabular-nums mb-1" style={{ color: 'var(--text)' }}>{top3Pct}%</p>
               <div className="space-y-0.5">
                 {top3Names.map(name => (
-                  <p key={name} className="text-xs text-white/40 truncate">{name}</p>
+                  <p key={name} className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{name}</p>
                 ))}
               </div>
             </div>
           ) : (
-            <p className="text-3xl font-bold text-white/20">—</p>
+            <p className="text-3xl font-bold" style={{ color: 'var(--text-secondary)' }}>—</p>
           )}
-          <p className="text-xs text-white/30 mt-auto">top 3 categories</p>
+          <p className="text-xs mt-auto" style={{ color: 'var(--text-secondary)' }}>top 3 categories</p>
         </div>
 
         {/* 4. Largest Transaction */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
-          <p className="text-xs font-medium text-white/40 uppercase tracking-wider">Largest Expense</p>
+        <div style={metricCard}>
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Largest Expense</p>
           {largest ? (
             <div>
-              <p className="text-3xl font-extrabold text-white tabular-nums mb-1">
+              <p className="text-3xl font-extrabold tabular-nums mb-1" style={{ color: 'var(--text)' }}>
                 {fmt(Math.abs(largest.amount))}
               </p>
-              <p className="text-xs text-white/50 truncate">
+              <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
                 {largest.merchantNormalized || largest.description}
               </p>
             </div>
           ) : (
-            <p className="text-3xl font-bold text-white/20">—</p>
+            <p className="text-3xl font-bold" style={{ color: 'var(--text-secondary)' }}>—</p>
           )}
-          <p className="text-xs text-white/30 mt-auto">single transaction</p>
+          <p className="text-xs mt-auto" style={{ color: 'var(--text-secondary)' }}>single transaction</p>
         </div>
 
       </div>
 
       {/* Net position footer */}
-      <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-        <span className="text-xs text-white/30 uppercase tracking-wide">Net Position</span>
-        <span className={`text-base font-bold tabular-nums ${net >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+      <div className="mt-4 pt-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--border)' }}>
+        <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>Net Position</span>
+        <span className="text-base font-bold tabular-nums"
+          style={{ color: net >= 0 ? 'var(--success)' : 'var(--danger)' }}>
           {net >= 0 ? '+' : ''}{fmt(net)}
         </span>
       </div>
