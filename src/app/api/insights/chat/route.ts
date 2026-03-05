@@ -4,15 +4,16 @@
  *
  * Body: { message: string, context: AiChatContext }
  *
- * Streams a response from Claude (claude-haiku-4-5-20251001).
+ * Streams a response from OpenAI (gpt-4o-mini).
  * The AI receives only structured numeric context — never raw transaction text.
  * Returns: ReadableStream (text/plain; charset=utf-8)
  *
- * If ANTHROPIC_API_KEY is not set, returns 503.
+ * If OPENAI_API_KEY is not set, returns 503.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
+import OpenAI from 'openai'
 
 // ─── AiChatContext (mirrors Turn 1 spec) ─────────────────────────────────────
 
@@ -106,10 +107,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'AI chat is not configured. ANTHROPIC_API_KEY is not set.' },
+      { error: 'AI chat is not configured. OPENAI_API_KEY is not set.' },
       { status: 503 },
     )
   }
@@ -130,43 +131,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  // Dynamically import to avoid module-level errors if SDK is missing
-  let Anthropic: typeof import('@anthropic-ai/sdk').default
-  try {
-    const mod = await import('@anthropic-ai/sdk')
-    Anthropic = mod.default
-  } catch {
-    return NextResponse.json(
-      { error: 'Anthropic SDK is not installed.' },
-      { status: 503 },
-    )
-  }
-
-  const client = new Anthropic({ apiKey })
+  const client = new OpenAI({ apiKey })
   const contextBlock = formatContext(context)
 
-  // Build a ReadableStream that pipes the Anthropic streaming response
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const response = client.messages.stream({
-          model: 'claude-haiku-4-5-20251001',
+        const response = await client.chat.completions.create({
+          model: 'gpt-4o-mini',
           max_tokens: 512,
-          system: SYSTEM_PROMPT,
+          stream: true,
           messages: [
-            {
-              role: 'user',
-              content: `${contextBlock}\n\nUser question: ${message}`,
-            },
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: `${contextBlock}\n\nUser question: ${message}` },
           ],
         })
 
-        for await (const event of response) {
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta.type === 'text_delta'
-          ) {
-            controller.enqueue(new TextEncoder().encode(event.delta.text))
+        for await (const chunk of response) {
+          const text = chunk.choices[0]?.delta?.content ?? ''
+          if (text) {
+            controller.enqueue(new TextEncoder().encode(text))
           }
         }
 
