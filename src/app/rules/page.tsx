@@ -13,12 +13,13 @@ import { useApi } from '@/hooks/useApi'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Rule {
-  id:         string
-  matchType:  string
-  matchValue: string
-  mode:       'always' | 'ask'
-  isEnabled:  boolean
-  createdAt:  string
+  id:          string
+  matchType:   string
+  matchValue:  string
+  amountExact: number | null
+  mode:        'always' | 'ask'
+  isEnabled:   boolean
+  createdAt:   string
   category: {
     id:    string
     name:  string
@@ -85,6 +86,11 @@ function RuleRow({
           <span className="font-mono text-sm font-semibold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">
             {rule.matchValue}
           </span>
+          {rule.amountExact != null && (
+            <span className="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+              ${(rule.amountExact / 100).toFixed(2)}
+            </span>
+          )}
           <span className="text-xs text-slate-400">→</span>
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
             <CategoryIcon name={rule.category.icon} color={rule.category.color} size={14} />
@@ -93,7 +99,7 @@ function RuleRow({
         </div>
         <div className="mt-1 flex items-center gap-2 flex-wrap">
           <span className="text-[11px] text-slate-400 uppercase tracking-wide">
-            {rule.matchType === 'vendor_exact' ? 'Exact match' : 'Contains'}
+            {rule.matchType === 'vendor_exact_amount' ? 'Exact vendor + price' : rule.matchType === 'vendor_exact' ? 'Exact vendor' : 'Contains'}
           </span>
         </div>
       </div>
