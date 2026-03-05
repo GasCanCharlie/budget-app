@@ -16,7 +16,6 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import OpenAI from 'openai'
 
 // ─── AiChatContext ────────────────────────────────────────────────────────────
 
@@ -144,22 +143,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const client = new OpenAI({ apiKey, timeout: 8000, maxRetries: 0 })
     const contextBlock = formatContext(context)
 
     console.log('[insights/chat] calling OpenAI, key prefix:', apiKey.slice(0, 7))
 
-    const completion = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 512,
-      stream: false,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `${contextBlock}\n\nUser question: ${message}` },
-      ],
+    const oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 512,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: `${contextBlock}\n\nUser question: ${message}` },
+        ],
+      }),
     })
 
-    const responseText = completion.choices[0]?.message?.content ?? ''
+    if (!oaiRes.ok) {
+      const errBody = await oaiRes.text()
+      console.error('[insights/chat] OpenAI error:', oaiRes.status, errBody)
+      return NextResponse.json({ error: `OpenAI error ${oaiRes.status}: ${errBody}` }, { status: 502 })
+    }
+
+    interface OaiChoice { message: { content: string } }
+    interface OaiResponse { choices: OaiChoice[] }
+    const data = await oaiRes.json() as OaiResponse
+    const responseText = data.choices[0]?.message?.content ?? ''
     return NextResponse.json({ message: responseText })
 
   } catch (err) {

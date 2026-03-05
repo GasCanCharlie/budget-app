@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@prisma/client', 'bcryptjs', 'openai'],
+  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   eslint: { ignoreDuringBuilds: true },
 }
 
