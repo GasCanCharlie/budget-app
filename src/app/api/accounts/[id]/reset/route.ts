@@ -83,12 +83,7 @@ export async function POST(
       }
     }
 
-    // 8. Delete user-created rules (so next upload starts uncategorized)
-    await tx.categoryRule.deleteMany({
-      where: { userId: payload.userId, isSystem: false },
-    })
-
-    // 9. Reset category order to default
+    // 8. Reset category order to default
     await tx.user.update({
       where: { id: payload.userId },
       data: { categoryOrder: '[]' },
