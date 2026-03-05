@@ -4,21 +4,21 @@
  *
  * Body: { message: string, context: AiChatContext }
  *
- * Streams a response from OpenAI (gpt-4o-mini).
+ * Returns a JSON response from OpenAI (gpt-4o-mini).
  * The AI receives only structured numeric context — never raw transaction text.
- * Returns: ReadableStream (text/plain; charset=utf-8)
+ * Returns: { message: string }
  *
  * If OPENAI_API_KEY is not set, returns 503.
  */
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import OpenAI from 'openai'
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
-
-// ─── AiChatContext (mirrors Turn 1 spec) ─────────────────────────────────────
+// ─── AiChatContext ────────────────────────────────────────────────────────────
 
 interface CategoryTotal {
   name: string
@@ -116,85 +116,53 @@ IMPORTANT: Only reference the data shown above. Do not invent any numbers, merch
 
 export async function POST(req: NextRequest) {
   try {
-    return await handleChat(req)
+    // Auth is optional — low-risk endpoint (aggregated numeric context only)
+    const user = getUserFromRequest(req)
+    if (user) console.log('[insights/chat] userId:', user.userId)
+
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'AI chat is not configured. OPENAI_API_KEY is not set.' },
+        { status: 503 },
+      )
+    }
+
+    let message: string
+    let context: AiChatContext
+    try {
+      const body = (await req.json()) as { message?: unknown; context?: unknown }
+      if (typeof body.message !== 'string' || !body.message.trim()) {
+        return NextResponse.json({ error: 'message is required' }, { status: 400 })
+      }
+      message = body.message.trim()
+      context = body.context as AiChatContext
+      if (!context || typeof context.totalIncome !== 'number') {
+        return NextResponse.json({ error: 'context is required' }, { status: 400 })
+      }
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
+    const client = new OpenAI({ apiKey })
+    const contextBlock = formatContext(context)
+
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 512,
+      stream: false,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: `${contextBlock}\n\nUser question: ${message}` },
+      ],
+    })
+
+    const responseText = completion.choices[0]?.message?.content ?? ''
+    return NextResponse.json({ message: responseText })
+
   } catch (err) {
     console.error('[insights/chat] unhandled error:', err)
     const msg = err instanceof Error ? err.message : String(err)
     return NextResponse.json({ error: `Chat error: ${msg}` }, { status: 500 })
   }
-}
-
-async function handleChat(req: NextRequest) {
-  // Auth is optional for AI chat — low-risk endpoint (no PII, only aggregated
-  // numeric context supplied by the client). We still log the userId when
-  // present so server logs are attributable, but we do NOT hard-reject
-  // unauthenticated requests. This avoids spurious 401s caused by JWT_SECRET
-  // mismatches between environments or expired tokens.
-  const user = getUserFromRequest(req)
-  if (user) {
-    console.log('[insights/chat] userId:', user.userId)
-  }
-
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: 'AI chat is not configured. OPENAI_API_KEY is not set.' },
-      { status: 503 },
-    )
-  }
-
-  let message: string
-  let context: AiChatContext
-  try {
-    const body = (await req.json()) as { message?: unknown; context?: unknown }
-    if (typeof body.message !== 'string' || !body.message.trim()) {
-      return NextResponse.json({ error: 'message is required' }, { status: 400 })
-    }
-    message = body.message.trim()
-    context = body.context as AiChatContext
-    if (!context || typeof context.totalIncome !== 'number') {
-      return NextResponse.json({ error: 'context is required' }, { status: 400 })
-    }
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-  }
-
-  const client = new OpenAI({ apiKey })
-  const contextBlock = formatContext(context)
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      try {
-        const response = await client.chat.completions.create({
-          model: 'gpt-4o-mini',
-          max_tokens: 512,
-          stream: true,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: `${contextBlock}\n\nUser question: ${message}` },
-          ],
-        })
-
-        for await (const chunk of response) {
-          const text = chunk.choices[0]?.delta?.content ?? ''
-          if (text) {
-            controller.enqueue(new TextEncoder().encode(text))
-          }
-        }
-
-        controller.close()
-      } catch (err) {
-        console.error('[insights/chat] stream error:', err)
-        controller.error(err)
-      }
-    },
-  })
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      'X-Content-Type-Options': 'nosniff',
-    },
-  })
 }

@@ -125,49 +125,24 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
       })
 
       if (!response.ok) {
-        // Try to read a JSON error message from the response body so we can
-        // show something useful instead of the generic fallback.
         let errMsg = `HTTP ${response.status}`
         try {
           const errBody = await response.json() as { error?: string }
           if (errBody.error) errMsg = errBody.error
         } catch {
-          // ignore parse failure — keep the status code message
+          // ignore parse failure
         }
         throw new Error(errMsg)
       }
 
-      // Stream the response
-      const reader = response.body?.getReader()
-      if (!reader) throw new Error('No reader')
+      const data = await response.json() as { message?: string }
+      const responseText = data.message ?? ''
 
-      const decoder = new TextDecoder()
-      let accumulated = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const chunk = decoder.decode(value, { stream: true })
-        accumulated += chunk
-
-        // Update the streaming message
-        setMessages(prev => {
-          const next = [...prev]
-          const lastIdx = next.length - 1
-          if (next[lastIdx]?.role === 'assistant') {
-            next[lastIdx] = { role: 'assistant', content: accumulated, streaming: true }
-          }
-          return next
-        })
-      }
-
-      // Finalize the message (remove streaming flag)
       setMessages(prev => {
         const next = [...prev]
         const lastIdx = next.length - 1
         if (next[lastIdx]?.role === 'assistant') {
-          next[lastIdx] = { role: 'assistant', content: accumulated, streaming: false }
+          next[lastIdx] = { role: 'assistant', content: responseText, streaming: false }
         }
         return next
       })

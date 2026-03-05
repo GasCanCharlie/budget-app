@@ -332,8 +332,6 @@ export default function ChatPage() {
       })
 
       if (!response.ok) {
-        // Read the real error body so we can display something actionable
-        // instead of the generic "AI chat is temporarily unavailable" fallback.
         let errMsg = `HTTP ${response.status}`
         try {
           const errBody = await response.json() as { error?: string }
@@ -346,32 +344,14 @@ export default function ChatPage() {
         throw new Error(errMsg)
       }
 
-      const reader = response.body?.getReader()
-      if (!reader) throw new Error('No reader')
-
-      const decoder = new TextDecoder()
-      let accumulated = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const chunk = decoder.decode(value, { stream: true })
-        accumulated += chunk
-        setMessages(prev => {
-          const next = [...prev]
-          const last = next.length - 1
-          if (next[last]?.role === 'assistant') {
-            next[last] = { role: 'assistant', content: accumulated, streaming: true }
-          }
-          return next
-        })
-      }
+      const data = await response.json() as { message?: string }
+      const responseText = data.message ?? ''
 
       setMessages(prev => {
         const next = [...prev]
         const last = next.length - 1
         if (next[last]?.role === 'assistant') {
-          next[last] = { role: 'assistant', content: accumulated, streaming: false }
+          next[last] = { role: 'assistant', content: responseText, streaming: false }
         }
         return next
       })
