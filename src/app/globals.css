@@ -5,41 +5,45 @@
 /* ─── Theme tokens ─────────────────────────────────────────────────────── */
 :root {
   /* Dark theme is default */
-  --bg:          #0b1020;
-  --bg2:         #070a14;
-  --surface:     rgba(255,255,255,0.04);
-  --surface2:    rgba(255,255,255,0.07);
-  --border:      rgba(255,255,255,0.08);
-  --border2:     rgba(255,255,255,0.14);
-  --text:        #eaf0ff;
-  --text2:       #a8b3d6;
-  --text3:       #8b97c3;
-  --accent:      #6ea8ff;
-  --accent2:     #8b6fff;
+  --bg:           #0b1020;
+  --bg2:          #070a14;
+  --surface:      rgba(255,255,255,0.05);
+  --surface2:     rgba(255,255,255,0.09);
+  --border:       rgba(255,255,255,0.08);
+  --border2:      rgba(255,255,255,0.14);
+  --text:         #eaf0ff;
+  --text2:        #a8b3d6;
+  --text3:        #8b97c3;
+  --accent:       #6ea8ff;
+  --accent2:      #8b6fff;
   --accent-muted: rgba(110,168,255,0.12);
-  --success:     #2ee59d;
-  --warn:        #fbbf24;
-  --danger:      #f87171;
-  --sidebar-bg:  linear-gradient(180deg, #0b1020 0%, #070a14 100%);
+  --success:      #2ee59d;
+  --success-muted: rgba(46,229,157,0.12);
+  --warn:         #fbbf24;
+  --warn-muted:   rgba(251,191,36,0.12);
+  --danger:       #f87171;
+  --sidebar-bg:   linear-gradient(180deg, #0b1020 0%, #070a14 100%);
 }
 
 [data-theme="light"] {
-  --bg:          #f4f6fb;
-  --bg2:         #eef1f8;
-  --surface:     rgba(255,255,255,0.85);
-  --surface2:    rgba(255,255,255,0.95);
-  --border:      rgba(0,0,0,0.08);
-  --border2:     rgba(0,0,0,0.14);
-  --text:        #0f172a;
-  --text2:       #334155;
-  --text3:       #64748b;
-  --accent:      #3b6fd4;
-  --accent2:     #6d4fd4;
-  --accent-muted: rgba(59,111,212,0.10);
-  --success:     #059669;
-  --warn:        #d97706;
-  --danger:      #dc2626;
-  --sidebar-bg:  linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --bg:           #f0f4fa;
+  --bg2:          #eef1f8;
+  --surface:      #ffffff;
+  --surface2:     #f8fafc;
+  --border:       rgba(0,0,0,0.08);
+  --border2:      rgba(0,0,0,0.13);
+  --text:         #0f172a;
+  --text2:        #334155;
+  --text3:        #64748b;
+  --accent:       #2563eb;
+  --accent2:      #6d4fd4;
+  --accent-muted: rgba(37,99,235,0.10);
+  --success:      #059669;
+  --success-muted: rgba(5,150,105,0.12);
+  --warn:         #d97706;
+  --warn-muted:   rgba(217,119,6,0.12);
+  --danger:       #dc2626;
+  --sidebar-bg:   linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
 }
 
 /* ─── Smooth theme transition ───────────────────────────────────────────── */
@@ -82,18 +86,22 @@ html, body {
   }
 }
 
-[data-theme="light"] body,
-[data-theme="light"] .min-h-screen {
+[data-theme="light"] body {
   background: linear-gradient(180deg, #e8edf8 0%, #f4f6fb 100%) !important;
   background-attachment: fixed;
+  color: #0f172a;
+}
+
+[data-theme="light"] .min-h-screen {
+  background: transparent !important;
 }
 
 @layer components {
   .card {
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.09);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.40);
+    box-shadow: 0 4px 20px rgba(0,0,0,.15);
     padding: 1rem;
     position: relative;
   }
@@ -102,23 +110,23 @@ html, body {
   }
   .btn-secondary {
     @apply inline-flex items-center gap-2 px-5 py-2.5 font-semibold rounded-lg border transition-all text-sm;
-    background: rgba(255,255,255,.06);
-    border-color: rgba(255,255,255,.12);
-    color: #c8d4f5;
+    background: var(--surface);
+    border-color: var(--border2);
+    color: var(--text2);
   }
   .btn-secondary:hover {
-    background: rgba(255,255,255,.10);
+    background: var(--surface2);
   }
   .input {
     @apply w-full px-4 py-2.5 rounded-lg text-sm
            focus:outline-none focus:ring-2 transition-all;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.12);
-    color: #eaf0ff;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text);
     --tw-ring-color: rgba(110,168,255,.40);
   }
-  .input::placeholder { color: rgba(139,151,195,.55); }
-  .input:focus        { background: rgba(255,255,255,.08); }
+  .input::placeholder { color: var(--text3); }
+  .input:focus        { background: var(--surface2); }
   .badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
   }
@@ -299,20 +307,79 @@ html, body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #8b97c3;
+  color: var(--text3);
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid rgba(255,255,255,.09);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .data-table td {
   padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid rgba(255,255,255,.05);
-  color: #a8b3d6;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
 }
 .data-table tbody tr:last-child td {
   border-bottom: none;
 }
 .data-table tbody tr:hover td {
-  background-color: rgba(255,255,255,.03);
+  background-color: var(--surface);
   cursor: pointer;
 }
+
+/* ─── Light mode: panels that use bg-white / Tailwind surface classes ────── */
+[data-theme="light"] .bg-white {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+}
+[data-theme="light"] .card {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.05);
+}
+[data-theme="light"] .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05); }
+[data-theme="light"] .shadow-md { box-shadow: 0 2px 8px rgba(0,0,0,0.10), 0 8px 24px rgba(0,0,0,0.07); }
+[data-theme="light"] .shadow-lg { box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 12px 32px rgba(0,0,0,0.09); }
+[data-theme="light"] .shadow-xl { box-shadow: 0 8px 20px rgba(0,0,0,0.14), 0 20px 40px rgba(0,0,0,0.10); }
+
+/* Light mode text using Tailwind classes */
+[data-theme="light"] .text-slate-900  { color: #0f172a; }
+[data-theme="light"] .text-slate-800  { color: #1e293b; }
+[data-theme="light"] .text-slate-700  { color: #334155; }
+[data-theme="light"] .text-slate-600  { color: #475569; }
+[data-theme="light"] .text-slate-500  { color: #64748b; }
+[data-theme="light"] .text-slate-400  { color: #94a3b8; }
+
+/* Light mode borders */
+[data-theme="light"] .border-slate-200 { border-color: rgba(0,0,0,0.10); }
+[data-theme="light"] .border-slate-100 { border-color: rgba(0,0,0,0.07); }
+[data-theme="light"] .divide-slate-100 > * + * { border-color: rgba(0,0,0,0.07); }
+
+/* Light mode hovers */
+[data-theme="light"] .hover\:bg-slate-50:hover  { background-color: #f8fafc; }
+[data-theme="light"] .hover\:bg-slate-100:hover { background-color: #f1f5f9; }
+
+/* Light mode semantic colors */
+[data-theme="light"] .text-emerald-600 { color: #059669; }
+[data-theme="light"] .text-emerald-700 { color: #047857; }
+[data-theme="light"] .text-red-500     { color: #ef4444; }
+[data-theme="light"] .text-red-600     { color: #dc2626; }
+[data-theme="light"] .text-red-700     { color: #b91c1c; }
+[data-theme="light"] .text-amber-600   { color: #d97706; }
+[data-theme="light"] .text-blue-600    { color: #2563eb; }
+[data-theme="light"] .text-blue-700    { color: #1d4ed8; }
+[data-theme="light"] .text-green-600   { color: #16a34a; }
+[data-theme="light"] .text-green-700   { color: #15803d; }
+
+/* Light mode backgrounds */
+[data-theme="light"] .bg-slate-50      { background-color: #f8fafc; }
+[data-theme="light"] .bg-slate-100     { background-color: #f1f5f9; }
+[data-theme="light"] .bg-emerald-50    { background-color: #ecfdf5; }
+[data-theme="light"] .bg-red-50        { background-color: #fef2f2; }
+[data-theme="light"] .bg-amber-50      { background-color: #fffbeb; }
+[data-theme="light"] .bg-blue-50       { background-color: #eff6ff; }
+[data-theme="light"] .bg-green-50      { background-color: #f0fdf4; }
+[data-theme="light"] .bg-yellow-50     { background-color: #fefce8; }
+
+/* Light mode data table */
+[data-theme="light"] .data-table th { color: #64748b; border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .data-table td { color: #334155; border-color: rgba(0,0,0,0.05); }
+[data-theme="light"] .data-table tbody tr:hover td { background-color: #f8fafc; }
