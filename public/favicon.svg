@@ -5,7 +5,7 @@
       <stop offset="0%" stop-color="#4F7CFF"/>
       <stop offset="100%" stop-color="#8B6FFF"/>
     </linearGradient>
-    <linearGradient id="g2" x1="4" y1="14" x2="22" y2="14" gradientUnits="userSpaceOnUse">
+    <linearGradient id="g2" x1="9" y1="7" x2="19" y2="21" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#7aaaff"/>
       <stop offset="100%" stop-color="#c084fc"/>
     </linearGradient>
@@ -14,10 +14,10 @@
     </clipPath>
   </defs>
   <circle cx="14" cy="14" r="10" stroke="url(#g1)" stroke-width="2"/>
-  <polyline points="5.5,18 8.5,14 12,16 16.5,10 22,7.5"
-    stroke="url(#g2)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
-    clip-path="url(#c1)"/>
-  <circle cx="16.5" cy="10" r="1.4" fill="#a78bfa" clip-path="url(#c1)"/>
+  <line x1="14" y1="4.5" x2="14" y2="23.5"
+    stroke="url(#g2)" stroke-width="1.6" stroke-linecap="round" clip-path="url(#c1)"/>
+  <path d="M 18,9.5 C 18,7.8 16.5,7 14,7 C 11.5,7 9.5,8.2 9.5,10.5 C 9.5,12.8 12,13.2 14,14 C 16,14.8 18.5,15.5 18.5,18 C 18.5,20.2 16.5,21.5 14,21.5 C 11.5,21.5 9.5,20.2 9.5,18.5"
+    stroke="url(#g2)" stroke-width="1.6" fill="none" stroke-linecap="round" clip-path="url(#c1)"/>
   <line x1="21.5" y1="21.5" x2="27.5" y2="27.5"
     stroke="url(#g1)" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

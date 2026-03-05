@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { useQueryClient } from '@tanstack/react-query'
 import '@/styles/auth.css'
+import { LogoMark } from '@/components/LogoMark'
 
 function LoginForm() {
   const router       = useRouter()
@@ -63,7 +64,7 @@ function LoginForm() {
         href="/"
         style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}
       >
-        <div className="auth-logo-mark" aria-hidden="true" />
+        <div className="bl-logo-container" style={{ width: 36, height: 36, borderRadius: 10 }}><LogoMark size={22} /></div>
         <div>
           <div style={{ fontSize: '15px', fontWeight: 700, color: '#eaf0ff', letterSpacing: '.2px', lineHeight: '1' }}>
             BudgetLens

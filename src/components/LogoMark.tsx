@@ -38,8 +38,8 @@ export function LogoMark({ size = 32, className }: LogoMarkProps) {
           <stop offset="100%" stopColor="#8B6FFF" />
         </linearGradient>
 
-        {/* Trend line: lighter blue → soft violet */}
-        <linearGradient id={trendGradId} x1="4" y1="14" x2="22" y2="14" gradientUnits="userSpaceOnUse">
+        {/* Dollar sign fill: lighter blue → soft violet */}
+        <linearGradient id={trendGradId} x1="9" y1="7" x2="19" y2="21" gradientUnits="userSpaceOnUse">
           <stop offset="0%"   stopColor="#7aaaff" />
           <stop offset="100%" stopColor="#c084fc" />
         </linearGradient>
@@ -64,20 +64,24 @@ export function LogoMark({ size = 32, className }: LogoMarkProps) {
         strokeWidth="2"
       />
 
-      {/* ── Trend line (ascending, clipped inside lens) ── */}
-      <polyline
-        points="5.5,18  8.5,14  12,16  16.5,10  22,7.5"
+      {/* ── Dollar sign vertical stroke ── */}
+      <line
+        x1="14" y1="4.5"
+        x2="14" y2="23.5"
         stroke={`url(#${trendGradId})`}
-        strokeWidth="1.7"
+        strokeWidth="1.6"
         strokeLinecap="round"
-        strokeLinejoin="round"
         clipPath={`url(#${clipId})`}
       />
 
-      {/* ── Peak dot at the top of the trend ── */}
-      <circle
-        cx="16.5" cy="10" r="1.4"
-        fill="#a78bfa"
+      {/* ── Dollar sign S-curve ── */}
+      <path
+        d="M 18,9.5 C 18,7.8 16.5,7 14,7 C 11.5,7 9.5,8.2 9.5,10.5 C 9.5,12.8 12,13.2 14,14 C 16,14.8 18.5,15.5 18.5,18 C 18.5,20.2 16.5,21.5 14,21.5 C 11.5,21.5 9.5,20.2 9.5,18.5"
+        stroke={`url(#${trendGradId})`}
+        strokeWidth="1.6"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         clipPath={`url(#${clipId})`}
       />
 

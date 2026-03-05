@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
+import { LogoMark } from '@/components/LogoMark'
 
 const CSS = `
 .lp {
@@ -338,7 +339,7 @@ export default function HomePage() {
       <div className="nav">
         <div className="wrap nav-inner">
           <div className="brand">
-            <div className="logo" aria-hidden="true" />
+            <div className="bl-logo-container" style={{ width: 34, height: 34, borderRadius: 10 }}><LogoMark size={20} /></div>
             <div>
               <div style={{ fontSize: '14px', lineHeight: '1' }}>BudgetLens</div>
               <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 650, marginTop: '2px' }}>Statement Intelligence</div>
@@ -609,7 +610,7 @@ export default function HomePage() {
         <div className="wrap">
           <div className="foot">
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <div className="logo" aria-hidden="true" style={{ width: '28px', height: '28px', borderRadius: '10px' }} />
+              <div className="bl-logo-container" style={{ width: 28, height: 28, borderRadius: 8 }}><LogoMark size={17} /></div>
               <div>
                 <div style={{ fontWeight: 800, color: 'rgba(255,255,255,.90)' }}>BudgetLens</div>
                 <div style={{ color: 'var(--muted2)', fontSize: '12px' }}>© <span id="lp-year" /> · Privacy-first budgeting</div>
