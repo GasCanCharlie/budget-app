@@ -9,6 +9,7 @@ import {
   LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2, Inbox, History, MessageCircle, Lightbulb
 } from 'lucide-react'
 import clsx from 'clsx'
+import { LogoMark } from '@/components/LogoMark'
 
 interface AppShellProps {
   children: React.ReactNode
@@ -68,7 +69,9 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
       >
         {/* Logo */}
         <div className="h-14 px-4 flex items-center gap-2.5 border-b" style={{ borderColor: 'rgba(255,255,255,.07)' }}>
-          <div className="logo-mark h-8 w-8" aria-hidden="true" />
+          <div className="bl-logo-container" style={{ width: 36, height: 36 }}>
+            <LogoMark size={22} />
+          </div>
           <div className="leading-tight">
             <div className="text-sm font-semibold tracking-wide text-[#eaf0ff]">BudgetLens</div>
             <div className="text-xs text-[#8b97c3]">Statement Intelligence</div>
@@ -130,7 +133,9 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
           <div className="h-full px-4 flex items-center justify-between gap-4">
             {/* Mobile logo */}
             <div className="flex items-center gap-2 md:hidden">
-              <div className="logo-mark h-7 w-7" aria-hidden="true" />
+              <div className="bl-logo-container" style={{ width: 30, height: 30 }}>
+                <LogoMark size={18} />
+              </div>
               <span className="text-sm font-semibold text-[#eaf0ff]">BudgetLens</span>
             </div>
 
