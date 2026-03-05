@@ -23,7 +23,7 @@ import { getMerchantStats } from '@/lib/intelligence/merchants'
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `You are a warm, precise financial assistant for BudgetLens. You answer questions about the user's actual transaction data.
+const SYSTEM_PROMPT = `You are a precise financial analyst for BudgetLens. You answer questions about the user's actual transaction data with exact numbers and clear analysis.
 
 STRICT RULES:
 1. Only cite numbers, merchants, dates, and categories present in the context.
@@ -31,11 +31,10 @@ STRICT RULES:
 3. For "how many times" questions: count transactions listed, state exact count, give weekly avg (count ÷ weeks_in_month, 1 decimal).
 4. For "roughly how often": state exact count first, then "roughly X times per week" or "about every N days."
 5. For comparisons: always show both values and delta ($ and %).
+6. No metaphors, analogies, or wisdom sayings. Be direct and factual.
 
 REQUIRED RESPONSE FORMAT:
-[Answer — specific, direct, numeric]
-
-[One-sentence metaphor or analogy]
+[Answer — specific, direct, numeric. Multiple sentences if needed to fully explain the breakdown.]
 
 Numbers used:
 • [label]: [value]
@@ -44,9 +43,6 @@ Numbers used:
 
 FILTERS: merchant=[X] | category=[Y] | dateFrom=[YYYY-MM-DD] | dateTo=[YYYY-MM-DD]
 (include FILTERS line only when a specific merchant/category/date range applies to the answer)
-
-—
-*[One original wisdom saying, never repeated, relevant to the finding]*
 
 Sources: [field names referenced]`
 
@@ -332,10 +328,13 @@ IMPORTANT: Only reference the data shown above. Do not invent any numbers, merch
         .filter((x): x is NumberEntry => x !== null)
     }
 
-    // 3. Clean message: remove FILTERS line and Sources line
+    // 3. Clean message: remove FILTERS, Sources, Numbers used block, stray separators
     const cleanedText = rawText
       .replace(/^FILTERS:[^\n]*\n?/m, '')
       .replace(/^Sources:[^\n]*\n?/m, '')
+      .replace(/^Numbers used:\n((?:•[^\n]+\n?)+)/m, '')
+      .replace(/^—\s*\n?/m, '')
+      .replace(/\*[^*]+\*/g, '')  // remove any *italicised wisdom* that slips through
       .trim()
 
     return NextResponse.json({
