@@ -70,22 +70,24 @@ function formatContext(ctx: AiChatContext): string {
   })
 
   const cats = ctx.categoryTotals
-    .map(c => `  - ${c.name}: $${c.total.toFixed(2)} (${c.pctOfSpending.toFixed(1)}% of spending, ${c.transactionCount} transactions)`)
+    .map(c => `  - ${c.name}: $${c.total.toFixed(2)} (${c.pctOfSpending.toFixed(1)}% of spending${c.transactionCount != null ? `, ${c.transactionCount} transactions` : ''})`)
     .join('\n')
 
   const merchants = ctx.topMerchants
     .map(m => `  - ${m.merchantNormalized}: $${m.totalAmount.toFixed(2)} (${m.transactionCount} transactions)`)
     .join('\n')
 
-  const momSpending =
-    ctx.momSpendingPctChange !== null
-      ? `Month-over-month spending change: ${ctx.momSpendingPctChange >= 0 ? '+' : ''}${ctx.momSpendingPctChange.toFixed(1)}%`
-      : 'Month-over-month spending change: insufficient data'
+  const savingsRate = ctx.savingsRatePct != null
+    ? ctx.savingsRatePct
+    : ctx.totalIncome > 0 ? ((ctx.net / ctx.totalIncome) * 100) : 0
 
-  const momIncome =
-    ctx.momIncomePctChange !== null
-      ? `Month-over-month income change: ${ctx.momIncomePctChange >= 0 ? '+' : ''}${ctx.momIncomePctChange.toFixed(1)}%`
-      : 'Month-over-month income change: insufficient data'
+  const momSpending = ctx.momSpendingPctChange != null
+    ? `Month-over-month spending change: ${ctx.momSpendingPctChange >= 0 ? '+' : ''}${ctx.momSpendingPctChange.toFixed(1)}%`
+    : 'Month-over-month spending change: insufficient data'
+
+  const momIncome = ctx.momIncomePctChange != null
+    ? `Month-over-month income change: ${ctx.momIncomePctChange >= 0 ? '+' : ''}${ctx.momIncomePctChange.toFixed(1)}%`
+    : 'Month-over-month income change: insufficient data'
 
   return `FINANCIAL DATA FOR ${monthName.toUpperCase()}:
 
@@ -93,7 +95,7 @@ Summary:
   Total Income:   $${ctx.totalIncome.toFixed(2)}
   Total Spending: $${ctx.totalSpending.toFixed(2)}
   Net:            $${ctx.net.toFixed(2)}
-  Savings Rate:   ${ctx.savingsRatePct.toFixed(1)}%
+  Savings Rate:   ${savingsRate.toFixed(1)}%
 
 ${momSpending}
 ${momIncome}
