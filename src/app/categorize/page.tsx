@@ -384,6 +384,81 @@ function CategoryBucket({
   )
 }
 
+// ─── Rule Ask Modal ───────────────────────────────────────────────────────────
+
+interface RuleAskState {
+  tx: Transaction
+  category: { id: string; name: string; icon: string; color: string }
+  similarCount: number
+}
+
+function RuleAskModal({
+  state,
+  isPending,
+  onAlways,
+  onJustOne,
+  onCancel,
+}: {
+  state: RuleAskState
+  isPending: boolean
+  onAlways: () => void
+  onJustOne: () => void
+  onCancel: () => void
+}) {
+  const vendor = state.tx.merchantNormalized || state.tx.description
+  const amount = state.tx.amount
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" style={{ backdropFilter: 'blur(4px)' }}>
+      <div className="w-full max-w-md rounded-2xl p-6 shadow-xl" style={{ background: 'rgba(11,16,32,.96)', border: '1px solid rgba(255,255,255,.12)' }}>
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-100">
+            <Zap size={18} className="text-accent-600" />
+          </span>
+          <div>
+            <h3 className="font-bold text-[#eaf0ff]">Auto-assign rule?</h3>
+            <p className="text-sm text-[#8b97c3] mt-0.5">
+              Always assign <strong className="text-[#c8d4f5]">{vendor}</strong>{' '}
+              ({fmtAmt(amount)}) →{' '}
+              <strong className="text-[#c8d4f5]">{state.category.name}</strong>{' '}
+              for future imports?
+            </p>
+            {state.similarCount > 1 && (
+              <p className="text-xs text-[rgba(255,180,60,.85)] mt-1">
+                Also categorizes {state.similarCount - 1} similar transaction{state.similarCount > 2 ? 's' : ''} in this batch.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <button
+            onClick={onCancel}
+            disabled={isPending}
+            className="rounded-lg border px-4 py-2 text-sm font-medium text-[#8b97c3] hover:bg-white/[.06] disabled:opacity-50"
+            style={{ borderColor: 'rgba(255,255,255,.12)' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onJustOne}
+            disabled={isPending}
+            className="rounded-lg border border-accent-200 bg-accent-50 px-4 py-2 text-sm font-medium text-accent-700 hover:bg-accent-100 disabled:opacity-50"
+          >
+            {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Just this one'}
+          </button>
+          <button
+            onClick={onAlways}
+            disabled={isPending}
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Yes, always'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Confirmation Modal ───────────────────────────────────────────────────────
 
 function ConfirmModal({
@@ -727,10 +802,8 @@ export default function CategorizePage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [, startTransition] = useTransition()
 
-  // ── "Remember this?" session tracking ──
-  const sessionAssignMap = useRef<Map<string, { catName: string; categoryId: string; count: number }>>(new Map())
-  const [rulePrompt, setRulePrompt] = useState<RulePromptState | null>(null)
-  const promptedVendors = useRef<Set<string>>(new Set())
+  // ── Rule ask modal state ──
+  const [ruleAsk, setRuleAsk] = useState<RuleAskState | null>(null)
 
   // Debounced dashboard invalidation
   const dashboardTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -747,7 +820,6 @@ export default function CategorizePage() {
   const [filterMode,    setFilterMode]    = useState<FilterMode>('needs-review')
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
   const [anchorId,      setAnchorId]      = useState<string | null>(null)
-  const [confirm,       setConfirm]       = useState<ConfirmState | null>(null)
   const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
 
   // Active dnd-kit drag item (replaces dragging / hoveredCatId / reorderDragId / reorderOverId)
@@ -786,6 +858,15 @@ export default function CategorizePage() {
     queryFn: () => apiFetch('/api/categories'),
     enabled: !!user,
   })
+
+  const { data: rulesData } = useQuery({
+    queryKey: ['rules'],
+    queryFn: () => apiFetch('/api/rules'),
+    staleTime: 0,
+    refetchOnMount: 'always' as const,
+    enabled: !!user,
+  })
+  const existingRules: Array<{ matchValue: string; amountExact: number | null; scopeAccountId: string | null }> = rulesData?.rules ?? []
 
   const allTxs: Transaction[] = txData?.transactions ?? []
 
@@ -926,7 +1007,6 @@ export default function CategorizePage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rules'] })
-      setRulePrompt(null)
     },
   })
 
@@ -936,46 +1016,30 @@ export default function CategorizePage() {
     [allTxs]
   )
 
-  const trackSessionAssign = useCallback((vendor: string, catName: string, catId: string) => {
-    if (!vendor) return
-    const key = vendor.toLowerCase().trim()
-    if (promptedVendors.current.has(key)) return
-    // Show prompt immediately if vendor appears 2+ times in the uncategorized queue
-    // (repeatable vendor), otherwise wait until they assign it a second time
-    const vendorCountInQueue = allTxs.filter(
-      t => t.merchantNormalized.toLowerCase().trim() === key && !t.appCategory
-    ).length
-    const existing = sessionAssignMap.current.get(key)
-    const newCount = existing ? existing.count + 1 : 1
-    sessionAssignMap.current.set(key, { catName, categoryId: catId, count: newCount })
-    if (newCount >= 2 || vendorCountInQueue >= 1) {
-      promptedVendors.current.add(key)
-      setRulePrompt({ vendor, catName, categoryId: catId })
-    }
-  }, [allTxs])
+  const ruleExistsFor = useCallback((merchant: string, amount: number, accountId: string) => {
+    const key = merchant.toLowerCase().trim()
+    const amountCents = Math.round(amount * 100)
+    return existingRules.some(r =>
+      r.matchValue.toLowerCase() === key &&
+      r.amountExact === amountCents &&
+      (r.scopeAccountId === null || r.scopeAccountId === accountId)
+    )
+  }, [existingRules])
 
   const initiateAssign = useCallback((tx: Transaction, categoryId: string) => {
     const cat = categories.find(c => c.id === categoryId)
     if (!cat) return
-    const similarCount = countSimilar(tx.merchantNormalized, tx.amount)
-    if (similarCount <= 1) {
-      updateMutation.mutate({ id: tx.id, appCategory: cat.name, applyToAll: false })
-      // Auto-save vendor+amount rule silently so next upload remembers this
-      if (tx.merchantNormalized) {
-        createRuleMutation.mutate({
-          matchValue:     tx.merchantNormalized,
-          amountExact:    Math.round(tx.amount * 100),
-          categoryId,
-          mode:           'always',
-          scopeAccountId: tx.accountId,
-        })
-      }
-      trackSessionAssign(tx.merchantNormalized, cat.name, cat.id)
+    if (ruleExistsFor(tx.merchantNormalized, tx.amount, tx.accountId)) {
+      // Rule already exists — silently categorize (apply to all similar)
+      const applyToAll = countSimilar(tx.merchantNormalized, tx.amount) > 1
+      updateMutation.mutate({ id: tx.id, appCategory: cat.name, applyToAll })
       setSelectedIds(new Set()); setAnchorId(null)
       return
     }
-    setConfirm({ transaction: tx, category: cat, similarCount })
-  }, [categories, countSimilar, updateMutation, trackSessionAssign])
+    // No rule yet — ask
+    const similarCount = countSimilar(tx.merchantNormalized, tx.amount)
+    setRuleAsk({ tx, category: cat, similarCount })
+  }, [categories, ruleExistsFor, countSimilar, updateMutation])
 
   // ── Click handler (multi-select) ──
   const handleTxClick = useCallback((tx: Transaction, e: React.MouseEvent) => {
@@ -1137,8 +1201,8 @@ export default function CategorizePage() {
   // ── Keyboard shortcuts ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (confirm) {
-        if (e.key === 'Escape') setConfirm(null)
+      if (ruleAsk) {
+        if (e.key === 'Escape') setRuleAsk(null)
         return
       }
       if (e.key === 'ArrowDown' || e.key === 'j') {
@@ -1157,7 +1221,7 @@ export default function CategorizePage() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [confirm, anchorId, sortedQueueTxs])
+  }, [ruleAsk, anchorId, sortedQueueTxs])
 
   // Auto-select first visible item if none selected
   useEffect(() => {
@@ -1557,50 +1621,27 @@ export default function CategorizePage() {
         {/* Touch ghost element */}
         <TouchGhost tx={touchTx} pos={touchPos} />
 
-        {/* Rules are now auto-saved silently on every categorize — no prompt needed */}
-
-        {/* Confirmation modal */}
-        {confirm && (
-          <ConfirmModal
-            state={confirm}
-            isPending={updateMutation.isPending}
-            onCancel={() => setConfirm(null)}
-            onApplyOne={() => {
-              updateMutation.mutate(
-                { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: false },
-                { onSuccess: () => {
-                  if (confirm.transaction.merchantNormalized) {
-                    createRuleMutation.mutate({
-                      matchValue:     confirm.transaction.merchantNormalized,
-                      amountExact:    Math.round(confirm.transaction.amount * 100),
-                      categoryId:     confirm.category.id,
-                      mode:           'always',
-                      scopeAccountId: confirm.transaction.accountId,
-                    })
-                  }
-                  trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
-                  setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
-                } }
-              )
+        {/* Rule ask modal — prompt on first assignment of a vendor+price combo */}
+        {ruleAsk && (
+          <RuleAskModal
+            state={ruleAsk}
+            isPending={updateMutation.isPending || createRuleMutation.isPending}
+            onAlways={() => {
+              updateMutation.mutate({ id: ruleAsk.tx.id, appCategory: ruleAsk.category.name, applyToAll: ruleAsk.similarCount > 1 })
+              createRuleMutation.mutate({
+                matchValue:     ruleAsk.tx.merchantNormalized,
+                amountExact:    Math.round(ruleAsk.tx.amount * 100),
+                categoryId:     ruleAsk.category.id,
+                mode:           'always',
+                scopeAccountId: ruleAsk.tx.accountId,
+              })
+              setRuleAsk(null); setSelectedIds(new Set()); setAnchorId(null)
             }}
-            onApplyAll={() => {
-              updateMutation.mutate(
-                { id: confirm.transaction.id, appCategory: confirm.category.name, applyToAll: true },
-                { onSuccess: () => {
-                  if (confirm.transaction.merchantNormalized) {
-                    createRuleMutation.mutate({
-                      matchValue:     confirm.transaction.merchantNormalized,
-                      amountExact:    Math.round(confirm.transaction.amount * 100),
-                      categoryId:     confirm.category.id,
-                      mode:           'always',
-                      scopeAccountId: confirm.transaction.accountId,
-                    })
-                  }
-                  trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
-                  setConfirm(null); setSelectedIds(new Set()); setAnchorId(null)
-                } }
-              )
+            onJustOne={() => {
+              updateMutation.mutate({ id: ruleAsk.tx.id, appCategory: ruleAsk.category.name, applyToAll: false })
+              setRuleAsk(null); setSelectedIds(new Set()); setAnchorId(null)
             }}
+            onCancel={() => setRuleAsk(null)}
           />
         )}
 
