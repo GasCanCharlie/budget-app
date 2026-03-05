@@ -398,15 +398,18 @@ function RuleAskModal({
   onAlways,
   onJustOne,
   onCancel,
+  totalRemaining,
 }: {
   state: RuleAskState
   isPending: boolean
   onAlways: () => void
   onJustOne: () => void
   onCancel: () => void
+  totalRemaining?: number
 }) {
   const vendor = state.tx.merchantNormalized || state.tx.description
   const amount = state.tx.amount
+  const totalInQueue = (totalRemaining ?? 0) + 1
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" style={{ backdropFilter: 'blur(4px)' }}>
       <div className="w-full max-w-md rounded-2xl p-6 shadow-xl" style={{ background: 'rgba(11,16,32,.96)', border: '1px solid rgba(255,255,255,.12)' }}>
@@ -415,7 +418,9 @@ function RuleAskModal({
             <Zap size={18} className="text-accent-600" />
           </span>
           <div>
-            <h3 className="font-bold text-[#eaf0ff]">Auto-assign rule?</h3>
+            <h3 className="font-bold text-[#eaf0ff]">
+              Auto-assign rule?{totalRemaining && totalRemaining > 0 ? ` (1 of ${totalInQueue})` : ''}
+            </h3>
             <p className="text-sm text-[#8b97c3] mt-0.5">
               Always assign <strong className="text-[#c8d4f5]">{vendor}</strong>{' '}
               ({fmtAmt(amount)}) →{' '}
@@ -804,6 +809,15 @@ export default function CategorizePage() {
 
   // ── Rule ask modal state ──
   const [ruleAsk, setRuleAsk] = useState<RuleAskState | null>(null)
+  const [ruleAskQueue, setRuleAskQueue] = useState<RuleAskState[]>([])
+
+  const popRuleAsk = useCallback(() => {
+    setRuleAskQueue(q => {
+      if (q.length === 0) { setRuleAsk(null); return q }
+      setRuleAsk(q[0])
+      return q.slice(1)
+    })
+  }, [])
 
   // Debounced dashboard invalidation
   const dashboardTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1076,15 +1090,33 @@ export default function CategorizePage() {
     if (!cat) return
 
     if (txsToDrop.length > 1) {
+      // Categorize all immediately
       txsToDrop.forEach(id => {
         updateMutation.mutate({ id, appCategory: cat.name, applyToAll: false })
       })
-      setSelectedIds(new Set())
-      setAnchorId(null)
+      // Build queue: unique vendor+price combos without existing rules
+      const seen = new Set<string>()
+      const queue: RuleAskState[] = []
+      for (const id of txsToDrop) {
+        const tx = allTxs.find(t => t.id === id)
+        if (!tx?.merchantNormalized) continue
+        const key = `${tx.merchantNormalized.toLowerCase()}|${Math.round(tx.amount * 100)}|${tx.accountId}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        if (!ruleExistsFor(tx.merchantNormalized, tx.amount, tx.accountId)) {
+          queue.push({ tx, category: cat, similarCount: 1 })
+        }
+      }
+      if (queue.length > 0) {
+        setRuleAsk(queue[0])
+        setRuleAskQueue(queue.slice(1))
+      }
+      setSelectedIds(new Set()); setAnchorId(null)
+      return
     } else if (primaryTx) {
       initiateAssign(primaryTx, categoryId)
     }
-  }, [categories, initiateAssign, updateMutation])
+  }, [categories, initiateAssign, updateMutation, allTxs, ruleExistsFor])
 
   const handleClickAssign = useCallback((categoryId: string) => {
     const anchored = sortedQueueTxs.find(t => t.id === anchorId)
@@ -1202,7 +1234,7 @@ export default function CategorizePage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (ruleAsk) {
-        if (e.key === 'Escape') setRuleAsk(null)
+        if (e.key === 'Escape') { setRuleAskQueue([]); setRuleAsk(null) }
         return
       }
       if (e.key === 'ArrowDown' || e.key === 'j') {
@@ -1626,6 +1658,7 @@ export default function CategorizePage() {
           <RuleAskModal
             state={ruleAsk}
             isPending={updateMutation.isPending || createRuleMutation.isPending}
+            totalRemaining={ruleAskQueue.length}
             onAlways={() => {
               updateMutation.mutate({ id: ruleAsk.tx.id, appCategory: ruleAsk.category.name, applyToAll: ruleAsk.similarCount > 1 })
               createRuleMutation.mutate({
@@ -1635,13 +1668,13 @@ export default function CategorizePage() {
                 mode:           'always',
                 scopeAccountId: ruleAsk.tx.accountId,
               })
-              setRuleAsk(null); setSelectedIds(new Set()); setAnchorId(null)
+              popRuleAsk(); setSelectedIds(new Set()); setAnchorId(null)
             }}
             onJustOne={() => {
               updateMutation.mutate({ id: ruleAsk.tx.id, appCategory: ruleAsk.category.name, applyToAll: false })
-              setRuleAsk(null); setSelectedIds(new Set()); setAnchorId(null)
+              popRuleAsk(); setSelectedIds(new Set()); setAnchorId(null)
             }}
-            onCancel={() => setRuleAsk(null)}
+            onCancel={() => { setRuleAskQueue([]); setRuleAsk(null) }}
           />
         )}
 
