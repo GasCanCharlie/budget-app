@@ -22,6 +22,10 @@ export type CardType =
   | 'merchant_frequency'
   | 'mom_income_change'
   | 'monthly_summary'
+  | 'ai_insight_1'
+  | 'ai_insight_2'
+  | 'ai_insight_3'
+  | 'ai_insight_4'
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 
@@ -179,6 +183,11 @@ export interface MonthlySummaryData {
   savings_rate: number
 }
 
+export interface AiInsightData {
+  ai_generated: true
+}
+
+
 // ─── Union of all supporting data shapes ─────────────────────────────────────
 
 export type InsightSupportingData =
@@ -195,6 +204,7 @@ export type InsightSupportingData =
   | MerchantFrequencyData
   | MomIncomeChangeData
   | MonthlySummaryData
+  | AiInsightData
 
 // ─── InsightCard ──────────────────────────────────────────────────────────────
 

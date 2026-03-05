@@ -53,6 +53,10 @@ const WISDOM_BY_TYPE: Record<InsightCard['card_type'], string> = {
   merchant_frequency: 'Familiarity is comfortable; awareness makes it a choice.',
   mom_income_change: 'A tide that shifts is not a tide that ends — observe before you anchor.',
   monthly_summary: 'Every month is a complete story — income earned, choices made, balance kept.',
+  ai_insight_1: '',
+  ai_insight_2: '',
+  ai_insight_3: '',
+  ai_insight_4: '',
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ import prisma from '@/lib/db'
 import { computeMonthSummary } from '@/lib/intelligence/summaries'
 import { detectSubscriptions } from '@/lib/intelligence/subscriptions'
 import { runAllGenerators } from '@/lib/insights/generators'
+import { generateAiInsights } from '@/lib/insights/ai-generator'
 import type {
   InsightCard,
   ComputedInsightMetrics,
@@ -562,9 +563,16 @@ export async function computeInsights(
   // ── Step 14: Run all generators ──────────────────────────────────────────
   const { all, display } = runAllGenerators(metrics)
 
-  // ── Step 15: Upsert all cards (preserving isDismissed) ───────────────────
+  // ── Step 15: Generate AI insight cards (fresh each refresh) ──────────────
+  const aiCards = await generateAiInsights(metrics)
+
+  // ── Step 16: Upsert rule-based cards (preserving isDismissed) ────────────
   await upsertInsightCards(userId, year, month, all)
 
-  // ── Step 16: Return display cards ────────────────────────────────────────
-  return display
+  // ── Step 17: Upsert AI cards (always overwrite — they should always be fresh)
+  await upsertInsightCards(userId, year, month, aiCards)
+
+  // ── Step 18: Return display cards (rule-based + AI, ranked) ──────────────
+  const allCards = [...display, ...aiCards]
+  return allCards
 }
