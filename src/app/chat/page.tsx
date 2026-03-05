@@ -200,6 +200,7 @@ export default function ChatPage() {
   const [inputText, setInputText] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [apiUnavailable, setApiUnavailable] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [showStarters, setShowStarters] = useState(true)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -258,6 +259,7 @@ export default function ChatPage() {
     ])
     setShowStarters(true)
     setApiUnavailable(false)
+    setApiError(null)
   }, [year, month, monthLabel])
 
   // ── Build context from summary ─────────────────────────────────────────────
@@ -303,6 +305,7 @@ export default function ChatPage() {
     setInputText('')
     setShowStarters(false)
     setApiUnavailable(false)
+    setApiError(null)
 
     const userMsg: ChatMessage = { role: 'user', content: trimmed }
     const withUser = [...messages, userMsg]
@@ -328,20 +331,20 @@ export default function ChatPage() {
         signal: abortControllerRef.current.signal,
       })
 
-      if (response.status === 503) {
-        setApiUnavailable(true)
-        setMessages(prev => {
-          const next = [...prev]
-          const last = next.length - 1
-          if (next[last]?.role === 'assistant') {
-            next[last] = { role: 'assistant', content: 'AI chat is not available right now.', streaming: false }
-          }
-          return next
-        })
-        return
+      if (!response.ok) {
+        // Read the real error body so we can display something actionable
+        // instead of the generic "AI chat is temporarily unavailable" fallback.
+        let errMsg = `HTTP ${response.status}`
+        try {
+          const errBody = await response.json() as { error?: string }
+          if (errBody.error) errMsg = errBody.error
+        } catch {
+          // ignore parse failure
+        }
+        if (response.status === 503) setApiUnavailable(true)
+        setApiError(errMsg)
+        throw new Error(errMsg)
       }
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
       const reader = response.body?.getReader()
       if (!reader) throw new Error('No reader')
@@ -376,11 +379,12 @@ export default function ChatPage() {
       if (err instanceof Error && err.name === 'AbortError') {
         setMessages(prev => prev.slice(0, -1))
       } else {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
         setMessages(prev => {
           const next = [...prev]
           const last = next.length - 1
           if (next[last]?.role === 'assistant') {
-            next[last] = { role: 'assistant', content: 'Something went wrong. Please try again.', streaming: false }
+            next[last] = { role: 'assistant', content: `Error: ${msg}`, streaming: false }
           }
           return next
         })
@@ -597,7 +601,7 @@ export default function ChatPage() {
                   textAlign: 'center',
                 }}
               >
-                AI chat is not available right now.
+                {apiError ?? 'AI chat is not available right now.'}
               </div>
             )}
 

@@ -59,6 +59,7 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
   const [inputText, setInputText] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [apiUnavailable, setApiUnavailable] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -94,6 +95,7 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
 
     setInputText('')
     setApiUnavailable(false)
+    setApiError(null)
 
     const userMsg: ChatMessage = { role: 'user', content: text }
     const updatedMessages = [...messages, userMsg]
@@ -123,7 +125,16 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+        // Try to read a JSON error message from the response body so we can
+        // show something useful instead of the generic fallback.
+        let errMsg = `HTTP ${response.status}`
+        try {
+          const errBody = await response.json() as { error?: string }
+          if (errBody.error) errMsg = errBody.error
+        } catch {
+          // ignore parse failure — keep the status code message
+        }
+        throw new Error(errMsg)
       }
 
       // Stream the response
@@ -166,15 +177,17 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
         // User aborted — remove the placeholder
         setMessages(prev => prev.filter((_, i) => i < prev.length - 1))
       } else {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
         setApiUnavailable(true)
-        // Replace placeholder with error message
+        setApiError(msg)
+        // Replace placeholder with the real error message so it's visible in the chat
         setMessages(prev => {
           const next = [...prev]
           const lastIdx = next.length - 1
           if (next[lastIdx]?.role === 'assistant') {
             next[lastIdx] = {
               role: 'assistant',
-              content: 'AI chat is temporarily unavailable.',
+              content: `Error: ${msg}`,
               streaming: false,
             }
           }
@@ -396,7 +409,7 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
 
           {apiUnavailable && (
             <p style={{ fontSize: 11, color: '#f87171', textAlign: 'center' }}>
-              AI chat is temporarily unavailable.
+              {apiError ?? 'AI chat is temporarily unavailable.'}
             </p>
           )}
 
