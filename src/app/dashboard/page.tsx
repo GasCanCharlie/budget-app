@@ -76,6 +76,7 @@ export default function DashboardPage() {
   const [year,  setYear]  = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
   const autoNavigated = useRef(false)
+  const lastSeenUploadId = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     if (!user) router.replace('/login')
@@ -99,6 +100,8 @@ export default function DashboardPage() {
     queryKey: ['uploads'],
     queryFn:  () => apiFetch('/api/uploads'),
     enabled:  !!user,
+    refetchOnMount: 'always',
+    staleTime: 0,
   })
 
   const latestUpload = uploadsData?.uploads?.[0] as {
@@ -119,22 +122,32 @@ export default function DashboardPage() {
   const availableMonths = data?.availableMonths ?? []
   const trendMonths     = trendsData?.months ?? []
 
-  // Auto-jump to the most recent month with data on first load.
-  // Works for both gate state and analysis state.
+  // Auto-jump to the most recent month with data on first load and whenever
+  // availableMonths changes (e.g. after a new upload adds a new month).
   useEffect(() => {
-    if (autoNavigated.current || isLoading || !data) return
-    const hasData = data.totalCount > 0 || (data.summary && (data.summary.transactionCount as number) > 0)
-    if (!hasData && availableMonths.length > 0) {
-      const latest = availableMonths[0]
-      if (latest && (latest.year !== year || latest.month !== month)) {
-        autoNavigated.current = true
+    if (isLoading || availableMonths.length === 0) return
+
+    const latestUploadId = uploadsData?.uploads?.[0]?.id as string | undefined
+    const newUploadDetected = latestUploadId !== undefined && latestUploadId !== lastSeenUploadId.current
+    if (latestUploadId !== undefined) {
+      lastSeenUploadId.current = latestUploadId
+    }
+
+    const latest = availableMonths[0]
+    if (!latest) return
+
+    const selectedIsInList = availableMonths.some(m => m.year === year && m.month === month)
+    const latestIsNewer =
+      latest.year > year || (latest.year === year && latest.month > month)
+
+    if (!autoNavigated.current || newUploadDetected || !selectedIsInList || latestIsNewer) {
+      if (latest.year !== year || latest.month !== month) {
         setYear(latest.year)
         setMonth(latest.month)
       }
-    } else if (hasData) {
       autoNavigated.current = true
     }
-  }, [data, isLoading, availableMonths, year, month])
+  }, [availableMonths, isLoading, uploadsData, year, month])
 
   const handleMonthChange = useCallback((y: number, m: number) => {
     setYear(y); setMonth(m)
