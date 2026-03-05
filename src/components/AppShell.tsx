@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Upload, ReceiptText, Tags, FolderKanban,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2, Inbox
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2, Inbox, History
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -22,6 +22,7 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 
 const navItems = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/history',      label: 'History',      icon: History },
   { href: '/upload',       label: 'Upload',       icon: Upload },
   { href: '/transactions', label: 'Transactions', icon: ReceiptText },
   { href: '/categorize',   label: 'Categorize',   icon: FolderKanban },
