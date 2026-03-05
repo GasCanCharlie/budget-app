@@ -742,7 +742,6 @@ function UploadHistory() {
             <th>Account</th>
             <th>Date</th>
             <th style={{ textAlign: 'right' }}>Rows</th>
-            <th>Reconciliation</th>
             <th>Status</th>
             <th></th>
           </tr>
@@ -751,7 +750,7 @@ function UploadHistory() {
           {uploads.slice(0, 8).map((u) =>
             confirmDeleteId === u.id ? (
               <tr key={u.id} style={{ background: 'rgba(255,92,122,.08)' }}>
-                <td colSpan={7}>
+                <td colSpan={6}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 0' }}>
                     <span style={{ fontSize: 13, color: '#ff8397', fontWeight: 700, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Delete &quot;{u.filename}&quot;?</span>
                     <button onClick={() => setConfirmDeleteId(null)} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,.14)', background: 'rgba(255,255,255,.06)', color: '#c8d4f5', cursor: 'pointer', flexShrink: 0 }}>Cancel</button>
@@ -777,15 +776,15 @@ function UploadHistory() {
                 </td>
                 <td className="num" style={{ textAlign: 'right', color: '#c8d4f5' }}>{u.rowCountAccepted}</td>
                 <td>
-                  {u.reconciliationStatus && u.status === 'complete' && (
-                    <ReconciliationShield status={u.reconciliationStatus} size="sm" />
-                  )}
-                </td>
-                <td>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, border: `1px solid ${u.status === 'complete' ? 'rgba(46,229,157,.25)' : 'rgba(255,204,102,.25)'}`, background: u.status === 'complete' ? 'rgba(46,229,157,.10)' : 'rgba(255,204,102,.10)', fontSize: 11, fontWeight: 850, color: u.status === 'complete' ? '#2ee59d' : '#ffcc66' }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: u.status === 'complete' ? '#2ee59d' : '#ffcc66' }} />
-                    {u.status}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, border: `1px solid ${u.status === 'complete' ? 'rgba(46,229,157,.25)' : 'rgba(255,204,102,.25)'}`, background: u.status === 'complete' ? 'rgba(46,229,157,.10)' : 'rgba(255,204,102,.10)', fontSize: 11, fontWeight: 850, color: u.status === 'complete' ? '#2ee59d' : '#ffcc66', whiteSpace: 'nowrap' }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: u.status === 'complete' ? '#2ee59d' : '#ffcc66' }} />
+                      {u.status}
+                    </span>
+                    {u.reconciliationStatus && u.status === 'complete' && (
+                      <ReconciliationShield status={u.reconciliationStatus} size="sm" />
+                    )}
+                  </div>
                 </td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
