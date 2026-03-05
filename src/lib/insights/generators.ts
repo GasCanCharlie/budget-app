@@ -33,6 +33,7 @@ import type {
   FixOpportunityData,
   MerchantFrequencyData,
   MomIncomeChangeData,
+  MonthlySummaryData,
   InsightSupportingData,
 } from './types'
 
@@ -51,6 +52,7 @@ const WISDOM_BY_TYPE: Record<InsightCard['card_type'], string> = {
   fix_opportunity: 'Pruning is not loss — it is the gardener\'s quiet confidence in spring.',
   merchant_frequency: 'Familiarity is comfortable; awareness makes it a choice.',
   mom_income_change: 'A tide that shifts is not a tide that ends — observe before you anchor.',
+  monthly_summary: 'Every month is a complete story — income earned, choices made, balance kept.',
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -1143,6 +1145,66 @@ export function generateMomIncomeChange(metrics: ComputedInsightMetrics): Insigh
   ]
 }
 
+// ─── Generator 13: generateMonthlySummary ────────────────────────────────────
+//
+// Trigger:    Always — fires for any month with totalSpending > 0 or totalIncome > 0.
+//             This is the guaranteed fallback card so the panel is never empty.
+// Priority:   6 (lower priority — defers to more specific insight cards)
+// Confidence: high
+
+export function generateMonthlySummary(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, categories } = metrics
+  const { year, month, totalIncome, totalSpending, net } = monthly
+
+  if (totalSpending === 0 && totalIncome === 0) return []
+
+  const savingsRate = totalIncome > 0 ? Math.max(0, (net / totalIncome) * 100) : 0
+
+  const topCat = categories
+    .filter(c => !c.isIncome && c.currentMonthTotal > 0)
+    .sort((a, b) => b.currentMonthTotal - a.currentMonthTotal)[0] ?? null
+
+  const data: MonthlySummaryData = {
+    total_income: totalIncome,
+    total_spending: totalSpending,
+    net,
+    transaction_count: categories.reduce((s, c) => s + c.transactionCount, 0),
+    top_category_name: topCat?.categoryName ?? null,
+    top_category_amount: topCat?.currentMonthTotal ?? null,
+    savings_rate: Math.round(savingsRate * 10) / 10,
+  }
+
+  const netLabel = net >= 0 ? `+${formatCurrency(net)} saved` : `${formatCurrency(Math.abs(net))} deficit`
+  const title = `${new Date(year, month - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })} — ${netLabel}`
+  const topCatText = topCat
+    ? ` Largest category: ${topCat.categoryName} at ${formatCurrency(topCat.currentMonthTotal)} (${formatPct(topCat.pctOfSpending)} of spending).`
+    : ''
+  const summary =
+    `Income: ${formatCurrency(totalIncome)} · Spending: ${formatCurrency(totalSpending)} · Net: ${net >= 0 ? '+' : ''}${formatCurrency(net)}.` +
+    topCatText +
+    (totalIncome > 0 ? ` Savings rate: ${formatPct(savingsRate)}.` : '')
+
+  return [
+    makeCard(
+      'monthly_summary',
+      6,
+      title,
+      summary,
+      data,
+      [viewTransactionsAction(), dismissAction()],
+      'high',
+      'DollarSign',
+      year,
+      month,
+      [
+        { label: 'Income', value: formatCurrency(totalIncome), field: 'total_income' },
+        { label: 'Spending', value: formatCurrency(totalSpending), field: 'total_spending' },
+        { label: 'Net', value: `${net >= 0 ? '+' : ''}${formatCurrency(net)}`, field: 'net' },
+      ],
+    ),
+  ]
+}
+
 // ─── rankAndCap ───────────────────────────────────────────────────────────────
 //
 // Applies post-generation ranking, deduplication, and capping to the full
@@ -1210,6 +1272,7 @@ export function runAllGenerators(metrics: ComputedInsightMetrics): {
     ...generateFixOpportunity(metrics),
     ...generateMerchantFrequency(metrics),
     ...generateMomIncomeChange(metrics),
+    ...generateMonthlySummary(metrics),
   ]
 
   const display = rankAndCap(all)

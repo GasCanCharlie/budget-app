@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { computeInsights } from '@/lib/insights/compute'
+import prisma from '@/lib/db'
 
 export async function POST(req: NextRequest) {
   const user = getUserFromRequest(req)
@@ -34,6 +35,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Clear dismissed state so manual refresh always shows fresh cards
+    await prisma.insightCard.updateMany({
+      where: { userId: user.userId, year, month, isDismissed: true },
+      data: { isDismissed: false },
+    })
+
     const cards = await computeInsights(user.userId, year, month)
     return NextResponse.json({
       cards,

@@ -21,6 +21,7 @@ export type CardType =
   | 'fix_opportunity'
   | 'merchant_frequency'
   | 'mom_income_change'
+  | 'monthly_summary'
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 
@@ -168,6 +169,16 @@ export interface MomIncomeChangeData {
   income_delta_pct: number
 }
 
+export interface MonthlySummaryData {
+  total_income: number
+  total_spending: number
+  net: number
+  transaction_count: number
+  top_category_name: string | null
+  top_category_amount: number | null
+  savings_rate: number
+}
+
 // ─── Union of all supporting data shapes ─────────────────────────────────────
 
 export type InsightSupportingData =
@@ -183,6 +194,7 @@ export type InsightSupportingData =
   | FixOpportunityData
   | MerchantFrequencyData
   | MomIncomeChangeData
+  | MonthlySummaryData
 
 // ─── InsightCard ──────────────────────────────────────────────────────────────
 
