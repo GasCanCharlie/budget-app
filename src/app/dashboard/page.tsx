@@ -77,6 +77,7 @@ export default function DashboardPage() {
   const [year,  setYear]  = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [askAiOpen, setAskAiOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'transactions' | 'insights'>('transactions')
   const autoNavigated = useRef(false)
   const lastSeenUploadId = useRef<string | undefined>(undefined)
 
@@ -227,10 +228,6 @@ export default function DashboardPage() {
   const largestCategory = spendingCategories.length > 0
     ? { name: spendingCategories[0].categoryName, pct: Math.round(spendingCategories[0].pctOfSpending) }
     : null
-
-  // ── Row 3 tab state ────────────────────────────────────────────────────────
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [activeTab, setActiveTab] = useState<'transactions' | 'insights'>('transactions')
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--surface)',
