@@ -317,11 +317,12 @@ IMPORTANT: Only reference the data shown above. Do not invent any numbers, merch
         .filter((x): x is NumberEntry => x !== null)
     }
 
-    // 3. Clean message: remove FILTERS, Sources, Numbers used block
+    // 3. Clean message: remove FILTERS, Sources, Numbers used block; strip markdown bold
     const cleanedText = rawText
       .replace(/^FILTERS:[^\n]*\n?/m, '')
       .replace(/^Sources:[^\n]*\n?/m, '')
       .replace(/^Numbers used:\n((?:•[^\n]+\n?)+)/m, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
       .trim()
 
     return NextResponse.json({
