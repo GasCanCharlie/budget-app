@@ -40,6 +40,7 @@
   --text-secondary: rgba(255,255,255,0.60);
   --track:          rgba(255,255,255,0.10);
   --warning:        var(--warn);
+  --tile:           rgba(255,255,255,0.09);
 }
 
 [data-theme="light"] {
@@ -78,6 +79,7 @@
   --text-secondary: rgba(17,24,39,0.55);
   --track:          rgba(17,24,39,0.10);
   --warning:        var(--warn);
+  --tile:           #edf0f7;
 }
 
 /* ─── Smooth theme transition ───────────────────────────────────────────── */

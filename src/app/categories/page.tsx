@@ -207,7 +207,7 @@ export default function CategoriesPage() {
           ) : (
             <div className="space-y-2">
               {userCats.map(cat => (
-                <div key={cat.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--card)' }}>
+                <div key={cat.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ border: '1px solid var(--border2)', background: 'var(--tile)' }}>
                   <CategoryIcon name={cat.icon} color={cat.color} size={20} />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{cat.name}</p>
@@ -268,7 +268,7 @@ export default function CategoriesPage() {
                 <div
                   key={cat.id}
                   className="flex items-center gap-2 p-2.5 rounded-lg"
-                  style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+                  style={{ background: 'var(--tile)', border: '1px solid var(--border2)' }}
                 >
                   <CategoryIcon name={cat.icon} color={cat.color} size={16} />
                   <div className="min-w-0">

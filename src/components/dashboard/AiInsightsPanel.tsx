@@ -29,7 +29,7 @@ const MONTH_NAMES = [
 ]
 
 const COLLAPSED_STORAGE_KEY = 'budgetlens:insights-collapsed'
-const DEFAULT_VISIBLE = 4
+const DEFAULT_VISIBLE = 3
 const MAX_ROTATIONS = 4
 
 function rotateArray<T>(arr: T[], by: number): T[] {
@@ -176,9 +176,10 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
 
   // ── Panel container style ──────────────────────────────────────────────────
   const panelStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.025)',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 20,
+    background: 'var(--card)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-lg)',
+    boxShadow: 'var(--shadow-soft)',
     padding: 20,
   }
 
@@ -196,27 +197,15 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
       >
         {/* Left: icon + title + subtitle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'rgba(110,168,255,0.12)',
-              border: '1px solid rgba(110,168,255,0.20)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Sparkles size={15} style={{ color: '#6ea8ff' }} />
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-muted)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Sparkles size={15} style={{ color: 'var(--accent)' }} />
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#eaf0ff', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>
               Insights
             </div>
-            <div style={{ fontSize: 11, color: '#8b97c3', lineHeight: 1.2 }}>
-              {monthLabel} · structured data only
+            <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.2 }}>
+              {monthLabel} · based on your transactions
             </div>
           </div>
         </div>
@@ -230,24 +219,18 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
               display: 'flex',
               alignItems: 'center',
               gap: 4,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               padding: '5px 10px',
               fontSize: 11,
-              color: '#8b97c3',
+              color: 'var(--muted)',
               cursor: generateMutation.isPending ? 'not-allowed' : 'pointer',
               opacity: generateMutation.isPending ? 0.5 : 1,
               transition: 'all 0.15s',
             }}
           >
-            <RefreshCw
-              size={12}
-              style={{
-                color: '#8b97c3',
-                animation: generateMutation.isPending ? 'spin 1s linear infinite' : undefined,
-              }}
-            />
+            <RefreshCw size={12} style={{ color: 'var(--muted)', animation: generateMutation.isPending ? 'spin 1s linear infinite' : undefined }} />
             Refresh
           </button>
 
@@ -256,7 +239,7 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#8b97c3',
+              color: 'var(--muted)',
               cursor: 'pointer',
               padding: 4,
               borderRadius: 6,
@@ -276,8 +259,8 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
 
       {/* Subheader: insight count + rotation indicator */}
       {!isCollapsed && !isRefreshing && cards.length > 0 && (
-        <p style={{ fontSize: 11, color: '#8b97c3', margin: '4px 0 12px' }}>
-          Powered by your transaction data · {cards.length} insight{cards.length !== 1 ? 's' : ''}
+        <p style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 12px' }}>
+          {cards.length} insight{cards.length !== 1 ? 's' : ''} · {monthLabel}
           {cards.length > DEFAULT_VISIBLE && (
             <span style={{ marginLeft: 6, opacity: 0.6 }}>· view {rotation + 1}/{MAX_ROTATIONS}</span>
           )}
@@ -310,16 +293,16 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
               style={{
                 textAlign: 'center',
                 padding: '24px 0',
-                color: '#8b97c3',
+                color: 'var(--muted)',
               }}
             >
               <p style={{ fontSize: 13, marginBottom: 8 }}>Could not load insights.</p>
               <button
                 onClick={() => refetch()}
                 style={{
-                  background: 'rgba(110,168,255,0.12)',
-                  border: '1px solid rgba(110,168,255,0.25)',
-                  color: '#6ea8ff',
+                  background: 'var(--accent-muted)',
+                  border: '1px solid var(--border2)',
+                  color: 'var(--accent)',
                   fontSize: 12,
                   borderRadius: 8,
                   padding: '6px 14px',
@@ -367,8 +350,8 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
                     onClick={() => setShowAll(prev => !prev)}
                     style={{
                       background: 'transparent',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      color: '#8b97c3',
+                      border: '1px solid var(--border)',
+                      color: 'var(--muted)',
                       fontSize: 12,
                       borderRadius: 8,
                       padding: '6px 16px',
@@ -392,17 +375,17 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
           {/* Empty state — no cards */}
           {!isRefreshing && !isError && cards.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <Lightbulb size={24} style={{ color: '#8b97c3', margin: '0 auto 8px' }} />
-              <p style={{ fontSize: 13, color: '#8b97c3', marginBottom: 8 }}>
+              <Lightbulb size={24} style={{ color: 'var(--muted)', margin: '0 auto 8px' }} />
+              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>
                 No insights yet for this month.
               </p>
               <button
                 onClick={() => generateMutation.mutate()}
                 disabled={generateMutation.isPending}
                 style={{
-                  background: 'rgba(110,168,255,0.12)',
-                  border: '1px solid rgba(110,168,255,0.25)',
-                  color: '#6ea8ff',
+                  background: 'var(--accent-muted)',
+                  border: '1px solid var(--border2)',
+                  color: 'var(--accent)',
                   fontSize: 12,
                   borderRadius: 8,
                   padding: '6px 14px',
@@ -417,7 +400,7 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
                 Generate insights
               </button>
               {generateMutation.isError && (
-                <p style={{ fontSize: 11, color: '#f87171', marginTop: 8 }}>
+                <p style={{ fontSize: 11, color: 'var(--danger)', marginTop: 8 }}>
                   Generation failed — check that this month has categorized transactions.
                 </p>
               )}
@@ -433,13 +416,13 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
                 display: 'none', // conditionally shown via parent dashboardState
               }}
             >
-              <Lock size={18} style={{ color: '#8b97c3', margin: '0 auto 8px' }} />
-              <p style={{ fontSize: 13, color: '#8b97c3' }}>
-                Finish categorizing this month to generate AI insights.
+              <Lock size={18} style={{ color: 'var(--muted)', margin: '0 auto 8px' }} />
+              <p style={{ fontSize: 13, color: 'var(--muted)' }}>
+                Finish categorizing this month to generate insights.
               </p>
               <a
                 href="/categorize"
-                style={{ fontSize: 11, color: '#6ea8ff', textDecoration: 'none', marginTop: 4, display: 'inline-block' }}
+                style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 4, display: 'inline-block' }}
               >
                 Go to Categorize →
               </a>
