@@ -10,7 +10,8 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { AlertTriangle, Info, X, Loader2 } from 'lucide-react'
 import { FinancialSummaryHeader } from '@/components/dashboard/FinancialSummaryHeader'
-import { InsightPanel } from '@/components/dashboard/InsightPanel'
+import { AiInsightsPanel } from '@/components/dashboard/AiInsightsPanel'
+import { AskAiDrawer, AskAiFab } from '@/components/dashboard/AskAiDrawer'
 import { CategoryRanking } from '@/components/dashboard/CategoryRanking'
 import { FinancialControlPanel } from '@/components/dashboard/FinancialControlPanel'
 import { TopTransactions } from '@/components/dashboard/TopTransactions'
@@ -75,6 +76,7 @@ export default function DashboardPage() {
   const now = new Date()
   const [year,  setYear]  = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
+  const [askAiOpen, setAskAiOpen] = useState(false)
   const autoNavigated = useRef(false)
   const lastSeenUploadId = useRef<string | undefined>(undefined)
 
@@ -293,14 +295,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Section 2: Intelligent Insights ──────────────────────────────── */}
-        <InsightPanel
-          categories={spendingCategories}
-          topTransactions={topTransactions}
-          totalIncome={summary.totalIncome as number}
-          totalSpending={summary.totalSpending as number}
-          prevMonthSpending={prevMonthSpending}
-        />
+        {/* ── Section 2: AI Insights ────────────────────────────────────────── */}
+        <AiInsightsPanel year={year} month={month} />
 
         {/* ── Section 3: Category Ranking (expense only) ───────────────────── */}
         <CategoryRanking
@@ -327,6 +323,35 @@ export default function DashboardPage() {
         <TopTransactions transactions={topTransactions} />
 
       </div>
+
+      {/* ── Ask AI FAB (analysis_unlocked only) ──────────────────────────────── */}
+      <AskAiFab onClick={() => setAskAiOpen(true)} />
+
+      {/* ── Ask AI Drawer ─────────────────────────────────────────────────────── */}
+      <AskAiDrawer
+        isOpen={askAiOpen}
+        onClose={() => setAskAiOpen(false)}
+        context={{
+          year,
+          month,
+          totalIncome: summary.totalIncome as number,
+          totalSpending: summary.totalSpending as number,
+          net: summary.net as number,
+          categoryTotals: spendingCategories.map(c => ({
+            name: c.categoryName,
+            total: c.total,
+            pctOfSpending: c.pctOfSpending,
+          })),
+          topMerchants: topTransactions.map(tx => ({
+            merchantNormalized: tx.merchantNormalized || tx.description,
+            totalAmount: Math.abs(tx.amount),
+            transactionCount: 1,
+          })),
+          momSpendingPctChange: prevMonthSpending !== null && prevMonthSpending > 0
+            ? Math.round(((summary.totalSpending - prevMonthSpending) / prevMonthSpending) * 100)
+            : null,
+        }}
+      />
     </AppShell>
   )
 }
