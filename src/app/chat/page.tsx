@@ -790,7 +790,7 @@ export default function ChatPage() {
                 <span style={{ color: summary.net >= 0 ? '#2ee59d' : '#f87171' }}>
                   {fmtCurrency(summary.net)}
                 </span>
-                {' '}· Answers are based on your transaction data only — no raw descriptions are shared with AI.
+                {' '}· Answers are based on your transaction data only.
               </div>
             )}
 

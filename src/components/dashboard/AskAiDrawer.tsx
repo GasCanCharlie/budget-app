@@ -293,7 +293,7 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
               lineHeight: 1.5,
             }}
           >
-            Answers are based on your transaction data only — no raw descriptions are shared with AI.
+            Answers are based on your transaction data only.
           </p>
         </div>
 
