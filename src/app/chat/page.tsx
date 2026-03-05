@@ -294,7 +294,7 @@ export default function ChatPage() {
               </div>
               <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.025em' }}>Chat</h1>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0 }}>
+            <p style={{ fontSize: 13, color: 'var(--text2)', margin: 0 }}>
               Ask anything about your budget for {monthLabel}
             </p>
           </div>
@@ -364,7 +364,7 @@ export default function ChatPage() {
                     <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent-muted)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
                       <MessageCircle size={13} style={{ color: 'var(--accent)' }} />
                     </div>
-                    <div style={{ maxWidth: 'calc(100% - 46px)', padding: '10px 14px', borderRadius: '4px 16px 16px 16px', background: 'var(--surface2)', border: '1px solid var(--border)', fontSize: 14, lineHeight: 1.6, color: 'var(--text)' }}>
+                    <div style={{ maxWidth: 'calc(100% - 46px)', padding: '10px 14px', borderRadius: '4px 16px 16px 16px', background: 'var(--surface2)', border: '1px solid var(--border2)', fontSize: 14, lineHeight: 1.6, color: 'var(--text)' }}>
                       {msg.streaming && msg.content.length === 0 ? <TypingDots /> : <MessageContent content={msg.content} />}
                     </div>
                   </div>
@@ -421,7 +421,7 @@ export default function ChatPage() {
                     <div style={{ marginTop: 6 }}>
                       <button
                         onClick={() => setShowPowerPrompts(v => !v)}
-                        style={{ padding: '4px 10px', borderRadius: 20, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 11, cursor: 'pointer', fontWeight: 500 }}
+                        style={{ padding: '4px 10px', borderRadius: 20, background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text2)', fontSize: 11, cursor: 'pointer', fontWeight: 500 }}
                       >
                         {showPowerPrompts ? 'Fewer prompts ▴' : 'More prompts ▾'}
                       </button>
@@ -450,7 +450,7 @@ export default function ChatPage() {
 
             {/* Context strip */}
             {!summaryLoading && summary && dashboardState === 'analysis_unlocked' && (
-              <div style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--surface2)', border: '1px solid var(--border)', fontSize: 11, color: 'var(--muted)', lineHeight: 1.6 }}>
+              <div style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--surface2)', border: '1px solid var(--border2)', fontSize: 11, color: 'var(--text2)', lineHeight: 1.6 }}>
                 <span style={{ color: 'var(--text)', fontWeight: 600 }}>{monthLabel}:</span>
                 {' '}Income {fmtCurrency(summary.totalIncome)} · Spending {fmtCurrency(summary.totalSpending)} · Net{' '}
                 <span style={{ color: summary.net >= 0 ? 'var(--success)' : 'var(--danger)' }}>
@@ -464,7 +464,7 @@ export default function ChatPage() {
           </div>
 
           {/* ── Input area ──────────────────────────────────────────── */}
-          <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface2)', flexShrink: 0 }}>
+          <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border2)', background: 'var(--bg2)', flexShrink: 0 }}>
             {atLimit ? (
               <div style={{ textAlign: 'center', padding: '6px 0' }}>
                 <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>
@@ -487,7 +487,7 @@ export default function ChatPage() {
                   placeholder="Ask about your budget…"
                   rows={2}
                   disabled={isStreaming || dashboardState === 'categorization_required' || summaryLoading}
-                  style={{ flex: 1, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: 14, color: 'var(--text)', resize: 'none', outline: 'none', lineHeight: 1.5, fontFamily: 'inherit' }}
+                  style={{ flex: 1, background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: 14, color: 'var(--text)', resize: 'none', outline: 'none', lineHeight: 1.5, fontFamily: 'inherit' }}
                 />
                 <button
                   onClick={handleSend}
