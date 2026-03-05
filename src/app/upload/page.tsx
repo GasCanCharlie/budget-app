@@ -690,7 +690,7 @@ function SampleDataLoader({ onLoaded }: { onLoaded: () => void }) {
   )
 }
 
-// ─── Upload history ───────────────────────────────────────────────────────────
+// ─── Upload history card ──────────────────────────────────────────────────────
 
 interface UploadRow {
   id: string
@@ -703,7 +703,15 @@ interface UploadRow {
   totalRowsUnresolved: number
 }
 
-function UploadHistory() {
+const cardStyle: React.CSSProperties = {
+  background: 'var(--card)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-lg)',
+  boxShadow: 'var(--shadow-soft)',
+  overflow: 'hidden',
+}
+
+function UploadHistoryCard() {
   const { apiFetch } = useApi()
   const router = useRouter()
   const qc = useQueryClient()
@@ -729,34 +737,34 @@ function UploadHistory() {
   if (uploads.length === 0) return null
 
   return (
-    <div style={{ marginTop: 16, borderRadius: 24, border: '1px solid rgba(255,255,255,.10)', background: 'rgba(255,255,255,.03)', overflow: 'hidden' }}>
-      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.03)' }}>
+    <div style={cardStyle}>
+      <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid var(--border)', background: 'linear-gradient(180deg, rgba(255,255,255,0.03), transparent)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <strong style={{ fontSize: 13, fontWeight: 950, color: '#eaf0ff' }}>Statement history</strong>
-          {isFetching && <Loader2 size={11} className="animate-spin" style={{ color: 'rgba(255,255,255,.4)' }} />}
+          <strong style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>Statement history</strong>
+          {isFetching && <Loader2 size={11} className="animate-spin" style={{ color: 'var(--subtle)' }} />}
         </div>
-        <span style={{ color: 'rgba(255,255,255,.55)', fontWeight: 800, fontSize: 12 }}>{uploads.length} statement{uploads.length !== 1 ? 's' : ''}</span>
+        <span style={{ color: 'var(--subtle)', fontWeight: 500, fontSize: 12 }}>{uploads.length} statement{uploads.length !== 1 ? 's' : ''}</span>
       </div>
       <div style={{ overflowX: 'auto' }}>
       <table className="data-table">
         <thead>
           <tr>
-            <th>Statement</th>
-            <th>Account</th>
-            <th>Date</th>
-            <th style={{ textAlign: 'right' }}>Rows</th>
-            <th>Status</th>
+            <th style={{ color: 'var(--subtle)' }}>Statement</th>
+            <th style={{ color: 'var(--subtle)' }}>Account</th>
+            <th style={{ color: 'var(--subtle)' }}>Date</th>
+            <th style={{ textAlign: 'right', color: 'var(--subtle)' }}>Rows</th>
+            <th style={{ color: 'var(--subtle)' }}>Status</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           {uploads.slice(0, 8).map((u) =>
             confirmDeleteId === u.id ? (
-              <tr key={u.id} style={{ background: 'rgba(255,92,122,.08)' }}>
+              <tr key={u.id} style={{ background: 'rgba(248,113,113,0.06)' }}>
                 <td colSpan={6}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 0' }}>
-                    <span style={{ fontSize: 13, color: '#ff8397', fontWeight: 700, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Delete &quot;{u.filename}&quot;?</span>
-                    <button onClick={() => setConfirmDeleteId(null)} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,.14)', background: 'rgba(255,255,255,.06)', color: '#c8d4f5', cursor: 'pointer', flexShrink: 0 }}>Cancel</button>
+                    <span style={{ fontSize: 13, color: 'var(--danger)', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Delete &quot;{u.filename}&quot;?</span>
+                    <button onClick={() => setConfirmDeleteId(null)} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card2)', color: 'var(--text)', cursor: 'pointer', flexShrink: 0 }}>Cancel</button>
                     <button
                       onClick={() => deleteUploadMutation.mutate(u.id)}
                       disabled={deleteUploadMutation.isPending}
@@ -770,18 +778,18 @@ function UploadHistory() {
             ) : (
               <tr key={u.id} onClick={() => router.push(`/upload/${u.id}`)} style={{ cursor: 'pointer' }}>
                 <td>
-                  <p style={{ margin: 0, fontWeight: 700, color: '#eaf0ff', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.filename}</p>
-                  {u.totalRowsUnresolved > 0 && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#ffcc66' }}>{u.totalRowsUnresolved} unresolved</p>}
+                  <p style={{ margin: 0, fontWeight: 600, color: 'var(--text)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.filename}</p>
+                  {u.totalRowsUnresolved > 0 && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--warn)' }}>{u.totalRowsUnresolved} unresolved</p>}
                 </td>
-                <td style={{ color: '#8b97c3', whiteSpace: 'nowrap' }}>{u.account?.name}</td>
-                <td className="num" style={{ color: '#8b97c3', whiteSpace: 'nowrap' }}>
+                <td style={{ color: 'var(--muted)', whiteSpace: 'nowrap' }}>{u.account?.name}</td>
+                <td className="num" style={{ color: 'var(--muted)', whiteSpace: 'nowrap' }}>
                   {new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
                 </td>
-                <td className="num" style={{ textAlign: 'right', color: '#c8d4f5' }}>{u.rowCountAccepted}</td>
+                <td className="num" style={{ textAlign: 'right', color: 'var(--muted)' }}>{u.rowCountAccepted}</td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 7px', borderRadius: 999, border: `1px solid ${u.status === 'complete' ? 'rgba(46,229,157,.25)' : 'rgba(255,204,102,.25)'}`, background: u.status === 'complete' ? 'rgba(46,229,157,.10)' : 'rgba(255,204,102,.10)', fontSize: 11, fontWeight: 850, color: u.status === 'complete' ? '#2ee59d' : '#ffcc66', whiteSpace: 'nowrap' }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: u.status === 'complete' ? '#2ee59d' : '#ffcc66' }} />
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 7px', borderRadius: 999, border: `1px solid ${u.status === 'complete' ? 'rgba(34,197,94,0.25)' : 'rgba(251,191,36,0.25)'}`, background: u.status === 'complete' ? 'rgba(34,197,94,0.10)' : 'rgba(251,191,36,0.10)', fontSize: 11, fontWeight: 500, color: u.status === 'complete' ? 'var(--success)' : 'var(--warn)', whiteSpace: 'nowrap' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: u.status === 'complete' ? 'var(--success)' : 'var(--warn)' }} />
                       {u.status === 'complete' ? 'done' : u.status === 'processing' ? 'proc…' : u.status}
                     </span>
                     {u.reconciliationStatus && u.status === 'complete' && (
@@ -793,13 +801,13 @@ function UploadHistory() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <button
                       onClick={e => { e.stopPropagation(); setConfirmDeleteId(u.id) }}
-                      style={{ padding: 4, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.30)', transition: 'color .15s' }}
+                      style={{ padding: 4, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--subtle)', transition: 'color .15s' }}
                       className="hover:!text-[#ff8397]"
                       title="Delete statement"
                     >
                       <Trash2 size={13} />
                     </button>
-                    <ChevronRight size={14} style={{ color: 'rgba(255,255,255,.25)' }} />
+                    <ChevronRight size={14} style={{ color: 'var(--subtle)' }} />
                   </div>
                 </td>
               </tr>
