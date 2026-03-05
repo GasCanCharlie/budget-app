@@ -32,6 +32,13 @@ interface TopMerchant {
   transactionCount: number
 }
 
+interface TransactionItem {
+  date: string
+  merchant: string
+  amount: number
+  category: string | null
+}
+
 interface AiChatContext {
   month: number
   year: number
@@ -43,6 +50,7 @@ interface AiChatContext {
   topMerchants: TopMerchant[]
   momSpendingPctChange: number | null
   momIncomePctChange: number | null
+  transactions?: TransactionItem[]
 }
 
 // ─── System prompt ────────────────────────────────────────────────────────────
@@ -51,6 +59,7 @@ const SYSTEM_PROMPT = `You are a warm, insightful financial assistant for Budget
 
 Rules:
 - Give the real numbers clearly and specifically (totals, deltas, percentages)
+- If individual transactions are provided, you can answer specific questions about individual merchants, counts, dates, and transaction-level details (e.g. "how many coffees did I have?", "which day did I spend the most?")
 - Use a metaphor or everyday analogy to make the numbers feel intuitive (e.g. "that's roughly the cost of a round-trip flight" or "think of it like leaving a tap dripping")
 - Use neutral, non-judgmental language always
 - End EVERY response with a short, soothing wisdom saying or proverb — original, poetic, and unique to the situation. Never repeat the same saying twice. It should feel like a gentle reminder that money is a tool, not a measure of worth.
@@ -91,6 +100,13 @@ function formatContext(ctx: AiChatContext): string {
     ? `Month-over-month income change: ${ctx.momIncomePctChange >= 0 ? '+' : ''}${ctx.momIncomePctChange.toFixed(1)}%`
     : 'Month-over-month income change: insufficient data'
 
+  const txSection = ctx.transactions && ctx.transactions.length > 0
+    ? `\nINDIVIDUAL TRANSACTIONS (${ctx.transactions.length} total):\n` +
+      ctx.transactions
+        .map(tx => `  - ${tx.date} ${tx.merchant}: $${tx.amount.toFixed(2)} (${tx.category ?? 'Uncategorized'})`)
+        .join('\n')
+    : ''
+
   return `FINANCIAL DATA FOR ${monthName.toUpperCase()}:
 
 Summary:
@@ -107,7 +123,7 @@ ${cats || '  (no category data)'}
 
 Top Merchants:
 ${merchants || '  (no merchant data)'}
-
+${txSection}
 IMPORTANT: Only reference the data shown above. Do not invent any numbers, merchants, or categories not listed here.`
 }
 

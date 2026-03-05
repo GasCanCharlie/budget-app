@@ -34,6 +34,21 @@ import type {
   InsightSupportingData,
 } from './types'
 
+// ─── Wisdom sayings ───────────────────────────────────────────────────────────
+
+const WISDOM_BY_TYPE: Record<InsightCard['card_type'], string> = {
+  over_budget: 'The sea doesn\'t panic at high tide — it simply rises and falls.',
+  category_spike: 'A sudden wave is not a storm; it passes if you steer with intention.',
+  merchant_spike: 'Notice the river\'s bend — small shifts in flow shape the whole valley.',
+  large_transaction: 'Even one stone can ripple a still pond. Mind where you cast it.',
+  small_leaks: 'A house isn\'t lost to rain — it\'s lost to the slow drip no one hears.',
+  subscription_summary: 'Count what you\'ve planted; not every seed you sow needs to grow.',
+  subscription_new: 'New roots take time to judge. Watch before you water.',
+  trial_warning: 'The door that opens freely may close with a fee. Notice it now.',
+  cash_flow_forecast: 'The river always knows where it\'s going. So can you.',
+  fix_opportunity: 'Pruning is not loss — it is the gardener\'s quiet confidence in spring.',
+}
+
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function now(): string {
@@ -68,13 +83,17 @@ function makeCard(
   year: number,
   month: number,
 ): InsightCard {
+  const dataWithWisdom = {
+    ...(supporting_data as Record<string, unknown>),
+    _wisdom: WISDOM_BY_TYPE[card_type],
+  } as InsightSupportingData
   return {
     id: randomUUID(),
     card_type,
     priority,
     title: title.slice(0, 60),
     summary,
-    supporting_data,
+    supporting_data: dataWithWisdom,
     actions,
     confidence,
     icon_suggestion,

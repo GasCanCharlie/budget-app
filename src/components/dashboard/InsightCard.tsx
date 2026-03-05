@@ -182,6 +182,22 @@ export function InsightCard({ card, onDismiss, onAction }: InsightCardProps) {
         {card.summary}
       </p>
 
+      {/* ── Wisdom ── */}
+      {(card.supporting_data as Record<string, unknown>)['_wisdom'] && (
+        <p
+          style={{
+            fontSize: 11,
+            fontStyle: 'italic',
+            color: '#6b7499',
+            lineHeight: 1.5,
+            marginTop: 8,
+            marginBottom: 0,
+          }}
+        >
+          {(card.supporting_data as Record<string, unknown>)['_wisdom'] as string}
+        </p>
+      )}
+
       {/* ── Stat chips ── */}
       {chips.length > 0 && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>

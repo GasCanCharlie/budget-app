@@ -41,6 +41,13 @@ interface SummaryResponse {
   summary: UnlockedSummary | null
 }
 
+interface TransactionItem {
+  date: string
+  merchant: string
+  amount: number
+  category: string | null
+}
+
 interface AiChatContext {
   month: number
   year: number
@@ -52,6 +59,7 @@ interface AiChatContext {
   topMerchants: { merchantNormalized: string; totalAmount: number; transactionCount: number }[]
   momSpendingPctChange: number | null
   momIncomePctChange: number | null
+  transactions?: TransactionItem[]
 }
 
 interface ChatMessage {
@@ -242,6 +250,12 @@ export default function ChatPage() {
     enabled: !!user,
   })
 
+  const { data: txMonthlyData } = useQuery<{ transactions: TransactionItem[] }>({
+    queryKey: ['txMonthly', year, month],
+    queryFn: () => apiFetch(`/api/transactions/monthly?year=${year}&month=${month}`),
+    enabled: !!user,
+  })
+
   const availableMonths = summaryData?.availableMonths ?? []
   const dashboardState = summaryData?.dashboardState
   const summary = summaryData?.summary
@@ -264,7 +278,7 @@ export default function ChatPage() {
 
   // ── Build context from summary ─────────────────────────────────────────────
 
-  const buildContext = useCallback((): AiChatContext | null => {
+  const buildContext = useCallback((transactions?: TransactionItem[]): AiChatContext | null => {
     if (!summary) return null
     const spendingCats = summary.categoryTotals.filter(c => !c.isIncome)
     const totalIncome = summary.totalIncome
@@ -292,6 +306,7 @@ export default function ChatPage() {
       })),
       momSpendingPctChange: null,
       momIncomePctChange: null,
+      transactions,
     }
   }, [summary, year, month])
 
@@ -318,7 +333,7 @@ export default function ChatPage() {
     abortControllerRef.current = new AbortController()
 
     try {
-      const context = buildContext()
+      const context = buildContext(txMonthlyData?.transactions)
       if (!context) throw new Error('No summary data')
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -372,7 +387,7 @@ export default function ChatPage() {
     } finally {
       setIsStreaming(false)
     }
-  }, [isStreaming, messages, token, buildContext])
+  }, [isStreaming, messages, token, buildContext, txMonthlyData])
 
   const handleSend = useCallback(() => {
     sendMessage(inputText)

@@ -18,6 +18,13 @@ interface TopMerchant {
   transactionCount: number
 }
 
+interface TransactionItem {
+  date: string
+  merchant: string
+  amount: number
+  category: string | null
+}
+
 interface AskAiDrawerContext {
   year: number
   month: number
@@ -27,6 +34,7 @@ interface AskAiDrawerContext {
   categoryTotals: CategoryTotal[]
   topMerchants: TopMerchant[]
   momSpendingPctChange: number | null
+  transactions?: TransactionItem[]
 }
 
 interface AskAiDrawerProps {
