@@ -183,20 +183,24 @@ export function InsightCard({ card, onDismiss, onAction }: InsightCardProps) {
       </p>
 
       {/* ── Wisdom ── */}
-      {(card.supporting_data as Record<string, unknown>)['_wisdom'] && (
-        <p
-          style={{
-            fontSize: 11,
-            fontStyle: 'italic',
-            color: '#6b7499',
-            lineHeight: 1.5,
-            marginTop: 8,
-            marginBottom: 0,
-          }}
-        >
-          {(card.supporting_data as Record<string, unknown>)['_wisdom'] as string}
-        </p>
-      )}
+      {(() => {
+        const wisdom = (card.supporting_data as unknown as Record<string, unknown>)['_wisdom']
+        if (!wisdom || typeof wisdom !== 'string') return null
+        return (
+          <p
+            style={{
+              fontSize: 11,
+              fontStyle: 'italic',
+              color: '#6b7499',
+              lineHeight: 1.5,
+              marginTop: 8,
+              marginBottom: 0,
+            }}
+          >
+            {wisdom}
+          </p>
+        )
+      })()}
 
       {/* ── Stat chips ── */}
       {chips.length > 0 && (

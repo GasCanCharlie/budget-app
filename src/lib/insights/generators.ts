@@ -84,9 +84,9 @@ function makeCard(
   month: number,
 ): InsightCard {
   const dataWithWisdom = {
-    ...(supporting_data as Record<string, unknown>),
+    ...(supporting_data as unknown as Record<string, unknown>),
     _wisdom: WISDOM_BY_TYPE[card_type],
-  } as InsightSupportingData
+  } as unknown as InsightSupportingData
   return {
     id: randomUUID(),
     card_type,
