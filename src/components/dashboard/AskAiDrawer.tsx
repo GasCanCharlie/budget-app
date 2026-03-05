@@ -116,9 +116,8 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          year: context.year,
-          month: context.month,
-          messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
+          message: text,
+          context,
         }),
         signal: abortControllerRef.current.signal,
       })
