@@ -37,22 +37,22 @@ export function LogoMark({ size = 32, className }: LogoMarkProps) {
       {/* Background rounded square */}
       <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F1B36" />
 
-      {/* Outer radar ring */}
-      <circle cx="64" cy="64" r="30" stroke="#6EA8FF" strokeWidth="3" fill="none" />
+      {/* Outer radar ring — fits just inside the background rect (r=52, inset 4px) */}
+      <circle cx="64" cy="64" r="52" stroke="#6EA8FF" strokeWidth="3" fill="none" />
 
       {/* Inner radar ring */}
-      <circle cx="64" cy="64" r="18" stroke="#6EA8FF" strokeWidth="2" opacity="0.6" fill="none" />
+      <circle cx="64" cy="64" r="32" stroke="#6EA8FF" strokeWidth="2" opacity="0.6" fill="none" />
 
       {/* Radar sweep — rotates continuously */}
       <path
         className="bl-radar-sweep"
-        d="M64 64 L94 64 A30 30 0 0 0 64 34 Z"
+        d="M64 64 L116 64 A52 52 0 0 0 64 12 Z"
         fill="#6EA8FF"
         opacity="0.30"
       />
 
       {/* Center node */}
-      <circle cx="64" cy="64" r="4" fill="#6EA8FF" />
+      <circle cx="64" cy="64" r="5" fill="#6EA8FF" />
     </svg>
   )
 }
