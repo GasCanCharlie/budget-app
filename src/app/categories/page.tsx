@@ -94,7 +94,7 @@ export default function CategoriesPage() {
         </div>
 
         {/* Add new category */}
-        <div className="card space-y-4">
+        <div className="card space-y-4" style={{ overflow: 'visible', padding: '18px' }}>
           <div className="flex items-center justify-between">
             <h2 className="font-bold" style={{ color: 'var(--text)' }}>Custom Categories</h2>
             <button
@@ -250,7 +250,7 @@ export default function CategoriesPage() {
         </div>
 
         {/* System categories (read-only) */}
-        <div className="card space-y-3">
+        <div className="card space-y-3" style={{ overflow: 'visible', padding: '18px' }}>
           <div className="flex items-center justify-between">
             <h2 className="font-bold" style={{ color: 'var(--text)' }}>System Categories</h2>
             <span className="pill flex items-center gap-1">
