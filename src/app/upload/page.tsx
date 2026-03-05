@@ -735,6 +735,7 @@ function UploadHistory() {
         </div>
         <span style={{ color: 'rgba(255,255,255,.55)', fontWeight: 800, fontSize: 12 }}>{uploads.length} statement{uploads.length !== 1 ? 's' : ''}</span>
       </div>
+      <div style={{ overflowX: 'auto' }}>
       <table className="data-table">
         <thead>
           <tr>
@@ -777,9 +778,9 @@ function UploadHistory() {
                 <td className="num" style={{ textAlign: 'right', color: '#c8d4f5' }}>{u.rowCountAccepted}</td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, border: `1px solid ${u.status === 'complete' ? 'rgba(46,229,157,.25)' : 'rgba(255,204,102,.25)'}`, background: u.status === 'complete' ? 'rgba(46,229,157,.10)' : 'rgba(255,204,102,.10)', fontSize: 11, fontWeight: 850, color: u.status === 'complete' ? '#2ee59d' : '#ffcc66', whiteSpace: 'nowrap' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: u.status === 'complete' ? '#2ee59d' : '#ffcc66' }} />
-                      {u.status}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 7px', borderRadius: 999, border: `1px solid ${u.status === 'complete' ? 'rgba(46,229,157,.25)' : 'rgba(255,204,102,.25)'}`, background: u.status === 'complete' ? 'rgba(46,229,157,.10)' : 'rgba(255,204,102,.10)', fontSize: 11, fontWeight: 850, color: u.status === 'complete' ? '#2ee59d' : '#ffcc66', whiteSpace: 'nowrap' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: u.status === 'complete' ? '#2ee59d' : '#ffcc66' }} />
+                      {u.status === 'complete' ? 'done' : u.status === 'processing' ? 'proc…' : u.status}
                     </span>
                     {u.reconciliationStatus && u.status === 'complete' && (
                       <ReconciliationShield status={u.reconciliationStatus} size="sm" />
@@ -804,6 +805,7 @@ function UploadHistory() {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
