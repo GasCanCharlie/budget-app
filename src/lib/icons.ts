@@ -6,9 +6,9 @@ export const NavIcons = {
   history:      'History',
   upload:       'Upload',
   transactions: 'ArrowLeftRight',
-  categorize:   'FolderKanban',
-  categories:   'Tags',
-  rules:        'Repeat2',
+  categorize:   'Tags',
+  categories:   'Layers',
+  rules:        'Gavel',
   chat:         'MessageCircle',
   inbox:        'Inbox',
 } as const
@@ -21,6 +21,7 @@ import {
   Briefcase, Baby, PawPrint, Wrench, Coffee, Music, Gamepad2, Landmark,
   TrendingUp, DollarSign, Building2, Zap, Package, CircleHelp,
   Film, HeartPulse, Scissors, BookOpen, Gift, Utensils, Ban, ArrowLeftRight,
+  LayoutDashboard, Lightbulb, History, Upload, Tags, Layers, Gavel, MessageCircle, Inbox,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -54,7 +55,7 @@ export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   coffee: Coffee,
   cafe: Coffee,
   // ── Entertainment ───────────────────────────────────────────────────────────
-  entertainment: Film,
+  entertainment: Ticket,
   movies: Film,
   events: Ticket,
   music: Music,
@@ -74,8 +75,8 @@ export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   'credit card': CreditCard,
   creditcard: CreditCard,
   credit_card: CreditCard,
-  subscriptions: CreditCard,
-  subscription: CreditCard,
+  subscriptions: Repeat,
+  subscription: Repeat,
   streaming: Repeat,
   debt: CreditCard,
   insurance: Shield,
@@ -144,6 +145,15 @@ export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
 }
 
 export const FALLBACK_ICON: LucideIcon = CircleHelp
+
+// ─── Direct icon exports ──────────────────────────────────────────────────────
+
+export {
+  LayoutDashboard, Lightbulb, History, Upload, ArrowLeftRight,
+  Tags, Layers, Gavel, MessageCircle, Inbox,
+  Home, Car, Wine, Ticket, PlugZap, ShoppingBag, CreditCard, Shield, ShoppingCart, Repeat,
+  CircleHelp as FallbackIcon,
+} from 'lucide-react'
 
 /** Normalize a category name to a registry key */
 export function normalizeCategoryKey(name: string): string {

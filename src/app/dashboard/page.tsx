@@ -8,13 +8,14 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { AlertTriangle, Info, X, Loader2 } from 'lucide-react'
+import { AlertTriangle, Info, X, Loader2, UploadCloud } from 'lucide-react'
 import { FinancialSummaryHeader } from '@/components/dashboard/FinancialSummaryHeader'
 import { AskAiDrawer, AskAiFab } from '@/components/dashboard/AskAiDrawer'
 import { CategoryRanking } from '@/components/dashboard/CategoryRanking'
 import { FinancialControlPanel } from '@/components/dashboard/FinancialControlPanel'
 import { TopTransactions } from '@/components/dashboard/TopTransactions'
 import { CategorizationGate } from '@/components/dashboard/CategorizationGate'
+import { InsightPanel } from '@/components/dashboard/InsightPanel'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
 const TrendChart = dynamic(
@@ -227,6 +228,17 @@ export default function DashboardPage() {
     ? { name: spendingCategories[0].categoryName, pct: Math.round(spendingCategories[0].pctOfSpending) }
     : null
 
+  // ── Row 3 tab state ────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [activeTab, setActiveTab] = useState<'transactions' | 'insights'>('transactions')
+
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    borderRadius: '16px',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)',
+  }
+
   return (
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="space-y-5 pb-24">
@@ -249,19 +261,21 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Section 1: Financial Summary Header ──────────────────────────── */}
-        <FinancialSummaryHeader
-          month={month}
-          year={year}
-          totalIncome={summary.totalIncome as number}
-          totalSpending={summary.totalSpending as number}
-          net={summary.net as number}
-          transactionCount={summary.transactionCount as number}
-          prevMonthNet={prevMonthNet}
-          prevMonthSpending={prevMonthSpending}
-          largestCategory={largestCategory}
-          latestUploadId={latestUpload?.id}
-        />
+        {/* ── Row 1: Financial Hero (full width) ───────────────────────────── */}
+        <div style={cardStyle}>
+          <FinancialSummaryHeader
+            month={month}
+            year={year}
+            totalIncome={summary.totalIncome as number}
+            totalSpending={summary.totalSpending as number}
+            net={summary.net as number}
+            transactionCount={summary.transactionCount as number}
+            prevMonthNet={prevMonthNet}
+            prevMonthSpending={prevMonthSpending}
+            largestCategory={largestCategory}
+            latestUploadId={latestUpload?.id}
+          />
+        </div>
 
         {/* ── Anomaly alerts ────────────────────────────────────────────────── */}
         {summary.alerts && (summary.alerts as unknown[]).length > 0 && (
@@ -294,15 +308,68 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Section 2: Category Ranking (expense only) ───────────────────── */}
-        <CategoryRanking
-          categories={spendingCategories}
-          totalSpending={summary.totalSpending as number}
-          year={year}
-          month={month}
-        />
+        {/* ── Row 2: 2-column split ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-        {/* ── Section 4: Financial Control Panel ───────────────────────────── */}
+          {/* LEFT: Category Ranking — lg:col-span-7 */}
+          <div className="lg:col-span-7">
+            <CategoryRanking
+              categories={spendingCategories}
+              totalSpending={summary.totalSpending as number}
+              year={year}
+              month={month}
+            />
+          </div>
+
+          {/* RIGHT: Change / Insight Panel — lg:col-span-5 */}
+          <div className="lg:col-span-5">
+            <div style={cardStyle} className="p-5 space-y-5 h-full">
+              <h2 className="text-sm font-semibold text-slate-800">Monthly Snapshot</h2>
+
+              {/* vs Last Month */}
+              <div className="rounded-xl border border-slate-100 p-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  vs Last Month
+                </p>
+                {prevMonthSpending !== null ? (
+                  <p className="text-sm text-slate-600">
+                    Spending changed by{' '}
+                    <strong className={
+                      summary.totalSpending > prevMonthSpending ? 'text-red-600' : 'text-emerald-600'
+                    }>
+                      {summary.totalSpending > prevMonthSpending ? '+' : ''}
+                      {Math.round(((summary.totalSpending - prevMonthSpending) / prevMonthSpending) * 100)}%
+                    </strong>
+                    {' '}from last month.
+                  </p>
+                ) : (
+                  <div className="flex items-start gap-2.5 text-slate-400">
+                    <UploadCloud size={15} className="mt-0.5 flex-shrink-0" />
+                    <p className="text-sm">Upload previous statement to compare months</p>
+                  </div>
+                )}
+              </div>
+
+              {/* New Subscriptions */}
+              <div className="rounded-xl border border-slate-100 p-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  New Subscriptions
+                </p>
+                <p className="text-sm text-slate-400">Subscription tracking coming soon.</p>
+              </div>
+
+              {/* Unusual Purchases */}
+              <div className="rounded-xl border border-slate-100 p-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  Unusual Purchases
+                </p>
+                <p className="text-sm text-slate-400">Anomaly detection coming soon.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Financial Control Panel ───────────────────────────────────────── */}
         <FinancialControlPanel
           totalIncome={summary.totalIncome as number}
           totalSpending={summary.totalSpending as number}
@@ -312,11 +379,43 @@ export default function DashboardPage() {
           topTransactions={topTransactions}
         />
 
-        {/* ── Section 5: 12-month cash flow trend ──────────────────────────── */}
+        {/* ── 12-month cash flow trend ──────────────────────────────────────── */}
         <TrendChart months={trendMonths} />
 
-        {/* ── Section 6: Top expenses ───────────────────────────────────────── */}
-        <TopTransactions transactions={topTransactions} />
+        {/* ── Row 3: Full-width tabbed panel ────────────────────────────────── */}
+        <div style={cardStyle} className="overflow-hidden">
+          {/* Tab header */}
+          <div className="flex items-center gap-1 px-5 pt-4 pb-0 border-b border-slate-100">
+            {(['transactions', 'insights'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors ${
+                  activeTab === tab
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {tab === 'transactions' ? 'Top Transactions' : 'Insights'}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div className="p-5">
+            {activeTab === 'transactions' ? (
+              <TopTransactions transactions={topTransactions} />
+            ) : (
+              <InsightPanel
+                categories={spendingCategories}
+                topTransactions={topTransactions}
+                totalIncome={summary.totalIncome as number}
+                totalSpending={summary.totalSpending as number}
+                prevMonthSpending={prevMonthSpending}
+              />
+            )}
+          </div>
+        </div>
 
       </div>
 

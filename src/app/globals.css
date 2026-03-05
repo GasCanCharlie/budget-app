@@ -5,45 +5,59 @@
 /* ─── Theme tokens ─────────────────────────────────────────────────────── */
 :root {
   /* Dark theme is default */
-  --bg:           #0b1020;
+  --bg:           #0F172A;
   --bg2:          #070a14;
-  --surface:      rgba(255,255,255,0.05);
+  --surface:      #111827;
   --surface2:     rgba(255,255,255,0.09);
   --border:       rgba(255,255,255,0.08);
   --border2:      rgba(255,255,255,0.14);
   --text:         #eaf0ff;
   --text2:        #a8b3d6;
   --text3:        #8b97c3;
-  --accent:       #6ea8ff;
+  --accent:       #818CF8;
   --accent2:      #8b6fff;
   --accent-muted: rgba(110,168,255,0.12);
-  --success:      #2ee59d;
+  --success:      #22C55E;
   --success-muted: rgba(46,229,157,0.12);
-  --warn:         #fbbf24;
+  --warn:         #FBBF24;
   --warn-muted:   rgba(251,191,36,0.12);
-  --danger:       #f87171;
+  --danger:       #F87171;
   --sidebar-bg:   linear-gradient(180deg, #0b1020 0%, #070a14 100%);
+  /* Master prompt alias tokens */
+  --card:           #1F2937;
+  --text-primary:   #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --track:          #374151;
+  --warning:        var(--warn);
+  --sidebar:        #0F172A;
 }
 
 [data-theme="light"] {
-  --bg:           #f0f4fa;
+  --bg:           #F5F7FB;
   --bg2:          #eef1f8;
-  --surface:      #ffffff;
+  --surface:      #FFFFFF;
   --surface2:     #f8fafc;
-  --border:       rgba(0,0,0,0.08);
-  --border2:      rgba(0,0,0,0.13);
-  --text:         #0f172a;
-  --text2:        #334155;
+  --border:       #E5E7EB;
+  --border2:      #D1D5DB;
+  --text:         #111827;
+  --text2:        #6B7280;
   --text3:        #64748b;
-  --accent:       #2563eb;
+  --accent:       #6366F1;
   --accent2:      #6d4fd4;
   --accent-muted: rgba(37,99,235,0.10);
-  --success:      #059669;
+  --success:      #16A34A;
   --success-muted: rgba(5,150,105,0.12);
-  --warn:         #d97706;
+  --warn:         #F59E0B;
   --warn-muted:   rgba(217,119,6,0.12);
-  --danger:       #dc2626;
+  --danger:       #EF4444;
   --sidebar-bg:   linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  /* Master prompt alias tokens */
+  --card:           #FFFFFF;
+  --text-primary:   #111827;
+  --text-secondary: #6B7280;
+  --track:          #E5E7EB;
+  --warning:        var(--warn);
+  --sidebar:        #FFFFFF;
 }
 
 /* ─── Smooth theme transition ───────────────────────────────────────────── */
@@ -87,9 +101,8 @@ html, body {
 }
 
 [data-theme="light"] body {
-  background: linear-gradient(180deg, #e8edf8 0%, #f4f6fb 100%) !important;
-  background-attachment: fixed;
-  color: #0f172a;
+  background: var(--bg) !important;
+  color: var(--text-primary);
 }
 
 [data-theme="light"] .min-h-screen {
@@ -159,6 +172,25 @@ html, body {
 @keyframes bl-shimmer-sweep {
   0%   { transform: translateX(0px); }
   100% { transform: translateX(68px); }
+}
+
+/* ─── Nav link theming ──────────────────────────────────────────────────── */
+.bl-nav-link {
+  color: var(--text-secondary);
+}
+.bl-nav-link:hover {
+  color: var(--text-primary);
+  background-color: rgba(0,0,0,0.04);
+}
+[data-theme="dark"] .bl-nav-link:hover {
+  background-color: rgba(255,255,255,0.06);
+}
+.bl-nav-link.active {
+  color: var(--accent);
+  background-color: rgba(99,102,241,0.10);
+}
+[data-theme="dark"] .bl-nav-link.active {
+  background-color: rgba(129,140,248,0.12);
 }
 
 /* ─── Dark theme cascade overrides ─────────────────────────────────────── */

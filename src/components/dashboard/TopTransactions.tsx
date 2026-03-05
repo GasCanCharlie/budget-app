@@ -40,10 +40,10 @@ export function TopTransactions({ transactions }: Props) {
   const top = transactions.slice(0, 5)
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+    <div className="rounded-xl p-5" style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-semibold text-slate-700">Top Expenses</p>
+        <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Top Expenses</p>
         <Link
           href="/transactions"
           className="text-sm text-blue-600 hover:underline"
@@ -54,7 +54,7 @@ export function TopTransactions({ transactions }: Props) {
 
       {/* List */}
       {top.length === 0 ? (
-        <div className="flex h-32 items-center justify-center text-sm text-slate-400">
+        <div className="flex h-32 items-center justify-center text-sm" style={{ color: 'var(--text-secondary)' }}>
           No expenses this month
         </div>
       ) : (
@@ -70,7 +70,7 @@ export function TopTransactions({ transactions }: Props) {
             return (
               <li
                 key={tx.id}
-                className="flex items-center gap-3 px-2 py-2 hover:bg-slate-50 rounded-lg transition"
+                className="flex items-center gap-3 px-2 py-2 hover:bg-black/5 rounded-lg transition"
               >
                 {/* Rank badge */}
                 <span
@@ -81,10 +81,10 @@ export function TopTransactions({ transactions }: Props) {
 
                 {/* Merchant + meta */}
                 <div className="flex-1 min-w-0">
-                  <p className="truncate font-semibold text-sm text-slate-800">
+                  <p className="truncate font-semibold text-sm" style={{ color: 'var(--text)' }}>
                     {merchant}
                   </p>
-                  <p className="text-xs text-slate-400 flex items-center gap-1">
+                  <p className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
                     {dateLabel} ·
                     <CategoryIcon name={tx.categoryIcon} color={tx.categoryColor} size={12} />
                     {tx.categoryName}
@@ -92,7 +92,7 @@ export function TopTransactions({ transactions }: Props) {
                 </div>
 
                 {/* Amount */}
-                <span className="flex-shrink-0 font-bold text-sm text-red-700 tabular-nums">
+                <span className="flex-shrink-0 font-bold text-sm tabular-nums" style={{ color: 'var(--danger)' }}>
                   {formatAmount(tx.amount)}
                 </span>
               </li>

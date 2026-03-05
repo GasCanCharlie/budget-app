@@ -5,8 +5,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import {
-  LayoutDashboard, Upload, ReceiptText, Tags, FolderKanban,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Repeat2, Inbox, History, MessageCircle, Lightbulb
+  LayoutDashboard, Upload, ArrowLeftRight, Tags, Layers,
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, Inbox, History, MessageCircle, Lightbulb
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
@@ -27,10 +27,10 @@ const navItems = [
   { href: '/insights',     label: 'Insights',     icon: Lightbulb },
   { href: '/history',      label: 'History',      icon: History },
   { href: '/upload',       label: 'Upload',       icon: Upload },
-  { href: '/transactions', label: 'Transactions', icon: ReceiptText },
-  { href: '/categorize',   label: 'Categorize',   icon: FolderKanban },
-  { href: '/categories',   label: 'Categories',   icon: Tags },
-  { href: '/rules',        label: 'Rules',        icon: Repeat2 },
+  { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { href: '/categorize',   label: 'Categorize',   icon: Tags },
+  { href: '/categories',   label: 'Categories',   icon: Layers },
+  { href: '/rules',        label: 'Rules',        icon: Gavel },
   { href: '/chat',         label: 'Chat',         icon: MessageCircle },
   { href: '/staging',      label: 'Inbox',        icon: Inbox },
 ]
@@ -66,7 +66,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
     <div className="min-h-screen">
       {/* ── Desktop sidebar ─────────────────────────────────────────── */}
       <aside className="fixed inset-y-0 left-0 w-64 text-slate-100 border-r hidden md:flex flex-col z-40"
-        style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border)' }}
+        style={{ background: 'var(--sidebar)', borderColor: 'var(--border)' }}
       >
         {/* Logo */}
         <div className="h-14 px-4 flex items-center gap-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -74,8 +74,8 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
             <LogoMark size={22} />
           </div>
           <div className="leading-tight">
-            <div className="text-sm font-semibold tracking-wide text-[#eaf0ff]">BudgetLens</div>
-            <div className="text-xs text-[#8b97c3]">Statement Intelligence</div>
+            <div className="text-sm font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>BudgetLens</div>
+            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Statement Intelligence</div>
           </div>
         </div>
 
@@ -88,13 +88,11 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
                 key={href}
                 href={href}
                 className={clsx(
-                  'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition',
-                  active
-                    ? 'bg-white/10 text-white'
-                    : 'text-[#8b97c3] hover:bg-white/[0.06] hover:text-[#c8d4f5]'
+                  'bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition',
+                  active ? 'active' : ''
                 )}
               >
-                <Icon className={clsx('h-4 w-4', active ? 'text-[#6ea8ff]' : 'text-[#8b97c3]')} />
+                <Icon className="h-4 w-4" />
                 {label}
               </Link>
             )
@@ -103,18 +101,18 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
 
         {/* Bottom: integrity badge + logout */}
         <div className="p-3 border-t space-y-2" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md" style={{ background: 'rgba(0,0,0,.30)' }}>
-            <ShieldCheck className="h-4 w-4 text-[#2ee59d] flex-shrink-0" />
-            <div className="text-xs text-[#8b97c3] leading-tight">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md" style={{ background: 'rgba(0,0,0,0.06)' }}>
+            <ShieldCheck className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--success)' }} />
+            <div className="text-xs leading-tight" style={{ color: 'var(--text-secondary)' }}>
               Privacy-first<br />No bank login required
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleLogout}
-              className="flex-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[#8b97c3] hover:bg-white/[0.06] hover:text-[#c8d4f5] transition"
+              className="bl-nav-link flex-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition"
             >
-              <LogOut className="h-4 w-4 text-[#8b97c3]" />
+              <LogOut className="h-4 w-4" />
               Sign out
             </button>
             <ThemeToggle />
@@ -128,7 +126,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         <header
           className="sticky top-0 z-30 h-14 border-b"
           style={{
-            background: 'var(--bg2)',
+            background: 'var(--surface)',
             borderColor: 'var(--border)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
@@ -140,7 +138,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
               <div className="bl-logo-container" style={{ width: 30, height: 30 }}>
                 <LogoMark size={18} />
               </div>
-              <span className="text-sm font-semibold text-[#eaf0ff]">BudgetLens</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>BudgetLens</span>
             </div>
 
             {/* Month navigator (desktop) */}
@@ -151,9 +149,9 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
                   disabled={!canGoPrev}
                   className="p-1.5 rounded-md hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition"
                 >
-                  <ChevronLeft size={15} className="text-[#a8b3d6]" />
+                  <ChevronLeft size={15} style={{ color: 'var(--text-secondary)' }} />
                 </button>
-                <span className="font-semibold text-sm min-w-[90px] text-center text-[#eaf0ff]">
+                <span className="font-semibold text-sm min-w-[90px] text-center" style={{ color: 'var(--text-primary)' }}>
                   {MONTH_NAMES[month - 1]} {year}
                 </span>
                 <button
@@ -161,18 +159,18 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
                   disabled={!canGoNext}
                   className="p-1.5 rounded-md hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition"
                 >
-                  <ChevronRight size={15} className="text-[#a8b3d6]" />
+                  <ChevronRight size={15} style={{ color: 'var(--text-secondary)' }} />
                 </button>
               </div>
             )}
 
-            <div className="hidden md:block text-xs text-[#8b97c3]">
+            <div className="hidden md:block text-xs" style={{ color: 'var(--text-secondary)' }}>
               Privacy-first · No bank login · Local-first
             </div>
 
             {/* User email + theme toggle */}
             <div className="flex items-center gap-2">
-              <div className="text-xs text-[#8b97c3] font-mono hidden sm:block truncate max-w-[200px]">
+              <div className="text-xs font-mono hidden sm:block truncate max-w-[200px]" style={{ color: 'var(--text-secondary)' }}>
                 {user?.email}
               </div>
               <ThemeToggle />
@@ -190,7 +188,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
       <nav
         className="fixed bottom-0 inset-x-0 md:hidden border-t px-2 py-2 flex justify-around z-40"
         style={{
-          background: 'var(--bg2)',
+          background: 'var(--surface)',
           borderColor: 'var(--border)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
@@ -203,8 +201,8 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
               key={href}
               href={href}
               className={clsx(
-                'flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                active ? 'text-[#6ea8ff] bg-white/10' : 'text-[#8b97c3] hover:text-[#c8d4f5]'
+                'bl-nav-link flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                active ? 'active' : ''
               )}
             >
               <Icon size={20} />

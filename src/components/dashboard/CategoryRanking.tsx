@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { CategoryIcon } from '@/components/CategoryIcon'
 
@@ -24,19 +25,50 @@ const fmt = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
 
 export function CategoryRanking({ categories, totalSpending, year, month }: Props) {
-  const top = categories.slice(0, 10)
+  const [sort, setSort] = useState<'amount' | 'pct'>('amount')
+
+  const top = [...categories.slice(0, 10)].sort((a, b) =>
+    sort === 'amount' ? b.total - a.total : b.pctOfSpending - a.pctOfSpending
+  )
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+    <div
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: '16px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)',
+      }}
+      className="p-5"
+    >
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold text-slate-800">Spending by Category</h2>
-        <span className="text-xs text-slate-400">
-          {categories.length} {categories.length !== 1 ? 'categories' : 'category'}
-        </span>
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Spending by Category</h2>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setSort('amount')}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+              sort === 'amount'
+                ? 'bg-blue-600 text-white'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Amount
+          </button>
+          <button
+            onClick={() => setSort('pct')}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+              sort === 'pct'
+                ? 'bg-blue-600 text-white'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            %
+          </button>
+        </div>
       </div>
 
       {top.length === 0 ? (
-        <div className="py-10 text-center text-sm text-slate-400">No spending data this month</div>
+        <div className="py-10 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>No spending data this month</div>
       ) : (
         <div className="space-y-1">
           {top.map((cat, i) => {
@@ -50,7 +82,7 @@ export function CategoryRanking({ categories, totalSpending, year, month }: Prop
                 className="group flex items-center gap-3 -mx-2 px-2 py-2.5 rounded-xl hover:bg-slate-50 transition-colors"
               >
                 {/* Rank number */}
-                <span className="text-xs font-bold text-slate-300 w-4 text-right flex-shrink-0 tabular-nums">
+                <span className="text-xs font-bold w-4 text-right flex-shrink-0 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
                   {i + 1}
                 </span>
 
@@ -60,12 +92,15 @@ export function CategoryRanking({ categories, totalSpending, year, month }: Prop
                 </div>
 
                 {/* Category name */}
-                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors w-32 flex-shrink-0 truncate">
+                <span className="text-sm font-medium group-hover:text-blue-600 transition-colors w-32 flex-shrink-0 truncate" style={{ color: 'var(--text)' }}>
                   {cat.categoryName}
                 </span>
 
                 {/* Progress bar */}
-                <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="flex-1 h-2.5 rounded-full overflow-hidden"
+                  style={{ backgroundColor: 'var(--track)' }}
+                >
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${pct}%`, backgroundColor: barColor, opacity: 0.85 }}
@@ -73,12 +108,12 @@ export function CategoryRanking({ categories, totalSpending, year, month }: Prop
                 </div>
 
                 {/* % */}
-                <span className="text-xs text-slate-400 w-9 text-right tabular-nums flex-shrink-0">
+                <span className="text-xs w-9 text-right tabular-nums flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
                   {Math.round(cat.pctOfSpending)}%
                 </span>
 
                 {/* Amount */}
-                <span className="text-sm font-bold text-slate-800 tabular-nums w-20 text-right flex-shrink-0">
+                <span className="text-sm font-bold tabular-nums w-20 text-right flex-shrink-0" style={{ color: 'var(--text)' }}>
                   {fmt(cat.total)}
                 </span>
               </Link>
@@ -89,9 +124,9 @@ export function CategoryRanking({ categories, totalSpending, year, month }: Prop
 
       {/* Footer total */}
       {top.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-xs text-slate-400 uppercase tracking-wide">Total Spending</span>
-          <span className="text-base font-bold text-slate-800 tabular-nums">{fmt(totalSpending)}</span>
+        <div className="mt-4 pt-4 border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+          <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>Total Spending</span>
+          <span className="text-base font-bold tabular-nums" style={{ color: 'var(--text)' }}>{fmt(totalSpending)}</span>
         </div>
       )}
     </div>
