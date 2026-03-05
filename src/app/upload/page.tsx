@@ -707,7 +707,12 @@ function UploadHistory() {
   const qc = useQueryClient()
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
-  const { data } = useQuery({ queryKey: ['uploads'], queryFn: () => apiFetch('/api/uploads') })
+  const { data, isFetching } = useQuery({
+    queryKey: ['uploads'],
+    queryFn: () => apiFetch('/api/uploads'),
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
   const uploads: UploadRow[] = data?.uploads ?? []
 
   const deleteUploadMutation = useMutation({
@@ -724,7 +729,10 @@ function UploadHistory() {
   return (
     <div style={{ marginTop: 16, borderRadius: 24, border: '1px solid rgba(255,255,255,.10)', background: 'rgba(255,255,255,.03)', overflow: 'hidden' }}>
       <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.03)' }}>
-        <strong style={{ fontSize: 13, fontWeight: 950, color: '#eaf0ff' }}>Statement history</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <strong style={{ fontSize: 13, fontWeight: 950, color: '#eaf0ff' }}>Statement history</strong>
+          {isFetching && <Loader2 size={11} className="animate-spin" style={{ color: 'rgba(255,255,255,.4)' }} />}
+        </div>
         <span style={{ color: 'rgba(255,255,255,.55)', fontWeight: 800, fontSize: 12 }}>{uploads.length} statement{uploads.length !== 1 ? 's' : ''}</span>
       </div>
       <table className="data-table">
