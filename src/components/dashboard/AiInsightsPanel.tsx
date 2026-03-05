@@ -29,7 +29,14 @@ const MONTH_NAMES = [
 ]
 
 const COLLAPSED_STORAGE_KEY = 'budgetlens:insights-collapsed'
-const DEFAULT_VISIBLE = 3
+const DEFAULT_VISIBLE = 4
+const MAX_ROTATIONS = 4
+
+function rotateArray<T>(arr: T[], by: number): T[] {
+  if (arr.length === 0) return arr
+  const offset = by % arr.length
+  return [...arr.slice(offset), ...arr.slice(0, offset)]
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -64,12 +71,16 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
   // ── Show-all state ─────────────────────────────────────────────────────────
   const [showAll, setShowAll] = useState(false)
 
+  // ── Rotation state (cycles 0–3 on each Refresh) ────────────────────────────
+  const [rotation, setRotation] = useState(0)
+
   // ── Trial banner dismissed state ───────────────────────────────────────────
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(false)
 
-  // Reset showAll and banner dismissed when month/year changes
+  // Reset showAll, rotation, and banner dismissed when month/year changes
   useEffect(() => {
     setShowAll(false)
+    setRotation(0)
     setTrialBannerDismissed(false)
   }, [year, month])
 
@@ -135,15 +146,20 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
     }
   }
 
-  // ── Manual refresh ─────────────────────────────────────────────────────────
+  // ── Manual refresh — advance rotation then regenerate ─────────────────────
   function handleRefresh() {
+    setRotation(r => (r + 1) % MAX_ROTATIONS)
+    setShowAll(false)
     generateMutation.mutate()
   }
 
   // ── Derived state ──────────────────────────────────────────────────────────
   const cards = data?.cards ?? []
-  const visibleCards = showAll ? cards : cards.slice(0, DEFAULT_VISIBLE)
-  const hiddenCount = cards.length - DEFAULT_VISIBLE
+  // Rotate which cards surface first; step = ~¼ of total cards (min 1)
+  const rotationStep = Math.max(1, Math.floor(cards.length / MAX_ROTATIONS))
+  const rotatedCards = rotateArray(cards, rotation * rotationStep)
+  const visibleCards = showAll ? rotatedCards : rotatedCards.slice(0, DEFAULT_VISIBLE)
+  const hiddenCount = rotatedCards.length - DEFAULT_VISIBLE
   const isRefreshing = generateMutation.isPending || (isLoading && !data)
   const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`
 
@@ -258,10 +274,13 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
         </div>
       </div>
 
-      {/* Subheader: insight count */}
+      {/* Subheader: insight count + rotation indicator */}
       {!isCollapsed && !isRefreshing && cards.length > 0 && (
         <p style={{ fontSize: 11, color: '#8b97c3', margin: '4px 0 12px' }}>
           Powered by your transaction data · {cards.length} insight{cards.length !== 1 ? 's' : ''}
+          {cards.length > DEFAULT_VISIBLE && (
+            <span style={{ marginLeft: 6, opacity: 0.6 }}>· view {rotation + 1}/{MAX_ROTATIONS}</span>
+          )}
         </p>
       )}
 
@@ -313,7 +332,7 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
           )}
 
           {/* Cards grid */}
-          {!isRefreshing && cards.length > 0 && (
+          {!isRefreshing && rotatedCards.length > 0 && (
             <>
               {/* Trial warning banner */}
               {showTrialBanner && (
@@ -342,7 +361,7 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
               </div>
 
               {/* Show more / show less */}
-              {cards.length > DEFAULT_VISIBLE && (
+              {rotatedCards.length > DEFAULT_VISIBLE && (
                 <div style={{ textAlign: 'center', marginTop: 12 }}>
                   <button
                     onClick={() => setShowAll(prev => !prev)}
@@ -374,12 +393,34 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
           {!isRefreshing && !isError && cards.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <Lightbulb size={24} style={{ color: '#8b97c3', margin: '0 auto 8px' }} />
-              <p style={{ fontSize: 13, color: '#8b97c3', marginBottom: 4 }}>
-                No insights available for this month.
+              <p style={{ fontSize: 13, color: '#8b97c3', marginBottom: 8 }}>
+                No insights yet for this month.
               </p>
-              <p style={{ fontSize: 11, color: '#6b7499' }}>
-                Add more transactions or complete categorization to generate insights.
-              </p>
+              <button
+                onClick={() => generateMutation.mutate()}
+                disabled={generateMutation.isPending}
+                style={{
+                  background: 'rgba(110,168,255,0.12)',
+                  border: '1px solid rgba(110,168,255,0.25)',
+                  color: '#6ea8ff',
+                  fontSize: 12,
+                  borderRadius: 8,
+                  padding: '6px 14px',
+                  cursor: generateMutation.isPending ? 'not-allowed' : 'pointer',
+                  opacity: generateMutation.isPending ? 0.5 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <RefreshCw size={11} style={{ animation: generateMutation.isPending ? 'spin 1s linear infinite' : undefined }} />
+                Generate insights
+              </button>
+              {generateMutation.isError && (
+                <p style={{ fontSize: 11, color: '#f87171', marginTop: 8 }}>
+                  Generation failed — check that this month has categorized transactions.
+                </p>
+              )}
             </div>
           )}
 
