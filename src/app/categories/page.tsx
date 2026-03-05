@@ -87,8 +87,8 @@ export default function CategoriesPage() {
     <AppShell>
       <main className="max-w-2xl mx-auto px-4 py-8 pb-24 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Categories</h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Categories</h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
             Manage your spending categories. System categories cannot be deleted.
           </p>
         </div>
@@ -96,18 +96,18 @@ export default function CategoriesPage() {
         {/* Add new category */}
         <div className="card space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-slate-700">Custom Categories</h2>
+            <h2 className="font-bold" style={{ color: 'var(--text)' }}>Custom Categories</h2>
             <button
               onClick={() => setShowAdd(!showAdd)}
-              className="text-sm text-accent-500 font-semibold flex items-center gap-1 hover:underline"
+              className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1"
             >
-              <PlusCircle size={14} /> Add category
+              <PlusCircle size={13} /> Add category
             </button>
           </div>
 
           {showAdd && (
-            <div className="bg-slate-50 rounded-lg p-4 space-y-4 border border-slate-200">
-              <h3 className="text-sm font-semibold text-slate-700">New Category</h3>
+            <div className="rounded-lg p-4 space-y-4" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>New Category</h3>
 
               {/* Name */}
               <input
@@ -120,7 +120,7 @@ export default function CategoriesPage() {
 
               {/* Icon picker */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Icon</label>
+                <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Icon</label>
                 <div className="flex flex-wrap gap-1.5">
                   {PRESET_ICONS.map(ico => (
                     <button
@@ -146,7 +146,7 @@ export default function CategoriesPage() {
 
               {/* Color picker */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Color</label>
+                <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Color</label>
                 <div className="flex flex-wrap gap-1.5">
                   {PRESET_COLORS.map(c => (
                     <button
@@ -176,14 +176,14 @@ export default function CategoriesPage() {
                     newIncome ? 'translate-x-5' : 'translate-x-0.5'
                   )} />
                 </div>
-                <span className="text-sm text-slate-700">This is an income category</span>
+                <span className="text-sm" style={{ color: 'var(--text)' }}>This is an income category</span>
               </label>
 
               {/* Preview */}
               {newName && (
-                <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-100">
+                <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
                   <span className="text-lg">{customIcon || newIcon}</span>
-                  <span className="text-sm font-semibold text-slate-800">{newName}</span>
+                  <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{newName}</span>
                   <span className="ml-auto w-3 h-3 rounded-full" style={{ backgroundColor: newColor }} />
                 </div>
               )}
@@ -207,11 +207,11 @@ export default function CategoriesPage() {
           ) : (
             <div className="space-y-2">
               {userCats.map(cat => (
-                <div key={cat.id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white">
+                <div key={cat.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--card)' }}>
                   <CategoryIcon name={cat.icon} color={cat.color} size={20} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-slate-800">{cat.name}</p>
-                    <p className="text-xs text-slate-400">
+                    <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{cat.name}</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
                       {cat.isIncome ? 'Income' : 'Expense'} · Custom
                     </p>
                   </div>
@@ -252,8 +252,8 @@ export default function CategoriesPage() {
         {/* System categories (read-only) */}
         <div className="card space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-slate-700">System Categories</h2>
-            <span className="badge bg-slate-100 text-slate-500 flex items-center gap-1">
+            <h2 className="font-bold" style={{ color: 'var(--text)' }}>System Categories</h2>
+            <span className="pill flex items-center gap-1">
               <Lock size={10} /> {systemCats.length} built-in
             </span>
           </div>
@@ -267,12 +267,13 @@ export default function CategoriesPage() {
               {systemCats.map(cat => (
                 <div
                   key={cat.id}
-                  className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
+                  className="flex items-center gap-2 p-2.5 rounded-lg"
+                  style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
                 >
                   <CategoryIcon name={cat.icon} color={cat.color} size={16} />
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-700 truncate">{cat.name}</p>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--text)' }}>{cat.name}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--muted)' }}>
                       {cat.isIncome ? 'income' : cat.isTransfer ? 'transfer' : 'expense'}
                     </p>
                   </div>

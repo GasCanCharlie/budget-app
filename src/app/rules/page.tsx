@@ -63,10 +63,10 @@ function RuleRow({
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
-    <div className={clsx(
-      'flex items-center gap-3 px-4 py-3 transition-colors',
-      !rule.isEnabled && 'opacity-50 bg-slate-50',
-    )}>
+    <div
+      className="flex items-center gap-3 px-4 py-3 transition-colors"
+      style={!rule.isEnabled ? { opacity: 0.5, background: 'var(--surface2)' } : undefined}
+    >
       {/* Toggle enabled */}
       <button
         onClick={() => onToggleEnabled(rule.id, !rule.isEnabled)}
@@ -83,22 +83,22 @@ function RuleRow({
       {/* Vendor key → Category */}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">
+          <span className="text-sm font-semibold px-1.5 py-0.5 rounded" style={{ color: 'var(--text)', background: 'var(--surface2)' }}>
             {rule.matchValue}
           </span>
           {rule.amountExact != null && (
-            <span className="text-xs font-semibold tabular-nums text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+            <span className="text-xs font-semibold tabular-nums px-1.5 py-0.5 rounded" style={{ color: 'var(--muted)', background: 'var(--surface2)' }}>
               ${(rule.amountExact / 100).toFixed(2)}
             </span>
           )}
-          <span className="text-xs text-slate-400">→</span>
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
+          <span className="text-xs" style={{ color: 'var(--muted)' }}>→</span>
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text)' }}>
             <CategoryIcon name={rule.category.icon} color={rule.category.color} size={14} />
             {rule.category.name}
           </span>
         </div>
         <div className="mt-1 flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] text-slate-400 uppercase tracking-wide">
+          <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
             {rule.matchType === 'vendor_exact_amount' ? 'Exact vendor + price' : rule.matchType === 'vendor_exact' ? 'Exact vendor' : 'Contains'}
           </span>
         </div>
@@ -117,7 +117,7 @@ function RuleRow({
       {/* Delete */}
       {confirmDelete ? (
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-xs text-red-600 font-medium">Delete?</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--danger)' }}>Delete?</span>
           <button
             onClick={() => { onDelete(rule.id); setConfirmDelete(false) }}
             disabled={isPending}
@@ -221,8 +221,8 @@ export default function RulesPage() {
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Rules</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Rules</h1>
+          <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
             Auto-categorization rules are applied to every new import. Drag transactions to
             a category on the Categorize page to create rules automatically.
           </p>
@@ -231,11 +231,11 @@ export default function RulesPage() {
         {rules.length === 0 ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-              <BookOpen size={28} className="text-slate-400" />
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: 'var(--surface2)' }}>
+              <BookOpen size={28} style={{ color: 'var(--muted)' }} />
             </div>
-            <h2 className="text-lg font-bold text-slate-800">No rules yet</h2>
-            <p className="mt-2 max-w-sm text-sm text-slate-500">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>No rules yet</h2>
+            <p className="mt-2 max-w-sm text-sm" style={{ color: 'var(--muted)' }}>
               Rules are created automatically when you categorize the same vendor twice.
               Head to the Categorize page to get started.
             </p>
@@ -244,9 +244,9 @@ export default function RulesPage() {
             </button>
           </div>
         ) : (
-          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="overflow-hidden" style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--card)', boxShadow: 'var(--shadow-soft)' }}>
             {/* Column headers */}
-            <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-100 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            <div className="flex items-center gap-3 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--muted)' }}>
               <span className="w-6 flex-shrink-0" />
               <span className="flex-1">Vendor → Category</span>
               <span className="flex-shrink-0 pr-1">Action</span>
@@ -254,7 +254,7 @@ export default function RulesPage() {
             </div>
 
             {/* Rules list */}
-            <div className="divide-y divide-slate-100">
+            <div style={{ ['--tw-divide-border-color' as string]: 'var(--border)' }} className="[&>*+*]:border-t [&>*+*]:[border-color:var(--border)]">
               {rules.map(rule => (
                 <RuleRow
                   key={rule.id}
@@ -268,11 +268,11 @@ export default function RulesPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-              <span className="text-xs text-slate-400">
+            <div className="px-4 py-2.5 flex items-center justify-between" style={{ borderTop: '1px solid var(--border)', background: 'var(--surface2)' }}>
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>
                 {rules.filter(r => r.isEnabled).length} of {rules.length} enabled
               </span>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>
                 Rules apply on the next import
               </span>
             </div>

@@ -51,12 +51,31 @@ function SortBtn({
   return (
     <button
       onClick={() => onClick(field)}
-      className={clsx(
-        'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition',
-        active
-          ? 'border-accent-400 bg-accent-50 text-accent-700'
-          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-400 hover:text-slate-700'
-      )}
+      style={active ? {
+        background: 'var(--accent-muted)',
+        border: '1px solid var(--accent)',
+        color: 'var(--accent)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '4px 10px',
+        fontSize: 12,
+        fontWeight: 600,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        transition: 'all .15s',
+      } : {
+        background: 'var(--card2)',
+        border: '1px solid var(--border)',
+        color: 'var(--muted)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '4px 10px',
+        fontSize: 12,
+        fontWeight: 600,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        transition: 'all .15s',
+      }}
     >
       {label}
       <Icon size={11} />
@@ -259,14 +278,14 @@ function TransactionsPageInner() {
     <AppShell>
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24 space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Transactions</h1>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400 font-medium">{total.toLocaleString()} total</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>{total.toLocaleString()} total</span>
             <button
               onClick={handleExport}
               disabled={downloading || total === 0}
               title="Export to CSV"
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-800 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="btn-secondary text-xs py-1.5 px-3 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {downloading
                 ? <><Loader2 size={12} className="animate-spin"/> Exporting…</>
@@ -301,7 +320,7 @@ function TransactionsPageInner() {
 
         {/* ── Sort controls ────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-medium">Sort:</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>Sort:</span>
           <SortBtn label="Date"   field="date"   active={sortBy === 'date'}   dir={sortDir} onClick={handleSort} />
           <SortBtn label="Vendor" field="vendor" active={sortBy === 'vendor'} dir={sortDir} onClick={handleSort} />
           <SortBtn label="Amount" field="amount" active={sortBy === 'amount'} dir={sortDir} onClick={handleSort} />
@@ -346,12 +365,13 @@ function TransactionsPageInner() {
           <div className="flex gap-1.5 flex-wrap">
             <button
               onClick={() => switchFilter('')}
-              className={clsx(
-                'px-3 py-1.5 rounded-lg text-xs font-semibold transition border',
-                ingestionFilter === ''
-                  ? 'bg-slate-800 text-white border-slate-800'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-              )}
+              style={ingestionFilter === '' ? {
+                background: 'var(--text)', color: 'var(--surface)', border: '1px solid transparent',
+                borderRadius: 'var(--radius-sm)', padding: '4px 12px', fontSize: 12, fontWeight: 600,
+              } : {
+                background: 'var(--card2)', color: 'var(--muted)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)', padding: '4px 12px', fontSize: 12, fontWeight: 600,
+              }}
             >
               All
             </button>
@@ -503,7 +523,10 @@ function TransactionRow({
   const isFlagged     = tx.ingestionStatus === 'UNRESOLVED' || tx.ingestionStatus === 'WARNING'
 
   return (
-    <div className="px-4 py-3 hover:bg-slate-50 transition-colors">
+    <div className="px-4 py-3 transition-colors" style={{ ['--hover-bg' as string]: 'var(--surface2)' }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface2)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
       <div className="flex items-center gap-3">
         {/* Category icon */}
         <div className="w-8 flex-shrink-0 flex items-center justify-center">
@@ -644,7 +667,7 @@ function TransactionRow({
               Apply to all &quot;{tx.merchantNormalized}&quot; transactions
             </label>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto p-1 rounded-lg" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
             {categories.map((c) => (
               <button
                 key={c.id}
@@ -653,8 +676,9 @@ function TransactionRow({
                   'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition text-left',
                   tx.appCategory === c.name
                     ? 'bg-green-500 text-white'
-                    : 'hover:bg-white hover:shadow-sm text-slate-700'
+                    : 'hover:shadow-sm'
                 )}
+                style={tx.appCategory !== c.name ? { color: 'var(--text)' } : undefined}
               >
                 <CategoryIcon name={c.icon} color={tx.appCategory === c.name ? '#ffffff' : c.color} size={14} />
                 <span className="truncate">{c.name}</span>
@@ -682,7 +706,7 @@ function TransactionRow({
               Apply to all &quot;{tx.merchantNormalized}&quot; transactions
             </label>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-56 overflow-y-auto p-1 rounded-lg" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
             {categories.map((c) => (
               <button
                 key={c.id}
@@ -691,8 +715,9 @@ function TransactionRow({
                   'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition text-left',
                   cat?.id === c.id
                     ? 'bg-accent-500 text-white'
-                    : 'hover:bg-white hover:shadow-sm text-slate-700'
+                    : 'hover:shadow-sm'
                 )}
+                style={cat?.id !== c.id ? { color: 'var(--text)' } : undefined}
               >
                 <CategoryIcon name={c.icon} color={cat?.id === c.id ? '#ffffff' : c.color} size={14} />
                 <span className="truncate">{c.name}</span>
