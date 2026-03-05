@@ -5,59 +5,79 @@
 /* ─── Theme tokens ─────────────────────────────────────────────────────── */
 :root {
   /* Dark theme is default */
-  --bg:           #0F172A;
+  --bg:           #0b1220;
   --bg2:          #070a14;
-  --surface:      #111827;
-  --surface2:     rgba(255,255,255,0.09);
-  --border:       rgba(255,255,255,0.08);
-  --border2:      rgba(255,255,255,0.14);
-  --text:         #eaf0ff;
-  --text2:        #a8b3d6;
-  --text3:        #8b97c3;
-  --accent:       #818CF8;
+  --surface:      #0f172a;
+  --surface2:     rgba(255,255,255,0.06);
+  --card:         rgba(255,255,255,0.06);
+  --card2:        rgba(255,255,255,0.04);
+  --border:       rgba(255,255,255,0.10);
+  --border2:      rgba(255,255,255,0.16);
+  --text:         rgba(255,255,255,0.92);
+  --text2:        rgba(255,255,255,0.70);   /* --muted */
+  --text3:        rgba(255,255,255,0.50);   /* --subtle */
+  --muted:        rgba(255,255,255,0.70);
+  --subtle:       rgba(255,255,255,0.50);
+  --accent:       #7c89ff;
   --accent2:      #8b6fff;
-  --accent-muted: rgba(110,168,255,0.12);
+  --accent-muted: rgba(124,137,255,0.22);
   --success:      #22C55E;
-  --success-muted: rgba(46,229,157,0.12);
+  --success-muted: rgba(34,197,94,0.12);
   --warn:         #FBBF24;
   --warn-muted:   rgba(251,191,36,0.12);
   --danger:       #F87171;
   --sidebar-bg:   linear-gradient(180deg, #0b1020 0%, #070a14 100%);
-  /* Master prompt alias tokens */
-  --card:           #1F2937;
-  --text-primary:   #F9FAFB;
-  --text-secondary: #9CA3AF;
-  --track:          #374151;
+  --sidebar:      #0b1220;
+  /* Layout & shadow tokens (from design reference) */
+  --radius-lg:    18px;
+  --radius-md:    14px;
+  --radius-sm:    12px;
+  --shadow:       0 12px 40px rgba(0,0,0,0.35);
+  --shadow-soft:  0 4px 20px rgba(0,0,0,0.22);
+  --ring:         0 0 0 3px rgba(124,137,255,0.30);
+  /* Alias tokens */
+  --text-primary:   rgba(255,255,255,0.92);
+  --text-secondary: rgba(255,255,255,0.60);
+  --track:          rgba(255,255,255,0.10);
   --warning:        var(--warn);
-  --sidebar:        #0F172A;
 }
 
 [data-theme="light"] {
-  --bg:           #F5F7FB;
+  --bg:           #f5f7fb;
   --bg2:          #eef1f8;
-  --surface:      #FFFFFF;
+  --surface:      #ffffff;
   --surface2:     #f8fafc;
-  --border:       #E5E7EB;
-  --border2:      #D1D5DB;
-  --text:         #111827;
-  --text2:        #6B7280;
-  --text3:        #64748b;
-  --accent:       #6366F1;
+  --card:         #ffffff;
+  --card2:        #ffffff;
+  --border:       rgba(17,24,39,0.10);
+  --border2:      rgba(17,24,39,0.16);
+  --text:         rgba(17,24,39,0.92);
+  --text2:        rgba(17,24,39,0.66);
+  --text3:        rgba(17,24,39,0.50);
+  --muted:        rgba(17,24,39,0.66);
+  --subtle:       rgba(17,24,39,0.50);
+  --accent:       #4f46e5;
   --accent2:      #6d4fd4;
-  --accent-muted: rgba(37,99,235,0.10);
+  --accent-muted: rgba(79,70,229,0.14);
   --success:      #16A34A;
-  --success-muted: rgba(5,150,105,0.12);
+  --success-muted: rgba(22,163,74,0.12);
   --warn:         #F59E0B;
   --warn-muted:   rgba(217,119,6,0.12);
   --danger:       #EF4444;
   --sidebar-bg:   linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  /* Master prompt alias tokens */
-  --card:           #FFFFFF;
-  --text-primary:   #111827;
-  --text-secondary: #6B7280;
-  --track:          #E5E7EB;
+  --sidebar:      #ffffff;
+  /* Layout & shadow tokens */
+  --radius-lg:    18px;
+  --radius-md:    14px;
+  --radius-sm:    12px;
+  --shadow:       0 10px 24px rgba(17,24,39,0.08);
+  --shadow-soft:  0 4px 16px rgba(17,24,39,0.06);
+  --ring:         0 0 0 3px rgba(79,70,229,0.22);
+  /* Alias tokens */
+  --text-primary:   rgba(17,24,39,0.92);
+  --text-secondary: rgba(17,24,39,0.55);
+  --track:          rgba(17,24,39,0.10);
   --warning:        var(--warn);
-  --sidebar:        #FFFFFF;
 }
 
 /* ─── Smooth theme transition ───────────────────────────────────────────── */
@@ -103,8 +123,11 @@ html, body {
 }
 
 [data-theme="light"] body {
-  background: var(--bg) !important;
-  color: var(--text-primary);
+  background:
+    radial-gradient(1100px 500px at 35% -5%, rgba(79,70,229,0.08), transparent 55%),
+    radial-gradient(800px 400px at 90% 10%, rgba(22,163,74,0.06), transparent 55%),
+    var(--bg) !important;
+  color: var(--text);
 }
 
 [data-theme="light"] .min-h-screen {
@@ -113,40 +136,98 @@ html, body {
 
 @layer components {
   .card {
-    background: var(--surface);
+    background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,.15);
-    padding: 1rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
     position: relative;
   }
-  .btn-primary {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed;
+  .card-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
   }
-  .btn-secondary {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 font-semibold rounded-lg border transition-all text-sm;
-    background: var(--surface);
-    border-color: var(--border2);
-    color: var(--text2);
+  [data-theme="light"] .card-header {
+    background: linear-gradient(180deg, rgba(17,24,39,0.025), transparent);
   }
-  .btn-secondary:hover {
-    background: var(--surface2);
-  }
-  .input {
-    @apply w-full px-4 py-2.5 rounded-lg text-sm
-           focus:outline-none focus:ring-2 transition-all;
-    background: var(--surface);
-    border: 1px solid var(--border2);
+  .card-header h2, .card-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     color: var(--text);
-    --tw-ring-color: rgba(110,168,255,.40);
   }
-  .input::placeholder { color: var(--text3); }
-  .input:focus        { background: var(--surface2); }
+  .card-body {
+    padding: 16px 18px;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var(--accent);
+    color: #fff;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .15s ease, opacity .15s ease;
+    letter-spacing: -0.01em;
+  }
+  .btn-primary:hover  { transform: translateY(-1px); opacity: 0.92; }
+  .btn-primary:focus  { outline: none; box-shadow: var(--ring); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .btn-secondary:hover { transform: translateY(-1px); border-color: var(--border2); }
+  .btn-secondary:focus { outline: none; box-shadow: var(--ring); }
+  .input {
+    @apply w-full px-4 py-2.5 text-sm focus:outline-none transition-all;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    box-shadow: none;
+  }
+  .input::placeholder { color: var(--subtle); }
+  .input:focus {
+    border-color: var(--accent);
+    box-shadow: var(--ring);
+  }
   .badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
   }
   .num {
     font-variant-numeric: tabular-nums;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--card2);
   }
 }
 
@@ -178,22 +259,25 @@ html, body {
 
 /* ─── Nav link theming ──────────────────────────────────────────────────── */
 .bl-nav-link {
-  color: var(--text-secondary);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: color .15s ease, background-color .15s ease;
 }
 .bl-nav-link:hover {
-  color: var(--text-primary);
-  background-color: rgba(0,0,0,0.04);
-}
-[data-theme="dark"] .bl-nav-link:hover {
-  background-color: rgba(255,255,255,0.06);
+  color: var(--text);
+  background-color: var(--card2);
 }
 .bl-nav-link.active {
   color: var(--accent);
-  background-color: rgba(99,102,241,0.10);
+  background-color: var(--accent-muted);
 }
-[data-theme="dark"] .bl-nav-link.active {
-  background-color: rgba(129,140,248,0.12);
-}
+
+/* ─── Page heading typography ───────────────────────────────────────────── */
+h1 { letter-spacing: -0.025em; }
+h2 { letter-spacing: -0.015em; }
+h3 { letter-spacing: -0.01em; }
 
 /* ─── Dark theme cascade overrides ─────────────────────────────────────── */
 /* Declared outside @layer so they outrank Tailwind utilities.             */
