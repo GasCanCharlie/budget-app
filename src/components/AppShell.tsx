@@ -71,7 +71,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         {/* Logo */}
         <div className="h-14 px-4 flex items-center gap-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="bl-logo-container" style={{ width: 36, height: 36 }}>
-            <LogoMark size={22} />
+            <LogoMark size={34} />
           </div>
           <div className="leading-tight">
             <div className="text-sm font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>BudgetLens</div>
@@ -136,7 +136,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
             {/* Mobile logo */}
             <div className="flex items-center gap-2 md:hidden">
               <div className="bl-logo-container" style={{ width: 30, height: 30 }}>
-                <LogoMark size={18} />
+                <LogoMark size={28} />
               </div>
               <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>BudgetLens</span>
             </div>

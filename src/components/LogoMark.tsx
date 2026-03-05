@@ -30,7 +30,7 @@ export function LogoMark({ size = 32, className }: LogoMarkProps) {
         }
         .bl-radar-sweep {
           transform-origin: 64px 64px;
-          animation: bl-radar-sweep 4s linear infinite;
+          animation: bl-radar-sweep 12s linear infinite;
         }
       `}</style>
 
