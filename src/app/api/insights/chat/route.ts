@@ -15,6 +15,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import OpenAI from 'openai'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 // ─── AiChatContext (mirrors Turn 1 spec) ─────────────────────────────────────
 
 interface CategoryTotal {
