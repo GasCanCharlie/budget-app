@@ -144,8 +144,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const client = new OpenAI({ apiKey })
+    const client = new OpenAI({ apiKey, timeout: 8000, maxRetries: 0 })
     const contextBlock = formatContext(context)
+
+    console.log('[insights/chat] calling OpenAI, key prefix:', apiKey.slice(0, 7))
 
     const completion = await client.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -162,18 +164,8 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     console.error('[insights/chat] unhandled error:', err)
+    const errType = err instanceof Error ? err.constructor.name : 'Unknown'
     const msg = err instanceof Error ? err.message : String(err)
-    const type = err instanceof Error ? err.constructor.name : 'UnknownError'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cause = (err as any)?.cause
-    const causeMsg = cause instanceof Error ? cause.message : cause ? String(cause) : undefined
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const status = (err as any)?.status
-    return NextResponse.json({
-      error: `${type}: ${msg}`,
-      cause: causeMsg,
-      httpStatus: status,
-      nodeVersion: process.version,
-    }, { status: 500 })
+    return NextResponse.json({ error: `Chat error [${errType}]: ${msg}` }, { status: 500 })
   }
 }
