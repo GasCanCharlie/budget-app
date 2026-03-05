@@ -10,7 +10,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { AlertTriangle, Info, X, Loader2, UploadCloud } from 'lucide-react'
 import { FinancialSummaryHeader } from '@/components/dashboard/FinancialSummaryHeader'
-import { AskAiDrawer, AskAiFab } from '@/components/dashboard/AskAiDrawer'
+import { AskAiDrawer } from '@/components/dashboard/AskAiDrawer'
 import { CategoryRanking } from '@/components/dashboard/CategoryRanking'
 import { FinancialControlPanel } from '@/components/dashboard/FinancialControlPanel'
 import { TopTransactions } from '@/components/dashboard/TopTransactions'
@@ -415,9 +415,6 @@ export default function DashboardPage() {
         </div>
 
       </div>
-
-      {/* ── Ask AI FAB (analysis_unlocked only) ──────────────────────────────── */}
-      <AskAiFab onClick={() => setAskAiOpen(true)} />
 
       {/* ── Ask AI Drawer ─────────────────────────────────────────────────────── */}
       <AskAiDrawer

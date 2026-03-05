@@ -65,8 +65,8 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
   return (
     <div className="min-h-screen">
       {/* ── Desktop sidebar ─────────────────────────────────────────── */}
-      <aside className="fixed inset-y-0 left-0 w-64 text-slate-100 border-r hidden md:flex flex-col z-40"
-        style={{ background: 'var(--sidebar)', borderColor: 'var(--border)' }}
+      <aside className="fixed inset-y-0 left-0 w-64 border-r hidden md:flex flex-col z-40"
+        style={{ background: 'var(--sidebar)', borderColor: 'var(--border)', color: 'var(--text)' }}
       >
         {/* Logo */}
         <div className="h-14 px-4 flex items-center gap-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -101,7 +101,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
 
         {/* Bottom: integrity badge + logout */}
         <div className="p-3 border-t space-y-2" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md" style={{ background: 'rgba(0,0,0,0.06)' }}>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md" style={{ background: 'var(--surface2)' }}>
             <ShieldCheck className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--success)' }} />
             <div className="text-xs leading-tight" style={{ color: 'var(--text-secondary)' }}>
               Privacy-first<br />No bank login required
