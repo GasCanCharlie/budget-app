@@ -63,13 +63,13 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
     : false
 
   return (
-    <div className="app-dark min-h-screen">
+    <div className="min-h-screen">
       {/* ── Desktop sidebar ─────────────────────────────────────────── */}
       <aside className="fixed inset-y-0 left-0 w-64 text-slate-100 border-r hidden md:flex flex-col z-40"
-        style={{ background: 'linear-gradient(180deg, #0b1020 0%, #070a14 100%)', borderColor: 'rgba(255,255,255,.07)' }}
+        style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border)' }}
       >
         {/* Logo */}
-        <div className="h-14 px-4 flex items-center gap-2.5 border-b" style={{ borderColor: 'rgba(255,255,255,.07)' }}>
+        <div className="h-14 px-4 flex items-center gap-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="bl-logo-container" style={{ width: 36, height: 36 }}>
             <LogoMark size={22} />
           </div>
@@ -102,7 +102,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         </nav>
 
         {/* Bottom: integrity badge + logout */}
-        <div className="p-3 border-t space-y-2" style={{ borderColor: 'rgba(255,255,255,.07)' }}>
+        <div className="p-3 border-t space-y-2" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-2 px-3 py-2 rounded-md" style={{ background: 'rgba(0,0,0,.30)' }}>
             <ShieldCheck className="h-4 w-4 text-[#2ee59d] flex-shrink-0" />
             <div className="text-xs text-[#8b97c3] leading-tight">
@@ -128,8 +128,8 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         <header
           className="sticky top-0 z-30 h-14 border-b"
           style={{
-            background: 'linear-gradient(180deg, rgba(11,16,32,.88), rgba(11,16,32,.72))',
-            borderColor: 'rgba(255,255,255,.07)',
+            background: 'var(--bg2)',
+            borderColor: 'var(--border)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
           }}
@@ -190,8 +190,8 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
       <nav
         className="fixed bottom-0 inset-x-0 md:hidden border-t px-2 py-2 flex justify-around z-40"
         style={{
-          background: 'rgba(7,10,20,.92)',
-          borderColor: 'rgba(255,255,255,.08)',
+          background: 'var(--bg2)',
+          borderColor: 'var(--border)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
         }}
