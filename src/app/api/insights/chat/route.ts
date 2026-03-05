@@ -1,12 +1,11 @@
 /**
  * POST /api/insights/chat
- * Auth: JWT cookie / Bearer
+ * Auth: JWT required
  *
- * Body: { message: string, context: AiChatContext }
+ * Body: { message: string, year: number, month: number }
  *
- * Returns a JSON response from OpenAI (gpt-4o-mini).
- * The AI receives only structured numeric context — never raw transaction text.
- * Returns: { message: string }
+ * Server fetches all context from DB using the authenticated userId.
+ * Returns: { message: string, numbersUsed: Array<{label:string,value:string}>, filters?: {merchant?:string, category?:string, dateFrom?:string, dateTo?:string} }
  *
  * If OPENAI_API_KEY is not set, returns 503.
  */
@@ -16,124 +15,51 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-
-// ─── AiChatContext ────────────────────────────────────────────────────────────
-
-interface CategoryTotal {
-  name: string
-  total: number
-  pctOfSpending: number
-  transactionCount: number
-}
-
-interface TopMerchant {
-  merchantNormalized: string
-  totalAmount: number
-  transactionCount: number
-}
-
-interface TransactionItem {
-  date: string
-  merchant: string
-  amount: number
-  category: string | null
-}
-
-interface AiChatContext {
-  month: number
-  year: number
-  totalIncome: number
-  totalSpending: number
-  net: number
-  savingsRatePct: number
-  categoryTotals: CategoryTotal[]
-  topMerchants: TopMerchant[]
-  momSpendingPctChange: number | null
-  momIncomePctChange: number | null
-  transactions?: TransactionItem[]
-}
+import prisma from '@/lib/db'
+import { computeMonthSummary } from '@/lib/intelligence/summaries'
+import { compareMonths } from '@/lib/intelligence/compare'
+import { detectSubscriptions } from '@/lib/intelligence/subscriptions'
+import { getMerchantStats } from '@/lib/intelligence/merchants'
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `You are a warm, insightful financial assistant for BudgetLens. You may ONLY reference the structured financial data provided. Never invent merchants, amounts, categories, or dates. If you cannot answer from the provided data, say exactly: "I don't have enough data to answer that."
+const SYSTEM_PROMPT = `You are a warm, precise financial assistant for BudgetLens. You answer questions about the user's actual transaction data.
 
-Rules:
-- Give the real numbers clearly and specifically (totals, deltas, percentages)
-- If individual transactions are provided, you can answer specific questions about individual merchants, counts, dates, and transaction-level details (e.g. "how many coffees did I have?", "which day did I spend the most?")
-- Use a metaphor or everyday analogy to make the numbers feel intuitive (e.g. "that's roughly the cost of a round-trip flight" or "think of it like leaving a tap dripping")
-- Use neutral, non-judgmental language always
-- End EVERY response with a short, soothing wisdom saying or proverb — original, poetic, and unique to the situation. Never repeat the same saying twice. It should feel like a gentle reminder that money is a tool, not a measure of worth.
-- Format: numbers first, metaphor woven in, then a "—" separator, then the wisdom saying on its own line in italics
-- Sources last: "Sources: [fields referenced]"
+STRICT RULES:
+1. Only cite numbers, merchants, dates, and categories present in the context.
+2. If data needed is missing, say exactly: "I don't have enough data to answer that."
+3. For "how many times" questions: count transactions listed, state exact count, give weekly avg (count ÷ weeks_in_month, 1 decimal).
+4. For "roughly how often": state exact count first, then "roughly X times per week" or "about every N days."
+5. For comparisons: always show both values and delta ($ and %).
 
-Example closing format:
+REQUIRED RESPONSE FORMAT:
+[Answer — specific, direct, numeric]
+
+[One-sentence metaphor or analogy]
+
+Numbers used:
+• [label]: [value]
+• [label]: [value]
+• [label]: [value]
+
+FILTERS: merchant=[X] | category=[Y] | dateFrom=[YYYY-MM-DD] | dateTo=[YYYY-MM-DD]
+(include FILTERS line only when a specific merchant/category/date range applies to the answer)
+
 —
-*"A river doesn't rush — it simply finds its way."*
+*[One original wisdom saying, never repeated, relevant to the finding]*
 
-Sources: totalSpending, categoryTotals`
-
-// ─── Context formatter ────────────────────────────────────────────────────────
-
-function formatContext(ctx: AiChatContext): string {
-  const monthName = new Date(ctx.year, ctx.month - 1, 1).toLocaleString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  })
-
-  const cats = ctx.categoryTotals
-    .map(c => `  - ${c.name}: $${c.total.toFixed(2)} (${c.pctOfSpending.toFixed(1)}% of spending${c.transactionCount != null ? `, ${c.transactionCount} transactions` : ''})`)
-    .join('\n')
-
-  const merchants = ctx.topMerchants
-    .map(m => `  - ${m.merchantNormalized}: $${m.totalAmount.toFixed(2)} (${m.transactionCount} transactions)`)
-    .join('\n')
-
-  const savingsRate = ctx.savingsRatePct != null
-    ? ctx.savingsRatePct
-    : ctx.totalIncome > 0 ? ((ctx.net / ctx.totalIncome) * 100) : 0
-
-  const momSpending = ctx.momSpendingPctChange != null
-    ? `Month-over-month spending change: ${ctx.momSpendingPctChange >= 0 ? '+' : ''}${ctx.momSpendingPctChange.toFixed(1)}%`
-    : 'Month-over-month spending change: insufficient data'
-
-  const momIncome = ctx.momIncomePctChange != null
-    ? `Month-over-month income change: ${ctx.momIncomePctChange >= 0 ? '+' : ''}${ctx.momIncomePctChange.toFixed(1)}%`
-    : 'Month-over-month income change: insufficient data'
-
-  const txSection = ctx.transactions && ctx.transactions.length > 0
-    ? `\nINDIVIDUAL TRANSACTIONS (${ctx.transactions.length} total):\n` +
-      ctx.transactions
-        .map(tx => `  - ${tx.date} ${tx.merchant}: $${tx.amount.toFixed(2)} (${tx.category ?? 'Uncategorized'})`)
-        .join('\n')
-    : ''
-
-  return `FINANCIAL DATA FOR ${monthName.toUpperCase()}:
-
-Summary:
-  Total Income:   $${ctx.totalIncome.toFixed(2)}
-  Total Spending: $${ctx.totalSpending.toFixed(2)}
-  Net:            $${ctx.net.toFixed(2)}
-  Savings Rate:   ${savingsRate.toFixed(1)}%
-
-${momSpending}
-${momIncome}
-
-Category Breakdown:
-${cats || '  (no category data)'}
-
-Top Merchants:
-${merchants || '  (no merchant data)'}
-${txSection}
-IMPORTANT: Only reference the data shown above. Do not invent any numbers, merchants, or categories not listed here.`
-}
+Sources: [field names referenced]`
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
-    // Auth is optional — low-risk endpoint (aggregated numeric context only)
+    // Auth is now REQUIRED — server fetches context from DB
     const user = getUserFromRequest(req)
-    if (user) console.log('[insights/chat] userId:', user.userId)
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = user.userId
 
     const apiKey = (process.env.OPENAI_API_KEY ?? '').replace(/\s+/g, '')
     if (!apiKey) {
@@ -143,25 +69,214 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Parse body
     let message: string
-    let context: AiChatContext
+    let year: number
+    let month: number
     try {
-      const body = (await req.json()) as { message?: unknown; context?: unknown }
+      const body = (await req.json()) as { message?: unknown; year?: unknown; month?: unknown }
       if (typeof body.message !== 'string' || !body.message.trim()) {
         return NextResponse.json({ error: 'message is required' }, { status: 400 })
       }
       message = body.message.trim()
-      context = body.context as AiChatContext
-      if (!context || typeof context.totalIncome !== 'number') {
-        return NextResponse.json({ error: 'context is required' }, { status: 400 })
+      year  = typeof body.year === 'number' ? body.year : parseInt(String(body.year ?? ''))
+      month = typeof body.month === 'number' ? body.month : parseInt(String(body.month ?? ''))
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12 || year < 2000 || year > 2100) {
+        return NextResponse.json({ error: 'Valid year and month are required' }, { status: 400 })
       }
     } catch {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const contextBlock = formatContext(context)
+    // ── Intent routing ──────────────────────────────────────────────────────
+    const msg = message.toLowerCase()
+    const needsMerchant = /how many|how often|times|visits|frequency|costco|starbucks|amazon|walmart|safeway|target/.test(msg)
+    const needsComparison = /compare|vs |versus|last month|changed|difference|previous/.test(msg)
+    const needsSubscriptions = /subscription|trial|recurring|charging|new charge|cancel/.test(msg)
 
-    console.log('[insights/chat] calling OpenAI, key prefix:', apiKey.slice(0, 7))
+    // Extract merchant name if present
+    const merchantMatch = message.match(
+      /(?:at|from|to|costco|starbucks|amazon|walmart|safeway|target)\s+([A-Za-z0-9\s&']+?)(?:\?|$|this|last|in\s+[A-Z])/i,
+    )
+    const merchantQuery = merchantMatch ? merchantMatch[1].trim() : null
+
+    // Previous month calculation
+    const prevMonth = month === 1 ? 12 : month - 1
+    const prevYear  = month === 1 ? year - 1 : year
+
+    // ── Fetch context (parallel) ────────────────────────────────────────────
+    const start = new Date(year, month - 1, 1)
+    const end   = new Date(year, month, 0, 23, 59, 59)
+
+    const [summary, txRows, merchantStats, comparison, subscriptionData] = await Promise.all([
+      // Always: summary
+      computeMonthSummary(userId, year, month),
+      // Always: raw transactions (up to 200)
+      prisma.transaction.findMany({
+        where: {
+          account: { userId },
+          isExcluded:  false,
+          isTransfer:  false,
+          isDuplicate: false,
+          date: { gte: start, lte: end },
+        },
+        select: {
+          date:               true,
+          merchantNormalized: true,
+          description:        true,
+          amount:             true,
+          appCategory:        true,
+          category:           { select: { name: true } },
+          overrideCategory:   { select: { name: true } },
+        },
+        orderBy: { date: 'asc' },
+        take: 200,
+      }),
+      // Conditional: merchant stats
+      needsMerchant && merchantQuery
+        ? getMerchantStats(userId, merchantQuery, year, month).catch(() => null)
+        : Promise.resolve(null),
+      // Conditional: month comparison
+      needsComparison
+        ? compareMonths(userId, prevYear, prevMonth, year, month).catch(() => null)
+        : Promise.resolve(null),
+      // Conditional: subscriptions
+      needsSubscriptions
+        ? detectSubscriptions(userId, year, month).catch(() => null)
+        : Promise.resolve(null),
+    ])
+
+    // Map raw transaction rows to a clean shape
+    const transactions = txRows.map(tx => {
+      const categoryName =
+        tx.overrideCategory?.name ??
+        tx.category?.name ??
+        tx.appCategory ??
+        null
+      const merchant = tx.merchantNormalized?.trim() || tx.description?.trim() || ''
+      const amount = tx.amount < 0 ? Math.abs(tx.amount) : tx.amount
+      return {
+        date: tx.date.toISOString().slice(0, 10),
+        merchant,
+        amount,
+        category: categoryName,
+      }
+    })
+
+    // ── Build context block ─────────────────────────────────────────────────
+    const monthName = new Date(year, month - 1, 1).toLocaleString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    })
+
+    const savingsRate = summary.totalIncome > 0
+      ? Math.max(0, (summary.net / summary.totalIncome) * 100)
+      : 0
+
+    const dateRangeStart = summary.dateRangeStart
+      ? summary.dateRangeStart.toISOString().slice(0, 10)
+      : `${year}-${String(month).padStart(2, '0')}-01`
+    const dateRangeEnd = summary.dateRangeEnd
+      ? summary.dateRangeEnd.toISOString().slice(0, 10)
+      : `${year}-${String(month).padStart(2, '0')}-${end.getDate()}`
+
+    // Category breakdown (spending only)
+    const spendingCats = summary.categoryTotals.filter(c => !c.isIncome)
+    const catSection = spendingCats.length > 0
+      ? spendingCats
+          .map(c => `  - ${c.categoryName}: $${c.total.toFixed(2)} (${c.pctOfSpending.toFixed(1)}%, ${c.transactionCount} tx)`)
+          .join('\n')
+      : '  (no category data)'
+
+    // Top merchants from transactions (top 10 by total spend)
+    const merchantMap = new Map<string, { total: number; count: number }>()
+    for (const tx of transactions) {
+      if (tx.amount > 0 && tx.merchant) {
+        const existing = merchantMap.get(tx.merchant) ?? { total: 0, count: 0 }
+        merchantMap.set(tx.merchant, { total: existing.total + tx.amount, count: existing.count + 1 })
+      }
+    }
+    const topMerchants = Array.from(merchantMap.entries())
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 10)
+    const merchantSection = topMerchants.length > 0
+      ? topMerchants
+          .map(([name, { total, count }]) => `  - ${name}: $${total.toFixed(2)} (${count} tx)`)
+          .join('\n')
+      : '  (no merchant data)'
+
+    // Individual transactions section
+    const txSection = transactions.length > 0
+      ? `\nINDIVIDUAL TRANSACTIONS (${transactions.length} total${txRows.length === 200 ? ' — truncated at 200' : ''}):\n` +
+        transactions
+          .map(tx => `  - ${tx.date} ${tx.merchant}: $${tx.amount.toFixed(2)} (${tx.category ?? 'Uncategorized'})`)
+          .join('\n')
+      : ''
+
+    // Merchant detail section
+    let merchantDetailSection = ''
+    if (merchantStats) {
+      merchantDetailSection = `
+MERCHANT DETAIL — ${merchantStats.merchantNormalized}:
+  Visit count: ${merchantStats.visitCount}
+  Total spent: $${merchantStats.totalSpent.toFixed(2)}
+  Avg per visit: $${merchantStats.avgPerVisit.toFixed(2)}
+  Weekly avg: ${merchantStats.weeklyAvg}x/week
+  Category: ${merchantStats.category ?? 'Uncategorized'}
+  Dates: ${merchantStats.dates.join(', ')}`
+    }
+
+    // Comparison section
+    let comparisonSection = ''
+    if (comparison) {
+      const sign = (n: number) => (n >= 0 ? '+' : '')
+      comparisonSection = `
+MONTH-OVER-MONTH COMPARISON (${comparison.labelA} vs ${comparison.labelB}):
+  Spending: $${comparison.spendingA.toFixed(2)} → $${comparison.spendingB.toFixed(2)} (${sign(comparison.spendingDelta)}$${comparison.spendingDelta.toFixed(2)}, ${comparison.spendingDeltaPct != null ? sign(comparison.spendingDeltaPct) + comparison.spendingDeltaPct.toFixed(1) + '%' : 'N/A'})
+  Income: $${comparison.incomeA.toFixed(2)} → $${comparison.incomeB.toFixed(2)} (${sign(comparison.incomeDelta)}$${comparison.incomeDelta.toFixed(2)})
+  Net: $${comparison.netA.toFixed(2)} → $${comparison.netB.toFixed(2)} (${sign(comparison.netDelta)}$${comparison.netDelta.toFixed(2)})
+  Tx count: ${comparison.transactionCountA} → ${comparison.transactionCountB}
+  Category changes (by delta):
+${comparison.categoryDeltas.map(c => `    - ${c.categoryName}: $${c.amountA.toFixed(2)} → $${c.amountB.toFixed(2)} (${sign(c.delta)}$${c.delta.toFixed(2)})`).join('\n')}`
+    }
+
+    // Subscriptions section
+    let subscriptionSection = ''
+    if (subscriptionData) {
+      const highConf = subscriptionData.subscriptions?.filter(c => c.confidence === 'HIGH') ?? []
+      const trials = subscriptionData.trials ?? []
+      subscriptionSection = `
+SUBSCRIPTIONS & RECURRING:
+  Active subscriptions (HIGH confidence): ${highConf.length}
+${highConf.slice(0, 8).map(s => `    - ${s.merchantNormalized}: $${s.typicalAmount.toFixed(2)}/mo`).join('\n')}
+  Trials detected: ${trials.length}
+${trials.slice(0, 5).map(t => `    - ${t.merchantNormalized}: $${t.trialAmount.toFixed(2)}`).join('\n')}`
+    }
+
+    const contextBlock = `FINANCIAL DATA FOR ${monthName.toUpperCase()}:
+
+Summary:
+  Total Income:     $${summary.totalIncome.toFixed(2)}
+  Total Spending:   $${summary.totalSpending.toFixed(2)}
+  Net:              $${summary.net.toFixed(2)}
+  Savings Rate:     ${savingsRate.toFixed(1)}%
+  Transaction Count: ${summary.transactionCount}
+  Date Range: ${dateRangeStart} → ${dateRangeEnd}
+
+Category Breakdown:
+${catSection}
+
+Top Merchants (by spend):
+${merchantSection}
+${txSection}
+${merchantDetailSection}
+${comparisonSection}
+${subscriptionSection}
+
+IMPORTANT: Only reference the data shown above. Do not invent any numbers, merchants, or categories not listed here.`
+
+    // ── Call OpenAI ─────────────────────────────────────────────────────────
+    console.log('[insights/chat] calling OpenAI, userId:', userId, 'key prefix:', apiKey.slice(0, 7))
 
     const oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -171,7 +286,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        max_tokens: 512,
+        max_tokens: 600,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: `${contextBlock}\n\nUser question: ${message}` },
@@ -187,14 +302,51 @@ export async function POST(req: NextRequest) {
 
     interface OaiChoice { message: { content: string } }
     interface OaiResponse { choices: OaiChoice[] }
-    const data = await oaiRes.json() as OaiResponse
-    const responseText = data.choices[0]?.message?.content ?? ''
-    return NextResponse.json({ message: responseText })
+    const oaiData = await oaiRes.json() as OaiResponse
+    const rawText = oaiData.choices[0]?.message?.content ?? ''
+
+    // ── Parse response ──────────────────────────────────────────────────────
+
+    // 1. Extract FILTERS line
+    const filters: Record<string, string> = {}
+    const filtersLine = rawText.match(/^FILTERS:(.+)$/m)
+    if (filtersLine) {
+      const parts = filtersLine[1].split('|').map(s => s.trim())
+      for (const part of parts) {
+        const [key, val] = part.split('=').map(s => s.trim())
+        if (key && val && val !== 'undefined') filters[key] = val
+      }
+    }
+
+    // 2. Extract Numbers used section
+    type NumberEntry = { label: string; value: string }
+    let numbersUsed: NumberEntry[] = []
+    const nuMatch = rawText.match(/Numbers used:\n((?:•[^\n]+\n?)+)/)
+    if (nuMatch) {
+      const lines = nuMatch[1].trim().split('\n')
+      numbersUsed = lines
+        .map(line => {
+          const m = line.match(/•\s*(.+?):\s*(.+)/)
+          return m ? { label: m[1].trim(), value: m[2].trim() } : null
+        })
+        .filter((x): x is NumberEntry => x !== null)
+    }
+
+    // 3. Clean message: remove FILTERS line and Sources line
+    const cleanedText = rawText
+      .replace(/^FILTERS:[^\n]*\n?/m, '')
+      .replace(/^Sources:[^\n]*\n?/m, '')
+      .trim()
+
+    return NextResponse.json({
+      message: cleanedText,
+      numbersUsed,
+      ...(Object.keys(filters).length > 0 ? { filters } : {}),
+    })
 
   } catch (err) {
     console.error('[insights/chat] unhandled error:', err)
     const errType = err instanceof Error ? err.constructor.name : 'Unknown'
-    // Strip the API key from error messages before sending to client
     const rawMsg = err instanceof Error ? err.message : String(err)
     const safeMsg = rawMsg.replace(/sk-[A-Za-z0-9_-]{10,}/g, '[REDACTED]')
     return NextResponse.json({ error: `Chat error [${errType}]: ${safeMsg}` }, { status: 500 })

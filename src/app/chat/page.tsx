@@ -41,31 +41,12 @@ interface SummaryResponse {
   summary: UnlockedSummary | null
 }
 
-interface TransactionItem {
-  date: string
-  merchant: string
-  amount: number
-  category: string | null
-}
-
-interface AiChatContext {
-  month: number
-  year: number
-  totalIncome: number
-  totalSpending: number
-  net: number
-  savingsRatePct: number
-  categoryTotals: { name: string; total: number; pctOfSpending: number; transactionCount: number }[]
-  topMerchants: { merchantNormalized: string; totalAmount: number; transactionCount: number }[]
-  momSpendingPctChange: number | null
-  momIncomePctChange: number | null
-  transactions?: TransactionItem[]
-}
-
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   streaming?: boolean
+  numbersUsed?: Array<{ label: string; value: string }>
+  filters?: Record<string, string>
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -86,6 +67,19 @@ const STARTER_PROMPTS = [
   'Where did most of my money go?',
   'Am I on track this month?',
   'What are my biggest recurring charges?',
+  'How many times did I eat out?',
+  'Any new subscriptions or trials charging?',
+  'What changed vs last month?',
+  "What's my fixed cost baseline?",
+  'Where can I cut $300 without hurting?',
+  'What day do I spend the most?',
+  'Show my top 5 merchants',
+]
+
+const POWER_PROMPTS = [
+  'How many Costco trips this month?',
+  'Roughly how often am I buying coffee?',
+  'What would my savings rate be if I cut Housing?',
 ]
 
 const fmtCurrency = (n: number) =>
@@ -210,6 +204,7 @@ export default function ChatPage() {
   const [apiUnavailable, setApiUnavailable] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [showStarters, setShowStarters] = useState(true)
+  const [showPowerPrompts, setShowPowerPrompts] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -250,12 +245,6 @@ export default function ChatPage() {
     enabled: !!user,
   })
 
-  const { data: txMonthlyData } = useQuery<{ transactions: TransactionItem[] }>({
-    queryKey: ['txMonthly', year, month],
-    queryFn: () => apiFetch(`/api/transactions/monthly?year=${year}&month=${month}`),
-    enabled: !!user,
-  })
-
   const availableMonths = summaryData?.availableMonths ?? []
   const dashboardState = summaryData?.dashboardState
   const summary = summaryData?.summary
@@ -272,43 +261,10 @@ export default function ChatPage() {
       },
     ])
     setShowStarters(true)
+    setShowPowerPrompts(false)
     setApiUnavailable(false)
     setApiError(null)
   }, [year, month, monthLabel])
-
-  // ── Build context from summary ─────────────────────────────────────────────
-
-  const buildContext = useCallback((transactions?: TransactionItem[]): AiChatContext | null => {
-    if (!summary) return null
-    const spendingCats = summary.categoryTotals.filter(c => !c.isIncome)
-    const totalIncome = summary.totalIncome
-    const totalSpending = summary.totalSpending
-    const net = summary.net
-    const savingsRatePct = totalIncome > 0 ? Math.max(0, (net / totalIncome) * 100) : 0
-
-    return {
-      year,
-      month,
-      totalIncome,
-      totalSpending,
-      net,
-      savingsRatePct,
-      categoryTotals: spendingCats.map(c => ({
-        name: c.categoryName,
-        total: c.total,
-        pctOfSpending: c.pctOfSpending,
-        transactionCount: c.transactionCount,
-      })),
-      topMerchants: (summary.topTransactions ?? []).map(tx => ({
-        merchantNormalized: tx.merchantNormalized,
-        totalAmount: Math.abs(tx.amount),
-        transactionCount: 1,
-      })),
-      momSpendingPctChange: null,
-      momIncomePctChange: null,
-      transactions,
-    }
-  }, [summary, year, month])
 
   // ── Send message ──────────────────────────────────────────────────────────
 
@@ -333,16 +289,13 @@ export default function ChatPage() {
     abortControllerRef.current = new AbortController()
 
     try {
-      const context = buildContext(txMonthlyData?.transactions)
-      if (!context) throw new Error('No summary data')
-
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) headers['Authorization'] = `Bearer ${token}`
 
       const response = await fetch('/api/insights/chat', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ message: trimmed, context }),
+        body: JSON.stringify({ message: trimmed, year, month }),
         signal: abortControllerRef.current.signal,
       })
 
@@ -359,14 +312,24 @@ export default function ChatPage() {
         throw new Error(errMsg)
       }
 
-      const data = await response.json() as { message?: string }
+      const data = await response.json() as {
+        message?: string
+        numbersUsed?: Array<{ label: string; value: string }>
+        filters?: Record<string, string>
+      }
       const responseText = data.message ?? ''
 
       setMessages(prev => {
         const next = [...prev]
         const last = next.length - 1
         if (next[last]?.role === 'assistant') {
-          next[last] = { role: 'assistant', content: responseText, streaming: false }
+          next[last] = {
+            role: 'assistant',
+            content: responseText,
+            streaming: false,
+            numbersUsed: data.numbersUsed,
+            filters: data.filters,
+          }
         }
         return next
       })
@@ -387,7 +350,7 @@ export default function ChatPage() {
     } finally {
       setIsStreaming(false)
     }
-  }, [isStreaming, messages, token, buildContext, txMonthlyData])
+  }, [isStreaming, messages, token, year, month])
 
   const handleSend = useCallback(() => {
     sendMessage(inputText)
@@ -681,35 +644,129 @@ export default function ChatPage() {
                   </div>
                 )}
 
+                {/* Number chips — shown after assistant messages (non-streaming, with numbersUsed) */}
+                {msg.role === 'assistant' && !msg.streaming && (msg.numbersUsed?.length ?? 0) > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6, paddingLeft: 38 }}>
+                    {msg.numbersUsed!.map((n, ni) => (
+                      <span key={ni} style={{
+                        fontSize: 10,
+                        padding: '2px 8px',
+                        borderRadius: 9999,
+                        background: 'rgba(110,168,255,0.08)',
+                        border: '1px solid rgba(110,168,255,0.15)',
+                        color: '#8b97c3',
+                      }}>
+                        {n.label}: <strong style={{ color: '#c8d4f5' }}>{n.value}</strong>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* View transactions button — shown when filters are present */}
+                {msg.role === 'assistant' && !msg.streaming && msg.filters && Object.keys(msg.filters).length > 0 && (
+                  <button
+                    onClick={() => {
+                      const params = new URLSearchParams(msg.filters as Record<string, string>)
+                      router.push(`/transactions?${params.toString()}`)
+                    }}
+                    style={{
+                      marginTop: 6,
+                      marginLeft: 38,
+                      fontSize: 11,
+                      padding: '4px 10px',
+                      borderRadius: 8,
+                      background: 'rgba(110,168,255,0.10)',
+                      border: '1px solid rgba(110,168,255,0.20)',
+                      color: '#6ea8ff',
+                      cursor: 'pointer',
+                      display: 'inline-block',
+                    }}
+                  >
+                    View transactions →
+                  </button>
+                )}
+
                 {/* Starter prompts — show below first (welcome) AI message only */}
                 {i === 0 && showStarters && msg.role === 'assistant' && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, paddingLeft: 38 }}>
-                    {STARTER_PROMPTS.map(prompt => (
+                  <div style={{ marginTop: 12, paddingLeft: 38 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {STARTER_PROMPTS.map(prompt => (
+                        <button
+                          key={prompt}
+                          onClick={() => sendMessage(prompt)}
+                          disabled={isStreaming || summaryData?.dashboardState === 'categorization_required' || summaryLoading}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 20,
+                            background: 'rgba(110,168,255,0.08)',
+                            border: '1px solid rgba(110,168,255,0.18)',
+                            color: '#6ea8ff',
+                            fontSize: 12,
+                            cursor: 'pointer',
+                            fontWeight: 500,
+                            transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={e => {
+                            ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(110,168,255,0.15)'
+                          }}
+                          onMouseLeave={e => {
+                            ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(110,168,255,0.08)'
+                          }}
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* "More prompts" expander */}
+                    <div style={{ marginTop: 6 }}>
                       <button
-                        key={prompt}
-                        onClick={() => sendMessage(prompt)}
-                        disabled={isStreaming || summaryData?.dashboardState === 'categorization_required' || summaryLoading}
+                        onClick={() => setShowPowerPrompts(v => !v)}
                         style={{
-                          padding: '6px 12px',
+                          padding: '4px 10px',
                           borderRadius: 20,
-                          background: 'rgba(110,168,255,0.08)',
-                          border: '1px solid rgba(110,168,255,0.18)',
-                          color: '#6ea8ff',
-                          fontSize: 12,
+                          background: 'transparent',
+                          border: '1px solid rgba(255,255,255,0.10)',
+                          color: '#8b97c3',
+                          fontSize: 11,
                           cursor: 'pointer',
                           fontWeight: 500,
-                          transition: 'background 0.15s',
-                        }}
-                        onMouseEnter={e => {
-                          ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(110,168,255,0.15)'
-                        }}
-                        onMouseLeave={e => {
-                          ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(110,168,255,0.08)'
                         }}
                       >
-                        {prompt}
+                        {showPowerPrompts ? 'Fewer prompts ▴' : 'More prompts ▾'}
                       </button>
-                    ))}
+
+                      {showPowerPrompts && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                          {POWER_PROMPTS.map(prompt => (
+                            <button
+                              key={prompt}
+                              onClick={() => sendMessage(prompt)}
+                              disabled={isStreaming || summaryData?.dashboardState === 'categorization_required' || summaryLoading}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: 20,
+                                background: 'rgba(168,110,255,0.08)',
+                                border: '1px solid rgba(168,110,255,0.18)',
+                                color: '#a78bfa',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                fontWeight: 500,
+                                transition: 'background 0.15s',
+                              }}
+                              onMouseEnter={e => {
+                                ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(168,110,255,0.15)'
+                              }}
+                              onMouseLeave={e => {
+                                ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(168,110,255,0.08)'
+                              }}
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -763,6 +820,7 @@ export default function ChatPage() {
                       },
                     ])
                     setShowStarters(true)
+                    setShowPowerPrompts(false)
                   }}
                   style={{
                     padding: '7px 16px',

@@ -290,6 +290,8 @@ async function upsertInsightCards(
         iconSuggestion: card.icon_suggestion,
         isDismissed: false,
         generatedAt: new Date(card.generated_at),
+        numbersUsed: card.numbers_used as unknown as object,
+        filters: card.filters ? (card.filters as unknown as object) : undefined,
       },
       update: {
         priority: card.priority,
@@ -302,6 +304,8 @@ async function upsertInsightCards(
         // Preserve isDismissed — only update if no existing row
         isDismissed: existing?.isDismissed ?? false,
         generatedAt: new Date(card.generated_at),
+        numbersUsed: card.numbers_used as unknown as object,
+        filters: card.filters ? (card.filters as unknown as object) : undefined,
       },
     })
   }

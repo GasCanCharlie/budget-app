@@ -127,7 +127,8 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
         headers,
         body: JSON.stringify({
           message: text,
-          context,
+          year: context.year,
+          month: context.month,
         }),
         signal: abortControllerRef.current.signal,
       })

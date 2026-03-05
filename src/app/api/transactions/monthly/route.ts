@@ -2,6 +2,8 @@
  * GET /api/transactions/monthly?year=&month=
  * Auth: JWT required
  *
+ * Optional filter params: merchant, category, minAmount, maxAmount
+ *
  * Returns a lightweight list of non-excluded, non-transfer, non-duplicate
  * transactions for the given month, suitable for sending to AI as context.
  *
@@ -34,6 +36,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid year or month' }, { status: 400 })
   }
 
+  // Optional filters
+  const merchantFilter  = searchParams.get('merchant') ?? undefined
+  const categoryFilter  = searchParams.get('category') ?? undefined
+  const minAmountParam  = searchParams.get('minAmount')
+  const maxAmountParam  = searchParams.get('maxAmount')
+  const minAmount = minAmountParam != null ? parseFloat(minAmountParam) : undefined
+  const maxAmount = maxAmountParam != null ? parseFloat(maxAmountParam) : undefined
+
   const start = new Date(year, month - 1, 1)
   const end   = new Date(year, month, 0, 23, 59, 59)
 
@@ -45,6 +55,20 @@ export async function GET(req: NextRequest) {
         isTransfer:   false,
         isDuplicate:  false,
         date: { gte: start, lte: end },
+        // Optional merchant filter
+        ...(merchantFilter
+          ? { merchantNormalized: { contains: merchantFilter, mode: 'insensitive' } }
+          : {}),
+        // Optional amount filters — amounts are stored as negative for expenses,
+        // so minAmount/maxAmount refer to absolute value. Convert accordingly.
+        ...(minAmount != null || maxAmount != null
+          ? {
+              amount: {
+                ...(minAmount != null ? { lte: -minAmount } : {}),
+                ...(maxAmount != null ? { gte: -maxAmount } : {}),
+              },
+            }
+          : {}),
       },
       select: {
         date:               true,
@@ -59,27 +83,34 @@ export async function GET(req: NextRequest) {
       take: 500,
     })
 
-    const transactions = rows.map(tx => {
-      const categoryName =
-        tx.overrideCategory?.name ??
-        tx.category?.name ??
-        tx.appCategory ??
-        null
+    const transactions = rows
+      .map(tx => {
+        const categoryName =
+          tx.overrideCategory?.name ??
+          tx.category?.name ??
+          tx.appCategory ??
+          null
 
-      const merchant = tx.merchantNormalized?.trim() || tx.description?.trim() || ''
+        // Optional category filter (applied after join since category comes from relation)
+        if (categoryFilter && categoryName?.toLowerCase() !== categoryFilter.toLowerCase()) {
+          return null
+        }
 
-      // Preserve sign: expenses are negative in DB, income is positive.
-      // Return absolute value for expenses so AI sees positive spend amounts,
-      // but keep income positive as-is.
-      const amount = tx.amount < 0 ? Math.abs(tx.amount) : tx.amount
+        const merchant = tx.merchantNormalized?.trim() || tx.description?.trim() || ''
 
-      return {
-        date:     tx.date.toISOString().slice(0, 10), // YYYY-MM-DD
-        merchant,
-        amount,
-        category: categoryName,
-      }
-    })
+        // Preserve sign: expenses are negative in DB, income is positive.
+        // Return absolute value for expenses so AI sees positive spend amounts,
+        // but keep income positive as-is.
+        const amount = tx.amount < 0 ? Math.abs(tx.amount) : tx.amount
+
+        return {
+          date:     tx.date.toISOString().slice(0, 10), // YYYY-MM-DD
+          merchant,
+          amount,
+          category: categoryName,
+        }
+      })
+      .filter((tx): tx is NonNullable<typeof tx> => tx !== null)
 
     return NextResponse.json({ transactions })
   } catch (e) {

@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
+import type { InsightCard } from '@/lib/insights/types'
 
 const STALE_MS = 60 * 60 * 1000 // 1 hour
 
@@ -64,6 +65,8 @@ export async function GET(req: NextRequest) {
       generated_at: r.generatedAt.toISOString(),
       year: r.year,
       month: r.month,
+      numbers_used: (r.numbersUsed as InsightCard['numbers_used']) ?? [],
+      filters: r.filters as InsightCard['filters'] ?? undefined,
     }))
 
     return NextResponse.json({ cards, isStale })

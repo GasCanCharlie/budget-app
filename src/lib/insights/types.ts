@@ -189,6 +189,14 @@ export interface InsightCard {
   generated_at: string
   month: number
   year: number
+  numbers_used: Array<{ label: string; value: string; field: string }>
+  filters?: {
+    merchant?: string
+    category?: string
+    dateFrom?: string   // YYYY-MM-DD
+    dateTo?: string     // YYYY-MM-DD
+    minAmount?: number
+  }
 }
 
 // ─── Input bundle: ComputedInsightMetrics ─────────────────────────────────────

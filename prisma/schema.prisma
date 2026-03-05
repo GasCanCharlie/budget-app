@@ -582,6 +582,8 @@ model InsightCard {
   iconSuggestion String
   isDismissed    Boolean  @default(false)
   generatedAt    DateTime @default(now())
+  numbersUsed    Json     @default("[]")
+  filters        Json?
   user           User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, year, month, cardType])

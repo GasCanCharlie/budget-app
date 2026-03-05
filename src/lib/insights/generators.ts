@@ -82,6 +82,8 @@ function makeCard(
   icon_suggestion: string,
   year: number,
   month: number,
+  numbers_used: InsightCard['numbers_used'] = [],
+  filters?: InsightCard['filters'],
 ): InsightCard {
   const dataWithWisdom = {
     ...(supporting_data as unknown as Record<string, unknown>),
@@ -100,6 +102,8 @@ function makeCard(
     generated_at: now(),
     year,
     month,
+    numbers_used,
+    filters,
   }
 }
 
@@ -194,6 +198,11 @@ export function generateOverBudgetDiagnosis(metrics: ComputedInsightMetrics): In
       'TrendingDown',
       year,
       month,
+      [
+        { label: 'Deficit', value: formatCurrency(deficit), field: 'deficit' },
+        { label: 'Total Income', value: formatCurrency(totalIncome), field: 'totalIncome' },
+        { label: 'Total Spending', value: formatCurrency(totalSpending), field: 'totalSpending' },
+      ],
     ),
   ]
 }
@@ -250,6 +259,9 @@ export function generateCategorySpikes(metrics: ComputedInsightMetrics): Insight
     `compared to a prior 3-month average of ${formatCurrency(top.threeMonthAvg ?? 0)}. ` +
     `This is an increase of ${formatPct(pctIncrease)}, with ${top.transactionCount} transactions recorded.`
 
+  const dateFrom = `${year}-${String(month).padStart(2, '0')}-01`
+  const dateTo = new Date(year, month, 0).toISOString().slice(0, 10)
+
   return [
     makeCard(
       'category_spike',
@@ -265,6 +277,12 @@ export function generateCategorySpikes(metrics: ComputedInsightMetrics): Insight
       'TrendingUp',
       year,
       month,
+      [
+        { label: 'This Month Amount', value: formatCurrency(top.currentMonthTotal), field: 'this_month_amount' },
+        { label: 'Avg Prior 3 Months', value: formatCurrency(top.threeMonthAvg ?? 0), field: 'avg_prior_3_months' },
+        { label: 'Pct Increase', value: formatPct(pctIncrease), field: 'pct_increase' },
+      ],
+      { category: top.categoryName, dateFrom, dateTo },
     ),
   ]
 }
@@ -320,6 +338,9 @@ export function generateMerchantSpikes(metrics: ComputedInsightMetrics): Insight
     `${formatCurrency(top.merchantTotal)} this month, ` +
     `a change of +${formatCurrency(top.merchantDelta ?? 0)} (${formatPct(deltaPct)}).`
 
+  const dateFrom = `${year}-${String(month).padStart(2, '0')}-01`
+  const dateTo = new Date(year, month, 0).toISOString().slice(0, 10)
+
   return [
     makeCard(
       'merchant_spike',
@@ -337,6 +358,12 @@ export function generateMerchantSpikes(metrics: ComputedInsightMetrics): Insight
       'Store',
       year,
       month,
+      [
+        { label: 'This Month Total', value: formatCurrency(top.merchantTotal), field: 'this_month_total' },
+        { label: 'Prior Month Total', value: formatCurrency(priorMonthTotal), field: 'prior_month_total' },
+        { label: 'Delta', value: formatCurrency(top.merchantDelta ?? 0), field: 'delta' },
+      ],
+      { merchant: top.merchantDisplay, dateFrom, dateTo },
     ),
   ]
 }
@@ -358,6 +385,8 @@ export function generateLargeTransactions(metrics: ComputedInsightMetrics): Insi
 
   const cards: InsightCard[] = []
   const top3 = largeTransactions.slice(0, 3)
+  const dateFrom = `${year}-${String(month).padStart(2, '0')}-01`
+  const dateTo = new Date(year, month, 0).toISOString().slice(0, 10)
 
   for (const tx of top3) {
     const pctOfSpending =
@@ -390,6 +419,12 @@ export function generateLargeTransactions(metrics: ComputedInsightMetrics): Insi
         'CreditCard',
         year,
         month,
+        [
+          { label: 'Amount', value: formatCurrency(tx.amount), field: 'amount' },
+          { label: 'Pct of Monthly Spending', value: formatPct(pctOfSpending), field: 'pct_of_monthly_spending' },
+          { label: 'Threshold Used', value: formatCurrency(frequency.largeTransactionThreshold), field: 'threshold_used' },
+        ],
+        { merchant: tx.merchant, dateFrom, dateTo, minAmount: frequency.largeTransactionThreshold },
       ),
     )
   }
@@ -479,6 +514,11 @@ export function generateSmallPurchaseLeaks(metrics: ComputedInsightMetrics): Ins
       'Droplets',
       year,
       month,
+      [
+        { label: 'Count', value: String(frequency.smallPurchaseCount), field: 'count' },
+        { label: 'Total', value: formatCurrency(frequency.smallPurchaseTotal), field: 'total' },
+        { label: 'Pct of Spending', value: formatPct(pctOfSpending), field: 'pct_of_spending' },
+      ],
     ),
   ]
 }
@@ -550,6 +590,11 @@ export function generateSubscriptionSummary(metrics: ComputedInsightMetrics): In
       'RefreshCw',
       year,
       month,
+      [
+        { label: 'Subscription Count', value: String(subscriptions.subscriptionCount), field: 'subscription_count' },
+        { label: 'Monthly Total', value: formatCurrency(subscriptions.subscriptionMonthlyTotal), field: 'monthly_total' },
+        { label: 'Annualized Cost', value: formatCurrency(Math.round(annualized * 100) / 100), field: 'annualized_cost' },
+      ],
     ),
   ]
 }
@@ -617,6 +662,11 @@ export function generateNewSubscriptionAlert(metrics: ComputedInsightMetrics): I
       'Bell',
       year,
       month,
+      [
+        { label: 'Amount Per Month', value: formatCurrency(sub.estimatedMonthlyAmount), field: 'amount_per_month' },
+        { label: 'Annualized Cost', value: formatCurrency(Math.round(annualized * 100) / 100), field: 'annualized_cost' },
+        { label: 'Months Detected', value: String(sub.consecutiveMonths), field: 'months_detected' },
+      ],
     )
   })
 }
@@ -667,6 +717,21 @@ export function generateTrialWarnings(metrics: ComputedInsightMetrics): InsightC
       billingText +
       amountText
 
+    const dateFrom = `${year}-${String(month).padStart(2, '0')}-01`
+    const dateTo = new Date(year, month, 0).toISOString().slice(0, 10)
+
+    const numbersUsed: InsightCard['numbers_used'] = [
+      { label: 'Trial Amount', value: formatCurrency(trial.chargeAmount), field: 'trial_amount' },
+      { label: 'Charge Date', value: trial.chargeDate.slice(0, 10), field: 'charge_date' },
+    ]
+    if (trial.estimatedMonthlyAmount !== null) {
+      numbersUsed.push({
+        label: 'Estimated Monthly Amount',
+        value: formatCurrency(trial.estimatedMonthlyAmount),
+        field: 'estimated_monthly_amount',
+      })
+    }
+
     return makeCard(
       'trial_warning',
       2,
@@ -684,6 +749,8 @@ export function generateTrialWarnings(metrics: ComputedInsightMetrics): InsightC
       'AlertCircle',
       year,
       month,
+      numbersUsed,
+      { merchant: trial.merchantDisplay, dateFrom, dateTo },
     )
   })
 }
@@ -779,6 +846,11 @@ export function generateCashFlowForecast(metrics: ComputedInsightMetrics): Insig
       paceStatus === 'over_pace' ? 'TrendingUp' : 'TrendingDown',
       year,
       month,
+      [
+        { label: 'Projected Spending', value: formatCurrency(Math.round(projected * 100) / 100), field: 'projected_spending' },
+        { label: 'Total Income', value: formatCurrency(totalIncome), field: 'total_income' },
+        { label: 'Overage or Underage', value: formatCurrency(Math.round(overageOrUnderage * 100) / 100), field: 'overage_or_underage' },
+      ],
     ),
   ]
 }
@@ -913,6 +985,11 @@ export function generateFixOpportunity(metrics: ComputedInsightMetrics): Insight
       'Wrench',
       year,
       month,
+      [
+        { label: 'Total Potential Monthly Savings', value: formatCurrency(Math.round(totalMonthlySavings * 100) / 100), field: 'total_potential_monthly_savings' },
+        { label: 'Net', value: formatCurrency(net), field: 'net' },
+        ...(topScenario ? [{ label: 'Top Scenario Monthly Savings', value: formatCurrency(topScenario.monthly_savings), field: 'monthly_savings' }] : []),
+      ],
     ),
   ]
 }
