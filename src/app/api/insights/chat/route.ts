@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     const user = getUserFromRequest(req)
     if (user) console.log('[insights/chat] userId:', user.userId)
 
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = (process.env.OPENAI_API_KEY ?? '').replace(/\s+/g, '')
     if (!apiKey) {
       return NextResponse.json(
         { error: 'AI chat is not configured. OPENAI_API_KEY is not set.' },
@@ -178,7 +178,9 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[insights/chat] unhandled error:', err)
     const errType = err instanceof Error ? err.constructor.name : 'Unknown'
-    const msg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: `Chat error [${errType}]: ${msg}` }, { status: 500 })
+    // Strip the API key from error messages before sending to client
+    const rawMsg = err instanceof Error ? err.message : String(err)
+    const safeMsg = rawMsg.replace(/sk-[A-Za-z0-9_-]{10,}/g, '[REDACTED]')
+    return NextResponse.json({ error: `Chat error [${errType}]: ${safeMsg}` }, { status: 500 })
   }
 }
