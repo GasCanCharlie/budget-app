@@ -48,19 +48,26 @@ function buildReason(matchType: string): string {
  * @param amountCents  - signed integer cents (negative = debit, positive = credit)
  * @param description  - raw/original transaction description for text matching
  * @param userId       - the authenticated user's id
+ * @param accountId    - the transaction's account id (rules scoped to this account or global)
  */
 export async function matchRules(
   vendorKey: string,
   amountCents: number,
   description: string,
   userId: string,
+  accountId?: string,
 ): Promise<MatchResult> {
-  // Step 1: Fetch all enabled rules for this user that have a non-empty vendorKey
+  // Step 1: Fetch all enabled rules for this user that have a non-empty vendorKey,
+  // scoped to the transaction's account (or global rules with no scopeAccountId)
   const allRules = await prisma.categoryRule.findMany({
     where: {
       userId,
       isEnabled: true,
       vendorKey: { not: '' },
+      OR: [
+        { scopeAccountId: null },
+        ...(accountId ? [{ scopeAccountId: accountId }] : []),
+      ],
     },
   })
 

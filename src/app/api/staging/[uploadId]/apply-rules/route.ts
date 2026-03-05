@@ -22,13 +22,16 @@ export async function POST(
     // Verify ownership
     const stagingUpload = await prisma.stagingUpload.findFirst({
       where: { id: uploadId, userId: user.userId },
+      include: { upload: { select: { accountId: true } } },
     })
     if (!stagingUpload) {
       return NextResponse.json({ error: 'Staging upload not found' }, { status: 404 })
     }
 
+    const accountId = stagingUpload.upload.accountId
+
     // Run the dry-run to get match results
-    const dryRun = await dryRunRules(stagingUpload.id, user.userId)
+    const dryRun = await dryRunRules(stagingUpload.id, user.userId, accountId)
 
     let applied  = 0
     let review   = 0

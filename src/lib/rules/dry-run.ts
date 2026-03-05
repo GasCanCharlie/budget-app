@@ -35,11 +35,13 @@ export interface DryRunResult {
  *
  * @param stagingUploadId - the StagingUpload to evaluate
  * @param userId          - the authenticated user's id
+ * @param accountId       - the account id for this upload (used to scope rules)
  * @returns DryRunResult with aggregate counts and per-transaction details
  */
 export async function dryRunRules(
   stagingUploadId: string,
   userId: string,
+  accountId?: string,
 ): Promise<DryRunResult> {
   // Step 1: Fetch all uncommitted staging transactions for this upload
   const stagingTxs = await prisma.stagingTransaction.findMany({
@@ -64,6 +66,7 @@ export async function dryRunRules(
       tx.amountCents,
       tx.description,
       userId,
+      accountId,
     )
 
     if (matchResult.matched) {

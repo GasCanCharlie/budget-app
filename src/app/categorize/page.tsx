@@ -54,6 +54,7 @@ interface Transaction {
   description: string
   merchantNormalized: string
   amount: number
+  accountId: string
   isTransfer: boolean
   categorizationSource: 'rule' | 'ai' | 'user' | 'bank'
   confidenceScore: number
@@ -918,10 +919,10 @@ export default function CategorizePage() {
 
   // ── Rule creation mutation ──
   const createRuleMutation = useMutation({
-    mutationFn: ({ matchValue, amountExact, categoryId, mode }: { matchValue: string; amountExact?: number; categoryId: string; mode: 'always' | 'ask' }) =>
+    mutationFn: ({ matchValue, amountExact, categoryId, mode, scopeAccountId }: { matchValue: string; amountExact?: number; categoryId: string; mode: 'always' | 'ask'; scopeAccountId?: string }) =>
       apiFetch('/api/rules', {
         method: 'POST',
-        body: JSON.stringify({ matchType: 'vendor_exact_amount', matchValue, amountExact, categoryId, mode }),
+        body: JSON.stringify({ matchType: 'vendor_exact_amount', matchValue, amountExact, categoryId, mode, scopeAccountId }),
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rules'] })
@@ -962,10 +963,11 @@ export default function CategorizePage() {
       // Auto-save vendor+amount rule silently so next upload remembers this
       if (tx.merchantNormalized) {
         createRuleMutation.mutate({
-          matchValue:  tx.merchantNormalized,
-          amountExact: Math.round(tx.amount * 100),
+          matchValue:     tx.merchantNormalized,
+          amountExact:    Math.round(tx.amount * 100),
           categoryId,
-          mode: 'always',
+          mode:           'always',
+          scopeAccountId: tx.accountId,
         })
       }
       trackSessionAssign(tx.merchantNormalized, cat.name, cat.id)
@@ -1569,10 +1571,11 @@ export default function CategorizePage() {
                 { onSuccess: () => {
                   if (confirm.transaction.merchantNormalized) {
                     createRuleMutation.mutate({
-                      matchValue:  confirm.transaction.merchantNormalized,
-                      amountExact: Math.round(confirm.transaction.amount * 100),
-                      categoryId:  confirm.category.id,
-                      mode: 'always',
+                      matchValue:     confirm.transaction.merchantNormalized,
+                      amountExact:    Math.round(confirm.transaction.amount * 100),
+                      categoryId:     confirm.category.id,
+                      mode:           'always',
+                      scopeAccountId: confirm.transaction.accountId,
                     })
                   }
                   trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
@@ -1586,10 +1589,11 @@ export default function CategorizePage() {
                 { onSuccess: () => {
                   if (confirm.transaction.merchantNormalized) {
                     createRuleMutation.mutate({
-                      matchValue:  confirm.transaction.merchantNormalized,
-                      amountExact: Math.round(confirm.transaction.amount * 100),
-                      categoryId:  confirm.category.id,
-                      mode: 'always',
+                      matchValue:     confirm.transaction.merchantNormalized,
+                      amountExact:    Math.round(confirm.transaction.amount * 100),
+                      categoryId:     confirm.category.id,
+                      mode:           'always',
+                      scopeAccountId: confirm.transaction.accountId,
                     })
                   }
                   trackSessionAssign(confirm.transaction.merchantNormalized, confirm.category.name, confirm.category.id)
