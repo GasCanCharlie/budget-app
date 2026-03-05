@@ -16,14 +16,16 @@ model User {
   deletedAt        DateTime?
   categoryOrder    String    @default("[]")
 
-  accounts         Account[]
-  categories       Category[]
-  categoryRules    CategoryRule[]
-  monthSummaries   MonthSummary[]
-  monthCatTotals   MonthCategoryTotal[]
-  uploads          Upload[]
-  stagingUploads   StagingUpload[]
-  stagingTxs       StagingTransaction[]
+  accounts               Account[]
+  categories             Category[]
+  categoryRules          CategoryRule[]
+  monthSummaries         MonthSummary[]
+  monthCatTotals         MonthCategoryTotal[]
+  uploads                Upload[]
+  stagingUploads         StagingUpload[]
+  stagingTxs             StagingTransaction[]
+  insightCards           InsightCard[]
+  subscriptionCandidates SubscriptionCandidate[]
 
   @@map("users")
 }
@@ -559,4 +561,54 @@ model AnomalyAlert {
   createdAt     DateTime @default(now())
 
   @@map("anomaly_alerts")
+}
+
+// ─── InsightCard ──────────────────────────────────────────────────────────────
+// One row per insight type per (user, year, month). Regenerated on each compute
+// pass; isDismissed is sticky and survives regeneration via upsert.
+
+model InsightCard {
+  id             String   @id @default(cuid())
+  userId         String
+  year           Int
+  month          Int
+  cardType       String
+  priority       Int
+  title          String
+  summary        String
+  supportingData Json
+  actions        Json
+  confidence     String
+  iconSuggestion String
+  isDismissed    Boolean  @default(false)
+  generatedAt    DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, year, month, cardType])
+  @@index([userId, year, month, isDismissed])
+  @@map("insight_cards")
+}
+
+// ─── SubscriptionCandidate ────────────────────────────────────────────────────
+// A merchant that appears to be a recurring charge. Written by the subscription
+// detection pass and referenced by the subscription insight cards.
+
+model SubscriptionCandidate {
+  id                     String    @id @default(cuid())
+  userId                 String
+  merchantNormalized     String
+  estimatedMonthlyAmount Float
+  recurringConfidence    String
+  subscriptionScore      Int
+  consecutiveMonths      Int
+  serviceCategory        String?
+  estimatedNextCharge    DateTime?
+  isConfirmedByUser      Boolean   @default(false)
+  isSuppressed           Boolean   @default(false)
+  firstSeenAt            DateTime  @default(now())
+  lastSeenAt             DateTime  @default(now())
+  user                   User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, merchantNormalized])
+  @@map("subscription_candidates")
 }

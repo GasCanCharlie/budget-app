@@ -1,0 +1,971 @@
+/**
+ * AI Insights — Turn 3: The 10 Automatic Insight Generators
+ *
+ * All generators are deterministic, rule-based functions.
+ * No LLM calls happen here. Every card is backed by real numbers from
+ * ComputedInsightMetrics assembled by the data computation pass.
+ *
+ * Generator function signatures:
+ *   function generateX(metrics: ComputedInsightMetrics): InsightCard[]
+ *
+ * After all 10 generators run, call rankAndCap() to sort + deduplicate + cap at 8.
+ */
+
+import { randomUUID } from 'crypto'
+
+import type {
+  InsightCard,
+  InsightCardAction,
+  ComputedInsightMetrics,
+  CategoryMetrics,
+  SubscriptionCandidateRecord,
+  TrialCandidate,
+  FixOpportunityScenario,
+  OverBudgetData,
+  CategorySpikeData,
+  MerchantSpikeData,
+  LargeTransactionData,
+  SmallLeaksData,
+  SubscriptionSummaryData,
+  SubscriptionNewData,
+  TrialWarningData,
+  CashFlowForecastData,
+  FixOpportunityData,
+  InsightSupportingData,
+} from './types'
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+function now(): string {
+  return new Date().toISOString()
+}
+
+function dismissAction(): InsightCardAction {
+  return { label: 'Dismiss', action_key: 'dismiss' }
+}
+
+function viewTransactionsAction(href = '/transactions'): InsightCardAction {
+  return { label: 'View transactions', action_key: 'view_transactions', href }
+}
+
+function formatCurrency(amount: number): string {
+  return `$${amount.toFixed(2)}`
+}
+
+function formatPct(pct: number): string {
+  return `${Math.round(pct)}%`
+}
+
+function makeCard(
+  card_type: InsightCard['card_type'],
+  priority: number,
+  title: string,
+  summary: string,
+  supporting_data: InsightSupportingData,
+  actions: InsightCardAction[],
+  confidence: InsightCard['confidence'],
+  icon_suggestion: string,
+  year: number,
+  month: number,
+): InsightCard {
+  return {
+    id: randomUUID(),
+    card_type,
+    priority,
+    title: title.slice(0, 60),
+    summary,
+    supporting_data,
+    actions,
+    confidence,
+    icon_suggestion,
+    generated_at: now(),
+    year,
+    month,
+  }
+}
+
+// ─── Generator 1: generateOverBudgetDiagnosis ─────────────────────────────────
+//
+// Trigger:    totalSpending > totalIncome for the month
+// Priority:   1 (highest urgency — deficit is always shown first)
+// Confidence: high when income > 0; medium when income === 0
+//
+// Algorithm:
+//   1. Guard: totalSpending <= totalIncome → return []
+//   2. Filter expense categories (isIncome = false), sort by currentMonthTotal desc.
+//   3. Take up to top 3 spending categories.
+//   4. Compute combined pct of total spending for those 3 categories.
+//   5. Find if any single category removal alone would restore net >= 0.
+//   6. Build card.
+
+export function generateOverBudgetDiagnosis(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, categories } = metrics
+  const { totalIncome, totalSpending, net, year, month } = monthly
+
+  // Trigger guard
+  if (totalSpending <= totalIncome) return []
+
+  const deficit = Math.abs(net)
+
+  // Top expense categories sorted by amount desc
+  const expenseCats = categories
+    .filter(c => !c.isIncome && c.currentMonthTotal > 0)
+    .sort((a, b) => b.currentMonthTotal - a.currentMonthTotal)
+
+  const top3 = expenseCats.slice(0, 3)
+  const top3Total = top3.reduce((s, c) => s + c.currentMonthTotal, 0)
+  const top3Pct = totalSpending > 0 ? (top3Total / totalSpending) * 100 : 0
+
+  // Find a single-category fix: which category, if removed, restores net >= 0?
+  let singleFixCategory: string | null = null
+  let singleFixAmount: number | null = null
+  for (const cat of expenseCats) {
+    if (cat.currentMonthTotal >= deficit) {
+      singleFixCategory = cat.categoryName
+      singleFixAmount = cat.currentMonthTotal
+      break
+    }
+  }
+
+  const cat1 = top3[0] ?? null
+  const cat2 = top3[1] ?? null
+  const cat3 = top3[2] ?? null
+
+  const data: OverBudgetData = {
+    deficit,
+    totalIncome,
+    totalSpending,
+    top_category_1_name: cat1?.categoryName ?? '',
+    top_category_1_amount: cat1?.currentMonthTotal ?? 0,
+    top_category_2_name: cat2?.categoryName ?? null,
+    top_category_2_amount: cat2?.currentMonthTotal ?? null,
+    top_category_3_name: cat3?.categoryName ?? null,
+    top_category_3_amount: cat3?.currentMonthTotal ?? null,
+    single_fix_category: singleFixCategory,
+    single_fix_amount: singleFixAmount,
+    top3_combined_pct: Math.round(top3Pct),
+  }
+
+  const topDriverText = cat1
+    ? ` The largest spending category is ${cat1.categoryName} at ${formatCurrency(cat1.currentMonthTotal)}.`
+    : ''
+  const fixText =
+    singleFixCategory && singleFixAmount
+      ? ` Spending in ${singleFixCategory} (${formatCurrency(singleFixAmount)}) exceeds the deficit on its own.`
+      : ''
+
+  const title = `Spending exceeded income by ${formatCurrency(deficit)}`
+  const summary =
+    `Total spending of ${formatCurrency(totalSpending)} exceeded income of ` +
+    `${formatCurrency(totalIncome)} by ${formatCurrency(deficit)} this month.` +
+    topDriverText +
+    fixText
+
+  const confidence: InsightCard['confidence'] = totalIncome > 0 ? 'high' : 'medium'
+
+  return [
+    makeCard(
+      'over_budget',
+      1,
+      title,
+      summary,
+      data,
+      [viewTransactionsAction(), dismissAction()],
+      confidence,
+      'TrendingDown',
+      year,
+      month,
+    ),
+  ]
+}
+
+// ─── Generator 2: generateCategorySpikes ─────────────────────────────────────
+//
+// Trigger:    Any expense category where deltaPercent > 20 AND delta > $50
+//             AND threeMonthAvg > 0 AND category has 2+ prior months of data.
+// Priority:   2
+// Confidence: high when threeMonthAvg is based on 3 months; medium otherwise.
+//
+// Algorithm:
+//   1. Filter expense categories meeting all trigger conditions.
+//   2. Sort by absolute dollar delta descending.
+//   3. Return one card for the top spike only (highest dollar impact).
+
+export function generateCategorySpikes(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, categories } = metrics
+  const { year, month } = monthly
+
+  const DELTA_PCT_THRESHOLD = 20
+  const DELTA_DOLLAR_THRESHOLD = 50
+
+  const candidates = categories
+    .filter(c => {
+      if (c.isIncome) return false
+      if (c.deltaPercent === null || c.deltaPercent <= DELTA_PCT_THRESHOLD) return false
+      if (c.delta === null || c.delta <= DELTA_DOLLAR_THRESHOLD) return false
+      if (!c.threeMonthAvg || c.threeMonthAvg <= 0) return false
+      return true
+    })
+    .sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0))
+
+  if (candidates.length === 0) return []
+
+  const top = candidates[0] as CategoryMetrics
+  const pctIncrease = Math.round(top.deltaPercent ?? 0)
+
+  const data: CategorySpikeData = {
+    category_name: top.categoryName,
+    this_month_amount: top.currentMonthTotal,
+    avg_prior_3_months: top.threeMonthAvg ?? 0,
+    pct_increase: pctIncrease,
+    delta_dollars: top.delta ?? 0,
+    transaction_count: top.transactionCount,
+    months_of_history: 3,
+  }
+
+  const confidence: InsightCard['confidence'] = 'high'
+
+  const title = `${top.categoryName} spending increased ${formatPct(pctIncrease)} this month`
+  const summary =
+    `Spending in ${top.categoryName} reached ${formatCurrency(top.currentMonthTotal)} this month, ` +
+    `compared to a prior 3-month average of ${formatCurrency(top.threeMonthAvg ?? 0)}. ` +
+    `This is an increase of ${formatPct(pctIncrease)}, with ${top.transactionCount} transactions recorded.`
+
+  return [
+    makeCard(
+      'category_spike',
+      2,
+      title,
+      summary,
+      data,
+      [
+        viewTransactionsAction(`/transactions?category=${encodeURIComponent(top.categoryName)}`),
+        dismissAction(),
+      ],
+      confidence,
+      'TrendingUp',
+      year,
+      month,
+    ),
+  ]
+}
+
+// ─── Generator 3: generateMerchantSpikes ─────────────────────────────────────
+//
+// Trigger:    A merchant where merchantDelta > $100 AND deltaPercent > 30%
+//             AND prior month data exists.
+// Priority:   3
+// Confidence: high when merchantDelta is large and unambiguous; medium otherwise.
+//
+// Algorithm:
+//   1. Filter merchants meeting trigger conditions.
+//   2. Sort by merchantDelta desc.
+//   3. Return one card for the top merchant spike.
+
+export function generateMerchantSpikes(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, merchants } = metrics
+  const { year, month } = monthly
+
+  const DELTA_DOLLAR_THRESHOLD = 100
+  const DELTA_PCT_THRESHOLD = 30
+
+  const candidates = merchants
+    .filter(m => {
+      if (m.merchantDelta === null || m.merchantDelta <= DELTA_DOLLAR_THRESHOLD) return false
+      if (m.merchantDeltaPct === null || m.merchantDeltaPct <= DELTA_PCT_THRESHOLD) return false
+      return true
+    })
+    .sort((a, b) => (b.merchantDelta ?? 0) - (a.merchantDelta ?? 0))
+
+  if (candidates.length === 0) return []
+
+  const top = candidates[0]
+  const priorMonthTotal = top.merchantTotal - (top.merchantDelta ?? 0)
+  const deltaPct = Math.round(top.merchantDeltaPct ?? 0)
+
+  const data: MerchantSpikeData = {
+    merchant: top.merchantDisplay,
+    this_month_total: top.merchantTotal,
+    prior_month_total: priorMonthTotal,
+    delta: top.merchantDelta ?? 0,
+    delta_pct: deltaPct,
+  }
+
+  const confidence: InsightCard['confidence'] =
+    (top.merchantDelta ?? 0) > 300 ? 'high' : 'medium'
+
+  const title = `${top.merchantDisplay} spending up ${formatPct(deltaPct)} vs last month`
+  const summary =
+    `Spending at ${top.merchantDisplay} increased from ` +
+    `${formatCurrency(priorMonthTotal)} last month to ` +
+    `${formatCurrency(top.merchantTotal)} this month, ` +
+    `a change of +${formatCurrency(top.merchantDelta ?? 0)} (${formatPct(deltaPct)}).`
+
+  return [
+    makeCard(
+      'merchant_spike',
+      3,
+      title,
+      summary,
+      data,
+      [
+        viewTransactionsAction(
+          `/transactions?merchant=${encodeURIComponent(top.merchantNormalized)}`,
+        ),
+        dismissAction(),
+      ],
+      confidence,
+      'Store',
+      year,
+      month,
+    ),
+  ]
+}
+
+// ─── Generator 4: generateLargeTransactions ──────────────────────────────────
+//
+// Trigger:    Any transaction > max($500, p95 of 12-month expenses).
+// Priority:   2 (high urgency — large one-time charges are notable)
+// Confidence: high (exact transaction data)
+//
+// Algorithm:
+//   1. Use largeTransactionThreshold from frequency metrics.
+//   2. Use pre-filtered largeTransactions list from metrics bundle (already above threshold).
+//   3. Cap at 3 cards, one per transaction, sorted by amount desc.
+
+export function generateLargeTransactions(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, largeTransactions, frequency } = metrics
+  const { year, month, totalSpending } = monthly
+
+  const cards: InsightCard[] = []
+  const top3 = largeTransactions.slice(0, 3)
+
+  for (const tx of top3) {
+    const pctOfSpending =
+      totalSpending > 0 ? Math.round((tx.amount / totalSpending) * 100) : 0
+
+    const data: LargeTransactionData = {
+      merchant: tx.merchant,
+      amount: tx.amount,
+      date: tx.date,
+      pct_of_monthly_spending: pctOfSpending,
+      category_name: tx.categoryName,
+      threshold_used: frequency.largeTransactionThreshold,
+    }
+
+    const title = `Single transaction: ${formatCurrency(tx.amount)} at ${tx.merchant}`
+    const dateLabel = tx.date.slice(0, 10)
+    const summary =
+      `A ${tx.merchant} charge of ${formatCurrency(tx.amount)} on ${dateLabel} ` +
+      `represents ${formatPct(pctOfSpending)} of this month's total spending.`
+
+    cards.push(
+      makeCard(
+        'large_transaction',
+        2,
+        title,
+        summary,
+        data,
+        [viewTransactionsAction(), dismissAction()],
+        'high',
+        'CreditCard',
+        year,
+        month,
+      ),
+    )
+  }
+
+  return cards
+}
+
+// ─── Generator 5: generateSmallPurchaseLeaks ─────────────────────────────────
+//
+// Trigger:    smallPurchaseCount > 10 AND smallPurchaseTotal > $150
+// Priority:   5
+// Confidence: high (exact counts)
+//
+// Algorithm:
+//   1. Guard: check trigger conditions.
+//   2. Group small purchase merchants by category using frequency.smallPurchaseMerchants.
+//      (Since merchant-to-category mapping is not in FrequencyMetrics, we find the
+//       merchant with the most purchases and report its name as top category proxy.)
+//   3. Compute avg per transaction.
+//   4. Build card.
+
+export function generateSmallPurchaseLeaks(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, frequency, categories } = metrics
+  const { year, month, totalSpending } = monthly
+
+  const COUNT_THRESHOLD = 10
+  const TOTAL_THRESHOLD = 150
+
+  if (
+    frequency.smallPurchaseCount <= COUNT_THRESHOLD ||
+    frequency.smallPurchaseTotal <= TOTAL_THRESHOLD
+  ) {
+    return []
+  }
+
+  const avg =
+    frequency.smallPurchaseCount > 0
+      ? frequency.smallPurchaseTotal / frequency.smallPurchaseCount
+      : 0
+
+  // Find the top merchant by count among small-purchase merchants
+  const sortedMerchants = [...frequency.smallPurchaseMerchants].sort(
+    (a, b) => b.count - a.count,
+  )
+  const topMerchant = sortedMerchants[0]
+
+  // Attempt to find which spending category contains the most small-purchase activity.
+  // We use the category with the highest transaction count that is not income.
+  const topExpenseCat = [...categories]
+    .filter(c => !c.isIncome)
+    .sort((a, b) => b.transactionCount - a.transactionCount)[0]
+
+  const topCategoryName = topMerchant?.merchantDisplay ?? topExpenseCat?.categoryName ?? 'Unknown'
+  const topCategoryCount = topMerchant?.count ?? 0
+  const topCategoryTotal = topMerchant?.total ?? 0
+
+  const pctOfSpending =
+    totalSpending > 0
+      ? Math.round((frequency.smallPurchaseTotal / totalSpending) * 100)
+      : 0
+
+  const data: SmallLeaksData = {
+    count: frequency.smallPurchaseCount,
+    total: frequency.smallPurchaseTotal,
+    avg_per_transaction: Math.round(avg * 100) / 100,
+    top_category: topCategoryName,
+    top_category_count: topCategoryCount,
+    top_category_total: topCategoryTotal,
+    pct_of_spending: pctOfSpending,
+  }
+
+  const title = `${frequency.smallPurchaseCount} small purchases totaling ${formatCurrency(frequency.smallPurchaseTotal)}`
+  const summary =
+    `${frequency.smallPurchaseCount} transactions under $15 this month total ` +
+    `${formatCurrency(frequency.smallPurchaseTotal)}, representing ${formatPct(pctOfSpending)} of spending. ` +
+    `The average small purchase is ${formatCurrency(avg)}.`
+
+  return [
+    makeCard(
+      'small_leaks',
+      5,
+      title,
+      summary,
+      data,
+      [viewTransactionsAction('/transactions?filter=small'), dismissAction()],
+      'high',
+      'Droplets',
+      year,
+      month,
+    ),
+  ]
+}
+
+// ─── Generator 6: generateSubscriptionSummary ────────────────────────────────
+//
+// Trigger:    subscriptionCount >= 2 (at least 2 active, non-suppressed subscriptions)
+// Priority:   4
+// Confidence: high when subscriptionCount >= 3 with high-confidence candidates;
+//             medium when count is 2 or some are medium-confidence.
+//
+// Algorithm:
+//   1. Guard: subscriptionCount < 2 → return []
+//   2. Sort active subscriptions by estimatedMonthlyAmount desc.
+//   3. Most expensive = allSubscriptions[0].
+//   4. Compute annualized cost = subscriptionMonthlyTotal * 12.
+//   5. Build card.
+
+export function generateSubscriptionSummary(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, subscriptions } = metrics
+  const { year, month } = monthly
+
+  if (subscriptions.subscriptionCount < 2) return []
+
+  const sorted = [...subscriptions.allSubscriptions]
+    .filter(s => !s.isSuppressed)
+    .sort((a, b) => b.estimatedMonthlyAmount - a.estimatedMonthlyAmount)
+
+  if (sorted.length === 0) return []
+
+  const topSub = sorted[0] as SubscriptionCandidateRecord
+  const annualized = subscriptions.subscriptionMonthlyTotal * 12
+
+  const data: SubscriptionSummaryData = {
+    subscription_count: subscriptions.subscriptionCount,
+    monthly_total: subscriptions.subscriptionMonthlyTotal,
+    annualized_cost: Math.round(annualized * 100) / 100,
+    most_expensive_merchant: topSub.merchantDisplay,
+    most_expensive_amount: topSub.estimatedMonthlyAmount,
+  }
+
+  const highConfCount = sorted.filter(s => s.recurringConfidence === 'high').length
+  const confidence: InsightCard['confidence'] =
+    highConfCount >= 3 ? 'high' : 'medium'
+
+  const title = `${subscriptions.subscriptionCount} active subscriptions — ${formatCurrency(subscriptions.subscriptionMonthlyTotal)}/month`
+  const summary =
+    `${subscriptions.subscriptionCount} recurring subscriptions total ` +
+    `${formatCurrency(subscriptions.subscriptionMonthlyTotal)}/month, ` +
+    `or ${formatCurrency(annualized)} annualized. ` +
+    `The largest is ${topSub.merchantDisplay} at ${formatCurrency(topSub.estimatedMonthlyAmount)}/month.`
+
+  return [
+    makeCard(
+      'subscription_summary',
+      4,
+      title,
+      summary,
+      data,
+      [
+        {
+          label: 'Review subscriptions',
+          action_key: 'review_subscriptions',
+          href: '/transactions?filter=subscriptions',
+        },
+        dismissAction(),
+      ],
+      confidence,
+      'RefreshCw',
+      year,
+      month,
+    ),
+  ]
+}
+
+// ─── Generator 7: generateNewSubscriptionAlert ───────────────────────────────
+//
+// Trigger:    A SubscriptionCandidate with consecutiveMonths === 2 (just detected)
+//             AND recurringConfidence IN ('high', 'medium').
+// Priority:   3
+// Confidence: mirrors the SubscriptionCandidate's recurringConfidence.
+//
+// Algorithm:
+//   1. Filter newSubscriptions (consecutiveMonths === 2) with HIGH or MEDIUM confidence.
+//   2. Return one card per new subscription (no cap — unusual to have many).
+//   3. Each card shows merchant, amount/month, and annualized cost.
+
+export function generateNewSubscriptionAlert(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, subscriptions } = metrics
+  const { year, month } = monthly
+
+  const newSubs = subscriptions.newSubscriptions.filter(
+    s =>
+      s.consecutiveMonths === 2 &&
+      (s.recurringConfidence === 'high' || s.recurringConfidence === 'medium'),
+  )
+
+  if (newSubs.length === 0) return []
+
+  return newSubs.map(sub => {
+    const annualized = sub.estimatedMonthlyAmount * 12
+
+    const data: SubscriptionNewData = {
+      merchant: sub.merchantDisplay,
+      amount_per_month: sub.estimatedMonthlyAmount,
+      months_detected: sub.consecutiveMonths,
+      annualized_cost: Math.round(annualized * 100) / 100,
+      service_category: sub.serviceCategory,
+      confidence: sub.recurringConfidence,
+    }
+
+    const confidence: InsightCard['confidence'] =
+      sub.recurringConfidence === 'high' ? 'high' : 'medium'
+
+    const title = `New recurring charge detected: ${sub.merchantDisplay}`
+    const summary =
+      `A recurring charge of ${formatCurrency(sub.estimatedMonthlyAmount)}/month from ` +
+      `${sub.merchantDisplay} has been detected across 2 consecutive months. ` +
+      `Annualized, this represents ${formatCurrency(annualized)}.`
+
+    return makeCard(
+      'subscription_new',
+      3,
+      title,
+      summary,
+      data,
+      [
+        {
+          label: 'View charges',
+          action_key: 'view_merchant_charges',
+          href: `/transactions?merchant=${encodeURIComponent(sub.merchantNormalized)}`,
+        },
+        dismissAction(),
+      ],
+      confidence,
+      'Bell',
+      year,
+      month,
+    )
+  })
+}
+
+// ─── Generator 8: generateTrialWarnings ──────────────────────────────────────
+//
+// Trigger:    A TrialCandidate where alertShouldFire === true
+//             (within 3 days of estimated billing date, or no prior history).
+// Priority:   2 (high urgency — user may want to cancel before billing)
+// Confidence: medium (single data point, inferred pattern)
+//
+// Algorithm:
+//   1. Filter trialCandidates where alertShouldFire === true.
+//   2. Return one card per active trial.
+//   3. Include estimated billing date and amount if known.
+
+export function generateTrialWarnings(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, subscriptions } = metrics
+  const { year, month } = monthly
+
+  const activeCandidates = subscriptions.trialCandidates.filter(t => t.alertShouldFire)
+
+  if (activeCandidates.length === 0) return []
+
+  return activeCandidates.map((trial: TrialCandidate) => {
+    const data: TrialWarningData = {
+      merchant: trial.merchantDisplay,
+      trial_amount: trial.chargeAmount,
+      charge_date: trial.chargeDate,
+      estimated_billing_date: trial.estimatedBillingDate,
+      estimated_monthly_amount: trial.estimatedMonthlyAmount,
+    }
+
+    const billingText =
+      trial.estimatedBillingDate
+        ? ` Full billing may begin around ${trial.estimatedBillingDate.slice(0, 10)}.`
+        : ''
+
+    const amountText =
+      trial.estimatedMonthlyAmount
+        ? ` Estimated recurring charge: ${formatCurrency(trial.estimatedMonthlyAmount)}/month.`
+        : ''
+
+    const title = `Trial charge detected: ${trial.merchantDisplay}`
+    const summary =
+      `${trial.merchantDisplay} appears for the first time this month at ` +
+      `${formatCurrency(trial.chargeAmount)}. This may be a trial or introductory charge.` +
+      billingText +
+      amountText
+
+    return makeCard(
+      'trial_warning',
+      2,
+      title,
+      summary,
+      data,
+      [
+        {
+          label: 'Set reminder',
+          action_key: 'set_reminder',
+        },
+        dismissAction(),
+      ],
+      'medium',
+      'AlertCircle',
+      year,
+      month,
+    )
+  })
+}
+
+// ─── Generator 9: generateCashFlowForecast ───────────────────────────────────
+//
+// Trigger:    daysElapsed >= 7 AND isPartialMonth = true (current month only)
+//             AND projected spending differs from income by > 10%.
+// Priority:   4
+// Confidence: medium for early-month projections (< 15 days); high for mid-month+.
+//
+// Algorithm:
+//   1. Guard: daysElapsed < 7 → suppress.
+//   2. Guard: not partial month (historical) → suppress.
+//   3. Use dailySpendingRate and projectedMonthEnd from monthly aggregates.
+//   4. Compute pace_status:
+//      - projected within ±10% of income → 'on_track'
+//      - projected > income * 1.10 → 'over_pace'
+//      - projected < income * 0.90 → 'under_pace'
+//   5. Only fire if pace_status !== 'on_track' (meaningful deviation only).
+
+export function generateCashFlowForecast(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly } = metrics
+  const {
+    year,
+    month,
+    daysElapsed,
+    daysInMonth,
+    isPartialMonth,
+    dailySpendingRate,
+    projectedMonthEnd,
+    totalIncome,
+    totalSpending,
+  } = monthly
+
+  // Trigger guards
+  if (daysElapsed < 7) return []
+  if (!isPartialMonth) return []
+  if (projectedMonthEnd === null) return []
+  if (totalIncome <= 0) return []
+
+  const projected = projectedMonthEnd
+  const daysRemaining = daysInMonth - daysElapsed
+  const overageOrUnderage = projected - totalIncome
+
+  const ON_TRACK_BAND = 0.10
+  let paceStatus: 'on_track' | 'over_pace' | 'under_pace'
+  if (projected > totalIncome * (1 + ON_TRACK_BAND)) {
+    paceStatus = 'over_pace'
+  } else if (projected < totalIncome * (1 - ON_TRACK_BAND)) {
+    paceStatus = 'under_pace'
+  } else {
+    paceStatus = 'on_track'
+  }
+
+  // Only fire when projection is meaningfully off track
+  if (paceStatus === 'on_track') return []
+
+  const data: CashFlowForecastData = {
+    daily_rate: Math.round(dailySpendingRate * 100) / 100,
+    projected_spending: Math.round(projected * 100) / 100,
+    total_income: totalIncome,
+    days_elapsed: daysElapsed,
+    days_remaining: daysRemaining,
+    days_in_month: daysInMonth,
+    pace_status: paceStatus,
+    overage_or_underage: Math.round(overageOrUnderage * 100) / 100,
+  }
+
+  const confidence: InsightCard['confidence'] = daysElapsed >= 15 ? 'high' : 'medium'
+
+  const paceLabel = paceStatus === 'over_pace' ? 'above' : 'below'
+  const title =
+    paceStatus === 'over_pace'
+      ? `On pace to exceed income by ${formatCurrency(Math.abs(overageOrUnderage))}`
+      : `On pace to spend ${formatCurrency(Math.abs(overageOrUnderage))} under income`
+
+  const summary =
+    `At the current daily rate of ${formatCurrency(dailySpendingRate)}, ` +
+    `projected month-end spending is ${formatCurrency(projected)}, ` +
+    `${paceLabel} this month's income of ${formatCurrency(totalIncome)}. ` +
+    `${daysRemaining} days remain in the month.`
+
+  return [
+    makeCard(
+      'cash_flow_forecast',
+      4,
+      title,
+      summary,
+      data,
+      [viewTransactionsAction(), dismissAction()],
+      confidence,
+      paceStatus === 'over_pace' ? 'TrendingUp' : 'TrendingDown',
+      year,
+      month,
+    ),
+  ]
+}
+
+// ─── Generator 10: generateFixOpportunity ────────────────────────────────────
+//
+// Trigger:    net < 0 AND at least one of:
+//             (a) duplicate service categories detected,
+//             (b) any subscription > $50/month,
+//             (c) a single category is > 40% of total spending.
+// Priority:   1 (actionable — concrete savings scenarios)
+// Confidence: high when citing confirmed subscriptions; medium for category-based estimates.
+//
+// Algorithm:
+//   1. Guard: net >= 0 → return []
+//   2. Collect up to 3 scenarios, ranked by monthly_savings desc:
+//      A. Duplicate service group: "Cancel one of 2 streaming services → save $X/month"
+//      B. Expensive subscription > $50: "Cancel [merchant] → save $X/month"
+//      C. Dominant category > 40%: "Reduce [category] spending → could free $X/month"
+//   3. De-duplicate scenarios (don't repeat same merchant/category).
+//   4. Build card with scenarios array.
+
+export function generateFixOpportunity(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, subscriptions, categories } = metrics
+  const { year, month, net, totalSpending } = monthly
+
+  // Trigger guard
+  if (net >= 0) return []
+
+  const scenarios: FixOpportunityScenario[] = []
+  const usedMerchants = new Set<string>()
+
+  // Scenario source A: duplicate service categories
+  for (const group of subscriptions.duplicateServiceCategories) {
+    if (scenarios.length >= 3) break
+    if (group.candidates.length < 2) continue
+    const cheapest = [...group.candidates].sort(
+      (a, b) => a.estimatedMonthlyAmount - b.estimatedMonthlyAmount,
+    )[0]
+    if (!cheapest) continue
+    if (usedMerchants.has(cheapest.merchantNormalized)) continue
+    usedMerchants.add(cheapest.merchantNormalized)
+    const monthlySavings = cheapest.estimatedMonthlyAmount
+    scenarios.push({
+      action: `Cancel duplicate ${group.serviceCategory} service`,
+      merchant_or_category: cheapest.merchantDisplay,
+      monthly_savings: Math.round(monthlySavings * 100) / 100,
+      annual_savings: Math.round(monthlySavings * 12 * 100) / 100,
+    })
+  }
+
+  // Scenario source B: expensive single subscription > $50/month
+  const expensiveSubs = subscriptions.allSubscriptions
+    .filter(s => !s.isSuppressed && s.estimatedMonthlyAmount > 50)
+    .sort((a, b) => b.estimatedMonthlyAmount - a.estimatedMonthlyAmount)
+
+  for (const sub of expensiveSubs) {
+    if (scenarios.length >= 3) break
+    if (usedMerchants.has(sub.merchantNormalized)) continue
+    usedMerchants.add(sub.merchantNormalized)
+    const monthlySavings = sub.estimatedMonthlyAmount
+    scenarios.push({
+      action: `Cancel ${sub.merchantDisplay} subscription`,
+      merchant_or_category: sub.merchantDisplay,
+      monthly_savings: Math.round(monthlySavings * 100) / 100,
+      annual_savings: Math.round(monthlySavings * 12 * 100) / 100,
+    })
+  }
+
+  // Scenario source C: dominant spending category > 40% of total
+  const DOMINANT_THRESHOLD = 40
+  const dominantCats = categories
+    .filter(c => !c.isIncome && c.pctOfSpending > DOMINANT_THRESHOLD)
+    .sort((a, b) => b.pctOfSpending - a.pctOfSpending)
+
+  for (const cat of dominantCats) {
+    if (scenarios.length >= 3) break
+    // Suggest reducing by 25% as a conservative estimate
+    const potentialSaving = cat.currentMonthTotal * 0.25
+    scenarios.push({
+      action: `Reduce ${cat.categoryName} spending by 25%`,
+      merchant_or_category: cat.categoryName,
+      monthly_savings: Math.round(potentialSaving * 100) / 100,
+      annual_savings: Math.round(potentialSaving * 12 * 100) / 100,
+    })
+  }
+
+  // Suppress if no actionable scenarios found
+  const hasAnyTrigger =
+    subscriptions.duplicateServiceCategories.length > 0 ||
+    subscriptions.allSubscriptions.some(s => !s.isSuppressed && s.estimatedMonthlyAmount > 50) ||
+    categories.some(c => !c.isIncome && c.pctOfSpending > 40)
+
+  if (!hasAnyTrigger || scenarios.length === 0) return []
+
+  const totalMonthlySavings = scenarios.reduce((s, sc) => s + sc.monthly_savings, 0)
+
+  const data: FixOpportunityData = {
+    scenarios,
+    total_potential_monthly_savings: Math.round(totalMonthlySavings * 100) / 100,
+    net,
+  }
+
+  const confidence: InsightCard['confidence'] = scenarios.length >= 2 ? 'high' : 'medium'
+
+  const title = `${scenarios.length} saving ${scenarios.length === 1 ? 'opportunity' : 'opportunities'} identified`
+  const topScenario = scenarios[0]
+  const summary =
+    topScenario
+      ? `${topScenario.action} (${topScenario.merchant_or_category}) could free ` +
+        `${formatCurrency(topScenario.monthly_savings)}/month. ` +
+        `Total potential savings across all identified items: ` +
+        `${formatCurrency(totalMonthlySavings)}/month.`
+      : `Potential monthly savings of ${formatCurrency(totalMonthlySavings)} identified.`
+
+  return [
+    makeCard(
+      'fix_opportunity',
+      1,
+      title,
+      summary,
+      data,
+      [
+        {
+          label: 'Review opportunities',
+          action_key: 'review_opportunities',
+          href: '/transactions?filter=subscriptions',
+        },
+        dismissAction(),
+      ],
+      confidence,
+      'Wrench',
+      year,
+      month,
+    ),
+  ]
+}
+
+// ─── rankAndCap ───────────────────────────────────────────────────────────────
+//
+// Applies post-generation ranking, deduplication, and capping to the full
+// set of cards from all 10 generators.
+//
+// Rules:
+//   1. Sort all cards by priority ascending (lower number = higher priority).
+//   2. Within same priority: sort by confidence (high > medium > low).
+//   3. Deduplicate by card_type — keep only the highest-priority card per type.
+//      (For card types that naturally produce multiple cards, e.g. large_transaction,
+//       the first/most important is kept. The rest are dropped after dedup.)
+//   4. Cap at 8 cards shown. The full unsorted list should be stored in the DB;
+//      this function returns only the display set.
+//
+// The caller is responsible for persisting all cards before calling rankAndCap.
+
+const CONFIDENCE_RANK: Record<InsightCard['confidence'], number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+}
+
+export function rankAndCap(cards: InsightCard[], cap = 8): InsightCard[] {
+  if (cards.length === 0) return []
+
+  // Step 1+2: sort by priority asc, then confidence asc (0=high, 2=low)
+  const sorted = [...cards].sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority
+    return CONFIDENCE_RANK[a.confidence] - CONFIDENCE_RANK[b.confidence]
+  })
+
+  // Step 3: deduplicate by card_type — keep first (highest priority) of each type
+  const seen = new Set<string>()
+  const deduped: InsightCard[] = []
+  for (const card of sorted) {
+    if (!seen.has(card.card_type)) {
+      seen.add(card.card_type)
+      deduped.push(card)
+    }
+  }
+
+  // Step 4: cap at `cap` cards
+  return deduped.slice(0, cap)
+}
+
+// ─── runAllGenerators ─────────────────────────────────────────────────────────
+//
+// Convenience function that runs all 10 generators and returns the full
+// unranked list (for DB persistence) plus the ranked display set.
+
+export function runAllGenerators(metrics: ComputedInsightMetrics): {
+  all: InsightCard[]
+  display: InsightCard[]
+} {
+  const all: InsightCard[] = [
+    ...generateOverBudgetDiagnosis(metrics),
+    ...generateCategorySpikes(metrics),
+    ...generateMerchantSpikes(metrics),
+    ...generateLargeTransactions(metrics),
+    ...generateSmallPurchaseLeaks(metrics),
+    ...generateSubscriptionSummary(metrics),
+    ...generateNewSubscriptionAlert(metrics),
+    ...generateTrialWarnings(metrics),
+    ...generateCashFlowForecast(metrics),
+    ...generateFixOpportunity(metrics),
+  ]
+
+  const display = rankAndCap(all)
+
+  return { all, display }
+}

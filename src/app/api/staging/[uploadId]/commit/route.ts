@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
+import { computeInsights } from '@/lib/insights/compute'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/staging/[uploadId]/commit
@@ -141,6 +142,20 @@ export async function POST(
         where: { id: stagingUpload.id },
         data: { status: 'committed' },
       })
+    }
+
+    // Fire-and-forget insights generation after successful commit.
+    // Derive year/month from the first committed staging transaction's date.
+    if (committed > 0) {
+      const firstCommitted = toCommit.find(stx => stx.date != null)
+      if (firstCommitted?.date) {
+        const txDate = firstCommitted.date
+        const insightYear = txDate.getFullYear()
+        const insightMonth = txDate.getMonth() + 1
+        computeInsights(user.userId, insightYear, insightMonth).catch(err =>
+          console.error('[insights] generation failed after commit:', err),
+        )
+      }
     }
 
     return NextResponse.json({ committed, remaining: remainingCount })
