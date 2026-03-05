@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { Sparkles, RefreshCw, ChevronDown, ChevronUp, Lock, Lightbulb } from 'lucide-react'
 import { InsightCard, InsightCardSkeleton } from './InsightCard'
 import type { InsightCard as InsightCardData } from '@/lib/insights/types'
+import { TrialWarningBanner } from './TrialWarningBanner'
 import { useRouter } from 'next/navigation'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -63,9 +64,13 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
   // ── Show-all state ─────────────────────────────────────────────────────────
   const [showAll, setShowAll] = useState(false)
 
-  // Reset showAll when month/year changes
+  // ── Trial banner dismissed state ───────────────────────────────────────────
+  const [trialBannerDismissed, setTrialBannerDismissed] = useState(false)
+
+  // Reset showAll and banner dismissed when month/year changes
   useEffect(() => {
     setShowAll(false)
+    setTrialBannerDismissed(false)
   }, [year, month])
 
   // ── Fetch insights ─────────────────────────────────────────────────────────
@@ -141,6 +146,17 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
   const hiddenCount = cards.length - DEFAULT_VISIBLE
   const isRefreshing = generateMutation.isPending || (isLoading && !data)
   const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`
+
+  // Extract trial warning cards for the banner
+  const trialCards = cards.filter(c => c.card_type === 'trial_warning')
+  const trialBannerItems = trialCards.map(c => {
+    const sd = c.supporting_data as { merchant?: string; trial_amount?: number }
+    return {
+      merchant: sd.merchant ?? '',
+      amount: sd.trial_amount !== undefined ? `$${sd.trial_amount.toFixed(2)}` : '',
+    }
+  }).filter(t => t.merchant !== '')
+  const showTrialBanner = trialBannerItems.length > 0 && !trialBannerDismissed
 
   // ── Panel container style ──────────────────────────────────────────────────
   const panelStyle: React.CSSProperties = {
@@ -299,6 +315,14 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
           {/* Cards grid */}
           {!isRefreshing && cards.length > 0 && (
             <>
+              {/* Trial warning banner */}
+              {showTrialBanner && (
+                <TrialWarningBanner
+                  trials={trialBannerItems}
+                  onDismiss={() => setTrialBannerDismissed(true)}
+                />
+              )}
+
               <div
                 style={{
                   display: 'grid',

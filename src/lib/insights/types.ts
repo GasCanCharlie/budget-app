@@ -19,6 +19,8 @@ export type CardType =
   | 'trial_warning'
   | 'cash_flow_forecast'
   | 'fix_opportunity'
+  | 'merchant_frequency'
+  | 'mom_income_change'
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 
@@ -152,6 +154,20 @@ export interface FixOpportunityData {
   net: number
 }
 
+export interface MerchantFrequencyData {
+  merchant: string
+  visit_count: number
+  total_spent: number
+  avg_per_visit: number
+}
+
+export interface MomIncomeChangeData {
+  income_this_month: number
+  income_last_month: number
+  income_delta: number
+  income_delta_pct: number
+}
+
 // ─── Union of all supporting data shapes ─────────────────────────────────────
 
 export type InsightSupportingData =
@@ -165,6 +181,8 @@ export type InsightSupportingData =
   | TrialWarningData
   | CashFlowForecastData
   | FixOpportunityData
+  | MerchantFrequencyData
+  | MomIncomeChangeData
 
 // ─── InsightCard ──────────────────────────────────────────────────────────────
 
@@ -217,6 +235,8 @@ export interface MonthlyAggregates {
   daysElapsed: number
   daysInMonth: number
   isPartialMonth: boolean
+  /** Previous month's total income; null if no prior data */
+  prevMonthIncome: number | null
 }
 
 export interface CategoryMetrics {

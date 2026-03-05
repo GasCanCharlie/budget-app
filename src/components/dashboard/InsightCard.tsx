@@ -33,44 +33,6 @@ function getIcon(suggestion: string) {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function snakeToTitle(key: string): string {
-  return key
-    .split('_')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-}
-
-function formatValue(val: number | string | null): string {
-  if (val === null) return '—'
-  if (typeof val === 'string') return val
-  // Currency if large enough and whole-dollar-ish
-  if (Math.abs(val) >= 1 && Number.isFinite(val)) {
-    if (val % 1 === 0 || String(val).split('.')[1]?.length <= 2) {
-      // Show as currency if it looks like a dollar amount (> 0.01)
-      if (Math.abs(val) >= 0.01) {
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          maximumFractionDigits: 2,
-        }).format(val)
-      }
-    }
-    return String(val)
-  }
-  return String(val)
-}
-
-function getNumericChips(
-  supporting_data: Record<string, number | string | null>
-): Array<{ label: string; value: string }> {
-  const entries = Object.entries(supporting_data)
-  const numeric = entries.filter(([, v]) => typeof v === 'number' && v !== null)
-  return numeric.slice(0, 2).map(([k, v]) => ({
-    label: snakeToTitle(k),
-    value: formatValue(v as number),
-  }))
-}
-
 // ─── Confidence badge ─────────────────────────────────────────────────────────
 
 const CONFIDENCE_STYLES: Record<string, React.CSSProperties> = {
@@ -96,7 +58,6 @@ const CONFIDENCE_STYLES: Record<string, React.CSSProperties> = {
 export function InsightCard({ card, onDismiss, onAction }: InsightCardProps) {
   const IconComponent = getIcon(card.icon_suggestion)
   const confidenceStyle = CONFIDENCE_STYLES[card.confidence] ?? CONFIDENCE_STYLES.low
-  const chips = getNumericChips(card.supporting_data as unknown as Record<string, number | string | null>)
 
   const nonDismissActions = card.actions.filter(a => a.action_key !== 'dismiss')
   const hasDismiss = card.actions.some(a => a.action_key === 'dismiss')
@@ -202,12 +163,42 @@ export function InsightCard({ card, onDismiss, onAction }: InsightCardProps) {
         )
       })()}
 
-      {/* ── Stat chips ── */}
-      {chips.length > 0 && (
+      {/* ── View transactions link ── */}
+      {card.filters && Object.values(card.filters).some(v => v !== undefined) && (() => {
+        const params = new URLSearchParams()
+        if (card.filters!.merchant !== undefined)  params.set('merchant',  card.filters!.merchant)
+        if (card.filters!.category !== undefined)  params.set('category',  card.filters!.category)
+        if (card.filters!.dateFrom !== undefined)  params.set('dateFrom',  card.filters!.dateFrom)
+        if (card.filters!.dateTo   !== undefined)  params.set('dateTo',    card.filters!.dateTo)
+        if (card.filters!.minAmount !== undefined) params.set('minAmount', String(card.filters!.minAmount))
+        const href = `/transactions?${params.toString()}`
+        return (
+          <a
+            href={href}
+            style={{
+              fontSize: 11,
+              color: '#6ea8ff',
+              background: 'transparent',
+              border: 'none',
+              padding: '4px 0',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              textUnderlineOffset: 2,
+              marginTop: 6,
+              display: 'inline-block',
+            }}
+          >
+            View transactions →
+          </a>
+        )
+      })()}
+
+      {/* ── Stat chips (numbers_used) ── */}
+      {card.numbers_used && card.numbers_used.length > 0 && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-          {chips.map((chip) => (
+          {card.numbers_used.slice(0, 3).map((chip) => (
             <div
-              key={chip.label}
+              key={chip.field}
               style={{
                 background: 'rgba(0,0,0,0.25)',
                 border: '1px solid rgba(255,255,255,0.06)',

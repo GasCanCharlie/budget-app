@@ -31,6 +31,8 @@ import type {
   TrialWarningData,
   CashFlowForecastData,
   FixOpportunityData,
+  MerchantFrequencyData,
+  MomIncomeChangeData,
   InsightSupportingData,
 } from './types'
 
@@ -47,6 +49,8 @@ const WISDOM_BY_TYPE: Record<InsightCard['card_type'], string> = {
   trial_warning: 'The door that opens freely may close with a fee. Notice it now.',
   cash_flow_forecast: 'The river always knows where it\'s going. So can you.',
   fix_opportunity: 'Pruning is not loss — it is the gardener\'s quiet confidence in spring.',
+  merchant_frequency: 'Familiarity is comfortable; awareness makes it a choice.',
+  mom_income_change: 'A tide that shifts is not a tide that ends — observe before you anchor.',
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -994,6 +998,151 @@ export function generateFixOpportunity(metrics: ComputedInsightMetrics): Insight
   ]
 }
 
+// ─── Generator 11: generateMerchantFrequency ─────────────────────────────────
+//
+// Trigger:    Any merchant with visitCount >= 8 in the month (frequent shopper)
+// Priority:   5
+// Confidence: visitCount >= 15 → 'high', >= 10 → 'medium', else 'low'
+//
+// Algorithm:
+//   1. Use metrics.merchants (merchantCount = visit count, merchantTotal = total spent).
+//   2. Find merchant with highest merchantCount that meets the >= 8 threshold.
+//   3. Compute weekly average (visitCount / (daysInMonth / 7)).
+//   4. Build card.
+
+export function generateMerchantFrequency(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly, merchants } = metrics
+  const { year, month, daysInMonth } = monthly
+
+  const VISIT_THRESHOLD = 8
+
+  const candidates = merchants
+    .filter(m => m.merchantCount >= VISIT_THRESHOLD)
+    .sort((a, b) => b.merchantCount - a.merchantCount)
+
+  if (candidates.length === 0) return []
+
+  const top = candidates[0]
+  const visitCount = top.merchantCount
+  const totalSpent = top.merchantTotal
+  const avgPerVisit = visitCount > 0 ? totalSpent / visitCount : 0
+  const weeksInMonth = daysInMonth / 7
+  const weeklyAvg = weeksInMonth > 0 ? visitCount / weeksInMonth : 0
+  const merchantName = top.merchantDisplay
+
+  const confidence: InsightCard['confidence'] =
+    visitCount >= 15 ? 'high' : visitCount >= 10 ? 'medium' : 'low'
+
+  const data: MerchantFrequencyData = {
+    merchant: merchantName,
+    visit_count: visitCount,
+    total_spent: totalSpent,
+    avg_per_visit: avgPerVisit,
+  }
+
+  const title = `${merchantName} — ${visitCount} visits this month`
+  const summary =
+    `You visited ${merchantName} ${visitCount} times — about ${weeklyAvg.toFixed(1)}x per week. ` +
+    `Total spend: ${formatCurrency(totalSpent)}.`
+
+  return [
+    makeCard(
+      'merchant_frequency',
+      5,
+      title,
+      summary,
+      data,
+      [
+        {
+          label: 'View transactions',
+          action_key: 'view_merchant',
+          href: `/transactions?merchant=${encodeURIComponent(merchantName)}`,
+        },
+        dismissAction(),
+      ],
+      confidence,
+      'RefreshCw',
+      year,
+      month,
+      [
+        { label: 'Visit Count', value: String(visitCount), field: 'visitCount' },
+        { label: 'Total Spent', value: `$${totalSpent.toFixed(2)}`, field: 'totalSpent' },
+        { label: 'Avg Per Visit', value: `$${avgPerVisit.toFixed(2)}`, field: 'avgPerVisit' },
+      ],
+      { merchant: merchantName },
+    ),
+  ]
+}
+
+// ─── Generator 12: generateMomIncomeChange ────────────────────────────────────
+//
+// Trigger:    |income change MoM| >= $200 (significant income change)
+// Priority:   3
+// Confidence: |delta| >= 500 → 'high', >= 200 → 'medium'
+//
+// Algorithm:
+//   1. Guard: prevMonthIncome must be non-null (requires prior data).
+//   2. Compute delta = totalIncome - prevMonthIncome.
+//   3. Guard: |delta| < 200 → suppress.
+//   4. Positive delta → positive framing; negative → alert framing.
+//   5. Build card.
+
+export function generateMomIncomeChange(metrics: ComputedInsightMetrics): InsightCard[] {
+  const { monthly } = metrics
+  const { year, month, totalIncome, prevMonthIncome } = monthly
+
+  // Require prior month data
+  if (prevMonthIncome === null) return []
+
+  const delta = totalIncome - prevMonthIncome
+  const absDelta = Math.abs(delta)
+
+  // Trigger guard
+  if (absDelta < 200) return []
+
+  const deltaSign = delta >= 0 ? 'up' : 'down'
+  const deltaPct = prevMonthIncome > 0 ? (delta / prevMonthIncome) * 100 : 0
+
+  const data: MomIncomeChangeData = {
+    income_this_month: totalIncome,
+    income_last_month: prevMonthIncome,
+    income_delta: delta,
+    income_delta_pct: Math.round(deltaPct * 10) / 10,
+  }
+
+  const confidence: InsightCard['confidence'] = absDelta >= 500 ? 'high' : 'medium'
+
+  const title = `Income ${deltaSign} $${absDelta.toFixed(0)} vs last month`
+  const directionWord = delta >= 0 ? 'increased' : 'decreased'
+  const pctLabel = `${Math.abs(Math.round(deltaPct))}%`
+  const summary =
+    `Income ${directionWord} from ${formatCurrency(prevMonthIncome)} last month to ` +
+    `${formatCurrency(totalIncome)} this month, a change of ${delta >= 0 ? '+' : ''}${formatCurrency(delta)} (${delta >= 0 ? '+' : ''}${pctLabel}).`
+
+  return [
+    makeCard(
+      'mom_income_change',
+      3,
+      title,
+      summary,
+      data,
+      [
+        { label: 'View income', action_key: 'view_income', href: '/transactions?filter=income' },
+        dismissAction(),
+      ],
+      confidence,
+      delta >= 0 ? 'TrendingUp' : 'AlertCircle',
+      year,
+      month,
+      [
+        { label: 'Income This Month', value: formatCurrency(totalIncome), field: 'income_this_month' },
+        { label: 'Income Last Month', value: formatCurrency(prevMonthIncome), field: 'income_last_month' },
+        { label: 'Delta', value: `${delta >= 0 ? '+' : ''}${formatCurrency(delta)}`, field: 'income_delta' },
+      ],
+    ),
+  ]
+}
+
 // ─── rankAndCap ───────────────────────────────────────────────────────────────
 //
 // Applies post-generation ranking, deduplication, and capping to the full
@@ -1059,6 +1208,8 @@ export function runAllGenerators(metrics: ComputedInsightMetrics): {
     ...generateTrialWarnings(metrics),
     ...generateCashFlowForecast(metrics),
     ...generateFixOpportunity(metrics),
+    ...generateMerchantFrequency(metrics),
+    ...generateMomIncomeChange(metrics),
   ]
 
   const display = rankAndCap(all)

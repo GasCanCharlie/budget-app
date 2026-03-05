@@ -465,6 +465,7 @@ export async function computeInsights(
     daysElapsed,
     daysInMonth: daysInMonthVal,
     isPartialMonth: summary.isPartialMonth,
+    prevMonthIncome: prevSummary.totalIncome > 0 ? prevSummary.totalIncome : null,
   }
 
   // ── Step 9: Assemble CategoryMetrics ────────────────────────────────────
