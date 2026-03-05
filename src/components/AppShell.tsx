@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 interface AppShellProps {
   children: React.ReactNode
@@ -108,13 +109,16 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
               Privacy-first<br />No bank login required
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[#8b97c3] hover:bg-white/[0.06] hover:text-[#c8d4f5] transition"
-          >
-            <LogOut className="h-4 w-4 text-[#8b97c3]" />
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLogout}
+              className="flex-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[#8b97c3] hover:bg-white/[0.06] hover:text-[#c8d4f5] transition"
+            >
+              <LogOut className="h-4 w-4 text-[#8b97c3]" />
+              Sign out
+            </button>
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
 
@@ -166,9 +170,12 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
               Privacy-first · No bank login · Local-first
             </div>
 
-            {/* User email */}
-            <div className="text-xs text-[#8b97c3] font-mono hidden sm:block truncate max-w-[200px]">
-              {user?.email}
+            {/* User email + theme toggle */}
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-[#8b97c3] font-mono hidden sm:block truncate max-w-[200px]">
+                {user?.email}
+              </div>
+              <ThemeToggle />
             </div>
           </div>
         </header>

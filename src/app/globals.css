@@ -2,6 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Theme tokens ─────────────────────────────────────────────────────── */
+:root {
+  /* Dark theme is default */
+  --bg:          #0b1020;
+  --bg2:         #070a14;
+  --surface:     rgba(255,255,255,0.04);
+  --surface2:    rgba(255,255,255,0.07);
+  --border:      rgba(255,255,255,0.08);
+  --border2:     rgba(255,255,255,0.14);
+  --text:        #eaf0ff;
+  --text2:       #a8b3d6;
+  --text3:       #8b97c3;
+  --accent:      #6ea8ff;
+  --accent2:     #8b6fff;
+  --accent-muted: rgba(110,168,255,0.12);
+  --success:     #2ee59d;
+  --warn:        #fbbf24;
+  --danger:      #f87171;
+  --sidebar-bg:  linear-gradient(180deg, #0b1020 0%, #070a14 100%);
+}
+
+[data-theme="light"] {
+  --bg:          #f4f6fb;
+  --bg2:         #eef1f8;
+  --surface:     rgba(255,255,255,0.85);
+  --surface2:    rgba(255,255,255,0.95);
+  --border:      rgba(0,0,0,0.08);
+  --border2:     rgba(0,0,0,0.14);
+  --text:        #0f172a;
+  --text2:       #334155;
+  --text3:       #64748b;
+  --accent:      #3b6fd4;
+  --accent2:     #6d4fd4;
+  --accent-muted: rgba(59,111,212,0.10);
+  --success:     #059669;
+  --warn:        #d97706;
+  --danger:      #dc2626;
+  --sidebar-bg:  linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+}
+
+/* ─── Smooth theme transition ───────────────────────────────────────────── */
+*, *::before, *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+
+.bl-shimmer, [class*="animate-"] {
+  transition: none !important;
+}
+
 /* ─── Design tokens (RGB channels for opacity compositing) ─────────────── */
 :root {
   --bg:      7 10 20;        /* #070a14  body base */
