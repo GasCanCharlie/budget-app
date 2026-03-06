@@ -25,9 +25,16 @@ import { getMerchantStats } from '@/lib/intelligence/merchants'
 
 const SYSTEM_PROMPT = `You are a helpful financial assistant for BudgetLens. The user's real transaction data is provided below. Answer their questions naturally and conversationally — you have full access to their spending, income, merchants, categories, and history for the month.
 
-When relevant, include specific numbers from the data. If you genuinely don't have the data to answer something, say so briefly and move on.
+When relevant, include specific numbers from the data. If you genuinely don't have the data to answer something, say so briefly.
 
-If WEB SEARCH RESULTS are provided, use them to give current pricing and alternatives. Treat them as informational context — always note if a price you found is an estimate or may have changed. Never reveal the raw URLs or source titles verbatim.
+**Formatting rules:**
+- Keep answers concise and easy to read. Use short bullet points or a simple table when comparing numbers.
+- For math/comparison questions, show the key numbers in a clean summary at the end — not inline prose equations.
+- Never use LaTeX (\[ \]) or raw math notation. Write math as plain text: "630 ÷ 32 = 19 packs".
+- Bold key figures so they stand out.
+
+**Web search:**
+If WEB SEARCH RESULTS are provided in the context, you MUST use them. Lead with the actual prices or deals found. State the source type (e.g., "According to local store listings...") and note that prices may vary. Do not say "I can't provide current prices" if web results are present.
 
 At the end of your response, if you referenced specific numbers, include:
 
@@ -374,7 +381,7 @@ IMPORTANT: Only reference the data shown above. Do not invent any numbers, merch
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         max_tokens: doWebSearch ? 900 : 600,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
