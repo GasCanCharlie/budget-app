@@ -39,7 +39,7 @@ FILTERS: merchant=[X] | category=[Y] | dateFrom=[YYYY-MM-DD] | dateTo=[YYYY-MM-D
 
 // ─── Web search intent + helpers ──────────────────────────────────────────────
 
-const SEARCH_INTENT_RE = /better (price|deal|rate|plan|option)|cheaper|cheaper alternative|find.*alternative|switch.*from|save.*on|discount|coupon|promo|compare plan|compare price|how much (does|is|do) .+ cost|current price|current rate|going rate|best plan|lower.*(bill|cost|rate|price)|cheaper than|too expensive|worth it/i
+const SEARCH_INTENT_RE = /cheap(er|est)|better (price|deal|rate|plan|option)|find.*(price|deal|store|place|cheapest|cheapest place|where)|where (can i|to) (buy|get|find)|best (price|deal|place|store|rate|plan)|search|look.?up|look for|lowest price|good deal|great deal|on sale|discount|coupon|promo|compare (plan|price|cost)|how much (does|is|do) .+ cost|current (price|rate)|going rate|lower.*(bill|cost|rate|price)|too expensive|worth it|save.*on|switch.*from|alternative to|alternatives? for|nearby|near me|in (maui|hawaii|[a-z]+ area)|local (store|price)|grocery store|what store|which store|where.*sell/i
 
 function needsWebSearch(msg: string): boolean {
   return SEARCH_INTENT_RE.test(msg)
@@ -47,9 +47,15 @@ function needsWebSearch(msg: string): boolean {
 
 /** Build a safe search query — topic only, no user PII or dollar amounts */
 function buildSearchQuery(message: string): string {
-  // Strip numbers and currency to avoid leaking user spend data
-  const stripped = message.replace(/\$[\d,.]+/g, '').replace(/\b\d+(\.\d+)?\b/g, '').trim()
-  return `${stripped} best price alternatives 2025`.slice(0, 120)
+  // Strip dollar amounts but keep quantities and place names
+  const stripped = message
+    .replace(/\$[\d,.]+/g, '')
+    .replace(/\bmy\b/gi, '')
+    .replace(/\bi\b/gi, '')
+    .trim()
+  // If the message already has good search terms, use it directly
+  if (stripped.length > 10) return `${stripped} 2025`.slice(0, 150)
+  return `${stripped} best price where to buy 2025`.slice(0, 150)
 }
 
 interface TavilyResult {
