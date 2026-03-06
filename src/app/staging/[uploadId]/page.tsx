@@ -173,22 +173,22 @@ function ToastContainer({ toasts }: { toasts: ToastMsg[] }) {
           style={{
             background:
               t.type === 'success'
-                ? 'rgba(46,229,157,.15)'
+                ? 'var(--success-muted)'
                 : t.type === 'error'
-                  ? 'rgba(255,91,120,.15)'
-                  : 'rgba(110,168,255,.15)',
+                  ? 'var(--danger-muted, rgba(248,113,113,0.15))'
+                  : 'var(--accent-muted)',
             border:
               t.type === 'success'
-                ? '1px solid rgba(46,229,157,.30)'
+                ? '1px solid var(--success-muted)'
                 : t.type === 'error'
-                  ? '1px solid rgba(255,91,120,.30)'
-                  : '1px solid rgba(110,168,255,.30)',
+                  ? '1px solid var(--danger-muted, rgba(248,113,113,0.30))'
+                  : '1px solid var(--accent-muted)',
             color:
               t.type === 'success'
-                ? '#2ee59d'
+                ? 'var(--success)'
                 : t.type === 'error'
-                  ? '#ff5b78'
-                  : '#6ea8ff',
+                  ? 'var(--danger)'
+                  : 'var(--accent)',
             backdropFilter: 'blur(12px)',
           }}
         >
@@ -220,9 +220,9 @@ function StatusPill({
       <span
         className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium line-through"
         style={{
-          background: 'rgba(255,255,255,.06)',
-          color: 'rgba(255,255,255,.35)',
-          border: '1px solid rgba(255,255,255,.08)',
+          background: 'var(--card)',
+          color: 'var(--muted)',
+          border: '1px solid var(--border)',
         }}
       >
         Excluded
@@ -234,9 +234,9 @@ function StatusPill({
       <span
         className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
         style={{
-          background: 'rgba(255,255,255,.06)',
-          color: 'rgba(255,255,255,.45)',
-          border: '1px solid rgba(255,255,255,.08)',
+          background: 'var(--card)',
+          color: 'var(--text2)',
+          border: '1px solid var(--border)',
         }}
       >
         ↔ Transfer
@@ -248,9 +248,9 @@ function StatusPill({
       <span
         className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
         style={{
-          background: 'rgba(255,204,102,.12)',
-          color: '#ffcc66',
-          border: '1px solid rgba(255,204,102,.25)',
+          background: 'var(--warn-muted)',
+          color: 'var(--warn)',
+          border: '1px solid var(--warn-muted)',
         }}
       >
         ⚠ Review
@@ -263,9 +263,9 @@ function StatusPill({
         <span
           className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
           style={{
-            background: 'rgba(110,168,255,.12)',
-            color: '#6ea8ff',
-            border: '1px solid rgba(110,168,255,.22)',
+            background: 'var(--accent-muted)',
+            color: 'var(--accent)',
+            border: '1px solid var(--accent-muted)',
           }}
         >
           🔵 Rule: {tx.ruleReason}
@@ -274,7 +274,7 @@ function StatusPill({
     }
     if (tx.category) {
       const cat = categories.find(c => c.id === tx.category?.id)
-      const color = cat?.color ?? '#6ea8ff'
+      const color = cat?.color ?? 'var(--accent)'
       return (
         <span
           className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
@@ -298,9 +298,9 @@ function StatusPill({
     <span
       className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
       style={{
-        background: 'rgba(255,255,255,.05)',
-        color: 'rgba(255,255,255,.35)',
-        border: '1px solid rgba(255,255,255,.08)',
+        background: 'var(--card2)',
+        color: 'var(--muted)',
+        border: '1px solid var(--border)',
       }}
     >
       —
@@ -353,9 +353,9 @@ function CategorySelect({
         }}
         className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
         style={{
-          background: 'rgba(255,255,255,.06)',
-          border: '1px solid rgba(255,255,255,.10)',
-          color: selected ? '#eaf0ff' : '#8b97c3',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          color: selected ? 'var(--text)' : 'var(--muted)',
         }}
       >
         {selected ? (
@@ -373,29 +373,29 @@ function CategorySelect({
         <div
           className="absolute right-0 top-full mt-1 z-50 w-52 rounded-xl overflow-hidden"
           style={{
-            background: 'rgba(11,16,32,.98)',
-            border: '1px solid rgba(255,255,255,.12)',
-            boxShadow: '0 20px 60px rgba(0,0,0,.60)',
+            background: 'var(--surface)',
+            border: '1px solid var(--border2)',
+            boxShadow: 'var(--shadow)',
           }}
         >
           {/* Search */}
-          <div className="p-2 border-b" style={{ borderColor: 'rgba(255,255,255,.08)' }}>
+          <div className="p-2 border-b" style={{ borderColor: 'var(--border)' }}>
             <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5"
-              style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.09)' }}>
-              <Search size={11} className="text-[#8b97c3] flex-shrink-0" />
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <Search size={11} className="text-[color:var(--muted)] flex-shrink-0" />
               <input
                 autoFocus
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search…"
-                className="flex-1 bg-transparent text-xs text-[#eaf0ff] outline-none placeholder:text-[#8b97c3]/60"
+                className="flex-1 bg-transparent text-xs text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]/60"
                 onClick={e => e.stopPropagation()}
               />
             </div>
           </div>
           <div className="max-h-52 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-[#8b97c3]">No match</p>
+              <p className="px-3 py-2 text-xs text-[color:var(--muted)]">No match</p>
             ) : (
               filtered.map(cat => (
                 <button
@@ -406,13 +406,13 @@ function CategorySelect({
                     setOpen(false)
                     setSearch('')
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors hover:bg-white/[.06]"
-                  style={{ color: value === cat.id ? '#6ea8ff' : '#c8d4f5' }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors hover-surface"
+                  style={{ color: value === cat.id ? 'var(--accent)' : 'var(--text2)' }}
                 >
                   <span>{cat.icon}</span>
                   <span>{cat.name}</span>
                   {value === cat.id && (
-                    <CheckCircle2 size={11} className="ml-auto text-[#6ea8ff]" />
+                    <CheckCircle2 size={11} className="ml-auto text-[color:var(--accent)]" />
                   )}
                 </button>
               ))
@@ -455,8 +455,8 @@ function TxMenu({
           e.stopPropagation()
           setOpen(v => !v)
         }}
-        className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-white/[.08]"
-        style={{ color: '#8b97c3' }}
+        className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover-surface"
+        style={{ color: 'var(--muted)' }}
       >
         <MoreHorizontal size={14} />
       </button>
@@ -465,29 +465,29 @@ function TxMenu({
         <div
           className="absolute right-0 top-full mt-1 z-50 w-44 rounded-xl overflow-hidden"
           style={{
-            background: 'rgba(11,16,32,.98)',
-            border: '1px solid rgba(255,255,255,.12)',
-            boxShadow: '0 16px 50px rgba(0,0,0,.55)',
+            background: 'var(--surface)',
+            border: '1px solid var(--border2)',
+            boxShadow: 'var(--shadow)',
           }}
         >
           <button
             onClick={() => { onMarkTransfer(); setOpen(false) }}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-xs text-left text-[#c8d4f5] transition-colors hover:bg-white/[.06]"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-xs text-left text-[color:var(--text2)] transition-colors hover-surface"
           >
-            <Repeat2 size={13} className="text-[#8b97c3]" />
+            <Repeat2 size={13} className="text-[color:var(--muted)]" />
             Mark as Transfer
           </button>
           <button
             onClick={() => { onExclude(); setOpen(false) }}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-xs text-left text-[#c8d4f5] transition-colors hover:bg-white/[.06]"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-xs text-left text-[color:var(--text2)] transition-colors hover-surface"
           >
-            <MinusCircle size={13} className="text-[#8b97c3]" />
+            <MinusCircle size={13} className="text-[color:var(--muted)]" />
             Exclude
           </button>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,.06)' }} />
+          <div style={{ borderTop: '1px solid var(--border)' }} />
           <button
             onClick={() => { onReset(); setOpen(false) }}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-xs text-left text-[#8b97c3] transition-colors hover:bg-white/[.06]"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-xs text-left text-[color:var(--muted)] transition-colors hover-surface"
           >
             <RefreshCw size={13} />
             Reset
@@ -518,9 +518,9 @@ function RulePrompt({
       <div
         className="mx-4 mb-2 flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs"
         style={{
-          background: 'rgba(46,229,157,.08)',
-          border: '1px solid rgba(46,229,157,.20)',
-          color: '#2ee59d',
+          background: 'var(--success-muted)',
+          border: '1px solid var(--success-muted)',
+          color: 'var(--success)',
         }}
       >
         <CheckCircle2 size={13} />
@@ -538,26 +538,26 @@ function RulePrompt({
     <div
       className="mx-4 mb-2 rounded-xl p-3.5"
       style={{
-        background: 'rgba(110,168,255,.06)',
-        border: '1px solid rgba(110,168,255,.18)',
+        background: 'var(--accent-muted)',
+        border: '1px solid var(--accent-muted)',
       }}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-[#eaf0ff] mb-0.5">
+          <p className="text-xs font-semibold text-[color:var(--text)] mb-0.5">
             Remember this for next time?
           </p>
-          <p className="text-xs text-[#8b97c3]">
-            <span className="font-medium text-[#c8d4f5]">
+          <p className="text-xs text-[color:var(--muted)]">
+            <span className="font-medium text-[color:var(--text2)]">
               &ldquo;{prompt.vendorRaw}&rdquo;
             </span>{' '}
             →{' '}
-            <span style={{ color: cat?.color ?? '#6ea8ff' }}>
+            <span style={{ color: cat?.color ?? 'var(--accent)' }}>
               {cat?.icon} {cat?.name}
             </span>
           </p>
         </div>
-        <button onClick={onDismiss} className="flex-shrink-0 text-[#8b97c3] hover:text-[#c8d4f5]">
+        <button onClick={onDismiss} className="flex-shrink-0 text-[color:var(--muted)] hover:text-[color:var(--text2)]">
           <X size={13} />
         </button>
       </div>
@@ -568,9 +568,9 @@ function RulePrompt({
             onClick={() => onSave('vendor_exact')}
             className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all"
             style={{
-              background: 'rgba(110,168,255,.18)',
-              border: '1px solid rgba(110,168,255,.30)',
-              color: '#6ea8ff',
+              background: 'var(--accent-muted)',
+              border: '1px solid var(--accent-muted)',
+              color: 'var(--accent)',
             }}
           >
             Always for this vendor
@@ -579,16 +579,16 @@ function RulePrompt({
             onClick={() => onSave('vendor_exact', Math.abs(prompt.amountCents), Math.abs(prompt.amountCents))}
             className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all"
             style={{
-              background: 'rgba(255,255,255,.05)',
-              border: '1px solid rgba(255,255,255,.10)',
-              color: '#c8d4f5',
+              background: 'var(--card2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text2)',
             }}
           >
             Same amount only
           </button>
           <button
             onClick={onDismiss}
-            className="text-xs text-[#8b97c3] hover:text-[#c8d4f5] transition-colors"
+            className="text-xs text-[color:var(--muted)] hover:text-[color:var(--text2)] transition-colors"
           >
             No thanks
           </button>
@@ -620,23 +620,23 @@ function ConfirmDialog({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,.65)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
     >
       <div
         className="w-full max-w-sm rounded-2xl p-6 shadow-xl"
         style={{
-          background: 'rgba(11,16,32,.96)',
-          border: '1px solid rgba(255,255,255,.12)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border2)',
         }}
       >
-        <h3 className="mb-2 font-bold text-[#eaf0ff]">{title}</h3>
-        <p className="mb-5 text-sm text-[#8b97c3]">{body}</p>
+        <h3 className="mb-2 font-bold text-[color:var(--text)]">{title}</h3>
+        <p className="mb-5 text-sm text-[color:var(--muted)]">{body}</p>
         <div className="flex justify-end gap-2">
           <button
             onClick={onCancel}
             disabled={isPending}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-[#8b97c3] hover:bg-white/[.06] transition disabled:opacity-50"
-            style={{ border: '1px solid rgba(255,255,255,.10)' }}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-[color:var(--muted)] hover-surface transition disabled:opacity-50"
+            style={{ border: '1px solid var(--border)' }}
           >
             Cancel
           </button>
@@ -645,11 +645,11 @@ function ConfirmDialog({
             disabled={isPending}
             className="rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-50"
             style={{
-              background: danger ? 'rgba(255,91,120,.18)' : 'rgba(110,168,255,.18)',
+              background: danger ? 'var(--danger-muted, rgba(248,113,113,0.15))' : 'var(--accent-muted)',
               border: danger
-                ? '1px solid rgba(255,91,120,.32)'
-                : '1px solid rgba(110,168,255,.32)',
-              color: danger ? '#ff5b78' : '#6ea8ff',
+                ? '1px solid var(--danger-muted, rgba(248,113,113,0.30))'
+                : '1px solid var(--accent-muted)',
+              color: danger ? 'var(--danger)' : 'var(--accent)',
             }}
           >
             {isPending ? (
@@ -671,18 +671,18 @@ function SuccessBanner({ count, onClose }: { count: number; onClose: () => void 
     <div
       className="fixed inset-x-4 top-20 z-[100] mx-auto max-w-xl rounded-2xl px-5 py-4 shadow-xl flex items-center justify-between gap-4"
       style={{
-        background: 'rgba(46,229,157,.12)',
-        border: '1px solid rgba(46,229,157,.28)',
+        background: 'var(--success-muted)',
+        border: '1px solid var(--success-muted)',
         backdropFilter: 'blur(12px)',
       }}
     >
       <div className="flex items-center gap-3">
-        <CheckCircle2 size={20} className="text-[#2ee59d] flex-shrink-0" />
-        <span className="text-sm font-semibold text-[#eaf0ff]">
+        <CheckCircle2 size={20} className="text-[color:var(--success)] flex-shrink-0" />
+        <span className="text-sm font-semibold text-[color:var(--text)]">
           {count} transaction{count !== 1 ? 's' : ''} added to your budget!
         </span>
       </div>
-      <button onClick={onClose} className="text-[#8b97c3] hover:text-[#c8d4f5]">
+      <button onClick={onClose} className="text-[color:var(--muted)] hover:text-[color:var(--text2)]">
         <X size={16} />
       </button>
     </div>
@@ -1015,10 +1015,10 @@ export default function StagingInboxPage() {
 
   // Sort icon helper
   function SortIcon({ k }: { k: SortKey }) {
-    if (sortKey !== k) return <ArrowUpDown size={13} className="text-[#8b97c3]" />
+    if (sortKey !== k) return <ArrowUpDown size={13} className="text-[color:var(--muted)]" />
     return sortDir === 'asc'
-      ? <ArrowUp size={13} className="text-[#6ea8ff]" />
-      : <ArrowDown size={13} className="text-[#6ea8ff]" />
+      ? <ArrowUp size={13} className="text-[color:var(--accent)]" />
+      : <ArrowDown size={13} className="text-[color:var(--accent)]" />
   }
 
   // ── Render: loading ───────────────────────────────────────────────────────
@@ -1026,8 +1026,8 @@ export default function StagingInboxPage() {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3">
-          <Loader2 size={28} className="animate-spin text-[#6ea8ff]" />
-          <p className="text-sm text-[#8b97c3]">Loading staging inbox…</p>
+          <Loader2 size={28} className="animate-spin text-[color:var(--accent)]" />
+          <p className="text-sm text-[color:var(--muted)]">Loading staging inbox…</p>
         </div>
       </AppShell>
     )
@@ -1038,8 +1038,8 @@ export default function StagingInboxPage() {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3">
-          <AlertCircle size={28} className="text-[#ff5b78]" />
-          <p className="text-sm text-[#8b97c3]">
+          <AlertCircle size={28} className="text-[color:var(--danger)]" />
+          <p className="text-sm text-[color:var(--muted)]">
             {(error as Error)?.message ?? 'Failed to load staging inbox'}
           </p>
           <button
@@ -1101,36 +1101,36 @@ export default function StagingInboxPage() {
         <div
           className="rounded-2xl px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
           style={{
-            background: 'rgba(11,16,32,.96)',
-            border: '1px solid rgba(255,255,255,.12)',
+            background: 'var(--surface)',
+            border: '1px solid var(--border2)',
           }}
         >
           {/* Left: title + meta */}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h1 className="text-lg font-bold text-[#eaf0ff] flex-shrink-0">
+              <h1 className="text-lg font-bold text-[color:var(--text)] flex-shrink-0">
                 Staging Inbox
               </h1>
               {stagingUpload && (
                 <>
-                  <span className="text-[#8b97c3]">·</span>
+                  <span className="text-[color:var(--muted)]">·</span>
                   <span
                     className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
                     style={{
-                      background: 'rgba(255,255,255,.06)',
-                      border: '1px solid rgba(255,255,255,.10)',
-                      color: '#c8d4f5',
+                      background: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text2)',
                     }}
                   >
                     {stagingUpload.upload.formatDetected || 'CSV'}
                   </span>
-                  <span className="text-xs text-[#8b97c3]">
+                  <span className="text-xs text-[color:var(--muted)]">
                     {counts?.total ?? 0} transactions
                   </span>
                 </>
               )}
             </div>
-            <p className="text-xs text-[#8b97c3]">
+            <p className="text-xs text-[color:var(--muted)]">
               Nothing has been added to your budget yet.
             </p>
           </div>
@@ -1142,9 +1142,9 @@ export default function StagingInboxPage() {
               onClick={() => setShowCommitConfirm(true)}
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
-                background: 'rgba(110,168,255,.18)',
-                border: '1px solid rgba(110,168,255,.32)',
-                color: '#6ea8ff',
+                background: 'var(--accent-muted)',
+                border: '1px solid var(--accent-muted)',
+                color: 'var(--accent)',
               }}
             >
               <ArrowRight size={15} />
@@ -1159,9 +1159,9 @@ export default function StagingInboxPage() {
                 onClick={() => setShowMoreMenu(v => !v)}
                 className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors"
                 style={{
-                  background: 'rgba(255,255,255,.06)',
-                  border: '1px solid rgba(255,255,255,.10)',
-                  color: '#8b97c3',
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--muted)',
                 }}
               >
                 <MoreHorizontal size={16} />
@@ -1170,9 +1170,9 @@ export default function StagingInboxPage() {
                 <div
                   className="absolute right-0 top-full mt-1 z-50 w-48 rounded-xl overflow-hidden"
                   style={{
-                    background: 'rgba(11,16,32,.98)',
-                    border: '1px solid rgba(255,255,255,.12)',
-                    boxShadow: '0 20px 60px rgba(0,0,0,.60)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border2)',
+                    boxShadow: 'var(--shadow)',
                   }}
                 >
                   <button
@@ -1180,8 +1180,8 @@ export default function StagingInboxPage() {
                       setShowMoreMenu(false)
                       setShowDiscardConfirm(true)
                     }}
-                    className="flex w-full items-center gap-2.5 px-4 py-3 text-sm text-left transition-colors hover:bg-white/[.06]"
-                    style={{ color: '#ff5b78' }}
+                    className="flex w-full items-center gap-2.5 px-4 py-3 text-sm text-left transition-colors hover-surface"
+                    style={{ color: 'var(--danger)' }}
                   >
                     <Trash2 size={14} />
                     Discard this upload
@@ -1200,33 +1200,33 @@ export default function StagingInboxPage() {
                 label: 'Categorized',
                 value: counts.categorized,
                 icon: '✅',
-                color: '#2ee59d',
-                bg: 'rgba(46,229,157,.10)',
-                border: 'rgba(46,229,157,.20)',
+                color: 'var(--success)',
+                bg: 'var(--success-muted)',
+                border: 'var(--success-muted)',
               },
               {
                 label: 'Needs Review',
                 value: counts.needsReview,
                 icon: '⚠️',
-                color: '#ffcc66',
-                bg: 'rgba(255,204,102,.10)',
-                border: 'rgba(255,204,102,.20)',
+                color: 'var(--warn)',
+                bg: 'var(--warn-muted)',
+                border: 'var(--warn-muted)',
               },
               {
                 label: 'New / Uncategorized',
                 value: counts.uncategorized,
                 icon: '🆕',
-                color: '#c8d4f5',
-                bg: 'rgba(255,255,255,.04)',
-                border: 'rgba(255,255,255,.10)',
+                color: 'var(--text2)',
+                bg: 'var(--card2)',
+                border: 'var(--border)',
               },
               {
                 label: 'Auto (by rules)',
                 value: counts.auto,
                 icon: '🔵',
-                color: '#6ea8ff',
-                bg: 'rgba(110,168,255,.10)',
-                border: 'rgba(110,168,255,.20)',
+                color: 'var(--accent)',
+                bg: 'var(--accent-muted)',
+                border: 'var(--accent-muted)',
               },
             ].map(stat => (
               <div
@@ -1245,7 +1245,7 @@ export default function StagingInboxPage() {
                   >
                     {stat.value}
                   </p>
-                  <p className="text-[10px] text-[#8b97c3] mt-0.5 truncate">
+                  <p className="text-[10px] text-[color:var(--muted)] mt-0.5 truncate">
                     {stat.label}
                   </p>
                 </div>
@@ -1262,9 +1262,9 @@ export default function StagingInboxPage() {
             disabled={applyRules.isPending}
             className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-all disabled:opacity-50"
             style={{
-              background: 'rgba(99,102,241,.18)',
-              border: '1px solid rgba(99,102,241,.32)',
-              color: '#a5b4fc',
+              background: 'var(--accent-muted)',
+              border: '1px solid var(--accent-muted)',
+              color: 'var(--accent)',
             }}
           >
             {applyRules.isPending ? (
@@ -1280,13 +1280,13 @@ export default function StagingInboxPage() {
             onClick={handleSelectAll}
             className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all"
             style={{
-              background: 'rgba(255,255,255,.05)',
-              border: '1px solid rgba(255,255,255,.10)',
-              color: '#c8d4f5',
+              background: 'var(--card2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text2)',
             }}
           >
             {selectedIds.size > 0 && selectedIds.size === filtered.length ? (
-              <CheckSquare size={14} className="text-[#6ea8ff]" />
+              <CheckSquare size={14} className="text-[color:var(--accent)]" />
             ) : (
               <Square size={14} />
             )}
@@ -1299,9 +1299,9 @@ export default function StagingInboxPage() {
               onClick={() => setShowSortMenu(v => !v)}
               className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all"
               style={{
-                background: 'rgba(255,255,255,.05)',
-                border: '1px solid rgba(255,255,255,.10)',
-                color: '#c8d4f5',
+                background: 'var(--card2)',
+                border: '1px solid var(--border)',
+                color: 'var(--text2)',
               }}
             >
               <SortIcon k={sortKey} />
@@ -1312,17 +1312,17 @@ export default function StagingInboxPage() {
               <div
                 className="absolute left-0 top-full mt-1 z-50 w-40 rounded-xl overflow-hidden"
                 style={{
-                  background: 'rgba(11,16,32,.98)',
-                  border: '1px solid rgba(255,255,255,.12)',
-                  boxShadow: '0 16px 50px rgba(0,0,0,.55)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border2)',
+                  boxShadow: 'var(--shadow)',
                 }}
               >
                 {(['date', 'amount', 'vendor'] as SortKey[]).map(k => (
                   <button
                     key={k}
                     onClick={() => handleSort(k)}
-                    className="flex w-full items-center justify-between px-4 py-2.5 text-sm text-left transition-colors hover:bg-white/[.06]"
-                    style={{ color: sortKey === k ? '#6ea8ff' : '#c8d4f5' }}
+                    className="flex w-full items-center justify-between px-4 py-2.5 text-sm text-left transition-colors hover-surface"
+                    style={{ color: sortKey === k ? 'var(--accent)' : 'var(--text2)' }}
                   >
                     {k.charAt(0).toUpperCase() + k.slice(1)}
                     {sortKey === k && <SortIcon k={k} />}
@@ -1349,13 +1349,13 @@ export default function StagingInboxPage() {
                 style={{
                   background:
                     filterMode === f.key
-                      ? 'rgba(110,168,255,.20)'
-                      : 'rgba(255,255,255,.05)',
+                      ? 'var(--accent-muted)'
+                      : 'var(--card2)',
                   border:
                     filterMode === f.key
-                      ? '1px solid rgba(110,168,255,.35)'
-                      : '1px solid rgba(255,255,255,.09)',
-                  color: filterMode === f.key ? '#6ea8ff' : '#8b97c3',
+                      ? '1px solid var(--accent-muted)'
+                      : '1px solid var(--border)',
+                  color: filterMode === f.key ? 'var(--accent)' : 'var(--muted)',
                 }}
               >
                 {f.label}
@@ -1369,11 +1369,11 @@ export default function StagingInboxPage() {
           <div
             className="flex flex-wrap items-center gap-3 rounded-2xl px-5 py-3"
             style={{
-              background: 'rgba(99,102,241,.10)',
-              border: '1px solid rgba(99,102,241,.25)',
+              background: 'var(--accent-muted)',
+              border: '1px solid var(--accent-muted)',
             }}
           >
-            <span className="text-sm font-semibold text-[#eaf0ff]">
+            <span className="text-sm font-semibold text-[color:var(--text)]">
               {selectedIds.size} selected
             </span>
 
@@ -1383,9 +1383,9 @@ export default function StagingInboxPage() {
                 onClick={() => setBulkCatOpen(v => !v)}
                 className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
                 style={{
-                  background: 'rgba(255,255,255,.08)',
-                  border: '1px solid rgba(255,255,255,.14)',
-                  color: '#c8d4f5',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border2)',
+                  color: 'var(--text2)',
                 }}
               >
                 <Tag size={12} />
@@ -1396,9 +1396,9 @@ export default function StagingInboxPage() {
                 <div
                   className="absolute left-0 top-full mt-1 z-50 w-52 rounded-xl overflow-hidden"
                   style={{
-                    background: 'rgba(11,16,32,.98)',
-                    border: '1px solid rgba(255,255,255,.12)',
-                    boxShadow: '0 20px 60px rgba(0,0,0,.60)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border2)',
+                    boxShadow: 'var(--shadow)',
                   }}
                 >
                   <div className="max-h-60 overflow-y-auto py-1">
@@ -1406,7 +1406,7 @@ export default function StagingInboxPage() {
                       <button
                         key={cat.id}
                         onClick={() => handleBulkCategory(cat.id)}
-                        className="flex w-full items-center gap-2 px-3.5 py-2 text-xs text-left text-[#c8d4f5] transition-colors hover:bg-white/[.06]"
+                        className="flex w-full items-center gap-2 px-3.5 py-2 text-xs text-left text-[color:var(--text2)] transition-colors hover-surface"
                       >
                         <span>{cat.icon}</span>
                         {cat.name}
@@ -1421,9 +1421,9 @@ export default function StagingInboxPage() {
               onClick={handleBulkTransfer}
               className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
               style={{
-                background: 'rgba(255,255,255,.06)',
-                border: '1px solid rgba(255,255,255,.10)',
-                color: '#c8d4f5',
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                color: 'var(--text2)',
               }}
             >
               <Repeat2 size={12} />
@@ -1434,9 +1434,9 @@ export default function StagingInboxPage() {
               onClick={handleBulkExclude}
               className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
               style={{
-                background: 'rgba(255,255,255,.06)',
-                border: '1px solid rgba(255,255,255,.10)',
-                color: '#c8d4f5',
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                color: 'var(--text2)',
               }}
             >
               <MinusCircle size={12} />
@@ -1448,9 +1448,9 @@ export default function StagingInboxPage() {
               disabled={commitMutation.isPending}
               className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ml-auto disabled:opacity-50"
               style={{
-                background: 'rgba(110,168,255,.18)',
-                border: '1px solid rgba(110,168,255,.32)',
-                color: '#6ea8ff',
+                background: 'var(--accent-muted)',
+                border: '1px solid var(--accent-muted)',
+                color: 'var(--accent)',
               }}
             >
               {commitMutation.isPending ? (
@@ -1467,21 +1467,21 @@ export default function StagingInboxPage() {
         <div
           className="rounded-2xl overflow-hidden"
           style={{
-            background: 'rgba(11,16,32,.96)',
-            border: '1px solid rgba(255,255,255,.10)',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
           }}
         >
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <CheckCircle2 size={32} className="text-[#2ee59d] opacity-60" />
-              <p className="text-sm text-[#8b97c3]">
+              <CheckCircle2 size={32} className="text-[color:var(--success)] opacity-60" />
+              <p className="text-sm text-[color:var(--muted)]">
                 {filterMode === 'all'
                   ? 'No transactions in this staging upload.'
                   : `No transactions match the "${filterMode}" filter.`}
               </p>
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
+            <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {filtered.map(tx => {
                 const isSelected = selectedIds.has(tx.id)
                 const prompt = rulePrompts[tx.id]
@@ -1493,30 +1493,30 @@ export default function StagingInboxPage() {
                       className={clsx(
                         'flex items-center gap-3 px-4 py-3 transition-colors group',
                         isSelected
-                          ? 'bg-[rgba(110,168,255,.07)]'
-                          : 'hover:bg-white/[.025]',
+                          ? 'bg-[color:var(--accent-muted)]'
+                          : 'hover-surface',
                         tx.status === 'excluded' && 'opacity-50'
                       )}
                     >
                       {/* Checkbox */}
                       <button
                         onClick={() => toggleSelect(tx.id)}
-                        className="flex-shrink-0 text-[#8b97c3] hover:text-[#6ea8ff] transition-colors"
+                        className="flex-shrink-0 text-[color:var(--muted)] hover:text-[color:var(--accent)] transition-colors"
                       >
                         {isSelected ? (
-                          <CheckSquare size={16} className="text-[#6ea8ff]" />
+                          <CheckSquare size={16} className="text-[color:var(--accent)]" />
                         ) : (
                           <Square size={16} />
                         )}
                       </button>
 
                       {/* Date */}
-                      <span className="w-[52px] flex-shrink-0 text-xs tabular-nums text-[#8b97c3]">
+                      <span className="w-[52px] flex-shrink-0 text-xs tabular-nums text-[color:var(--muted)]">
                         {fmtDate(tx.date)}
                       </span>
 
                       {/* Vendor */}
-                      <span className="flex-1 min-w-0 truncate text-sm font-medium text-[#eaf0ff]">
+                      <span className="flex-1 min-w-0 truncate text-sm font-medium text-[color:var(--text)]">
                         {tx.vendorRaw || tx.description || '(no description)'}
                       </span>
 
@@ -1524,7 +1524,7 @@ export default function StagingInboxPage() {
                       <span
                         className="flex-shrink-0 text-sm font-bold tabular-nums"
                         style={{
-                          color: tx.amountCents < 0 ? '#FF5B78' : '#2EE59D',
+                          color: tx.amountCents < 0 ? 'var(--danger)' : 'var(--success)',
                         }}
                       >
                         {fmtAmt(tx.amountCents)}

@@ -217,8 +217,8 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
     bottom: 0,
     width: 380,
     maxWidth: '100vw',
-    background: 'linear-gradient(180deg, #0d1225 0%, #080c1a 100%)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
     borderRight: 'none',
     display: 'flex',
     flexDirection: 'column',
@@ -239,7 +239,7 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
         <div
           style={{
             padding: '16px 16px 12px',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: '1px solid var(--border)',
             flexShrink: 0,
           }}
         >
@@ -250,18 +250,18 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
                   width: 28,
                   height: 28,
                   borderRadius: 8,
-                  background: 'rgba(110,168,255,0.12)',
-                  border: '1px solid rgba(110,168,255,0.20)',
+                  background: 'var(--accent-muted)',
+                  border: '1px solid var(--accent-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Sparkles size={13} style={{ color: '#6ea8ff' }} />
+                <Sparkles size={13} style={{ color: 'var(--accent)' }} />
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#eaf0ff' }}>Ask</div>
-                <div style={{ fontSize: 10, color: '#8b97c3' }}>{monthLabel}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Ask</div>
+                <div style={{ fontSize: 10, color: 'var(--muted)' }}>{monthLabel}</div>
               </div>
             </div>
             <button
@@ -269,7 +269,7 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#8b97c3',
+                color: 'var(--muted)',
                 cursor: 'pointer',
                 padding: 4,
                 borderRadius: 6,
@@ -284,9 +284,9 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
           <p
             style={{
               fontSize: 10,
-              color: '#6b7499',
-              background: 'rgba(110,168,255,0.06)',
-              border: '1px solid rgba(110,168,255,0.10)',
+              color: 'var(--text3)',
+              background: 'var(--accent-muted)',
+              border: '1px solid var(--accent-muted)',
               borderRadius: 8,
               padding: '5px 10px',
               margin: 0,
@@ -301,15 +301,15 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
         <div
           style={{
             padding: '10px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
-            background: 'rgba(0,0,0,0.20)',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--surface2)',
             flexShrink: 0,
           }}
         >
-          <p style={{ fontSize: 10, color: '#8b97c3', margin: 0, lineHeight: 1.6 }}>
-            <span style={{ color: '#eaf0ff', fontWeight: 600 }}>{monthLabel}:</span>
+          <p style={{ fontSize: 10, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
+            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{monthLabel}:</span>
             {' '}Income {fmtCurrency(context.totalIncome)} · Spending {fmtCurrency(context.totalSpending)} · Net{' '}
-            <span style={{ color: context.net >= 0 ? '#2ee59d' : '#f87171' }}>
+            <span style={{ color: context.net >= 0 ? 'var(--success)' : 'var(--danger)' }}>
               {fmtCurrency(context.net)}
             </span>
             {context.momSpendingPctChange !== null && (
@@ -330,8 +330,8 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
           }}
         >
           {messages.length === 0 && (
-            <div style={{ textAlign: 'center', marginTop: 40, color: '#6b7499' }}>
-              <Sparkles size={24} style={{ margin: '0 auto 8px', color: '#8b97c3' }} />
+            <div style={{ textAlign: 'center', marginTop: 40, color: 'var(--text3)' }}>
+              <Sparkles size={24} style={{ margin: '0 auto 8px', color: 'var(--muted)' }} />
               <p style={{ fontSize: 13, marginBottom: 4 }}>Ask a question about your finances</p>
               <p style={{ fontSize: 11 }}>e.g. &quot;What&apos;s my biggest expense this month?&quot;</p>
             </div>
@@ -358,18 +358,18 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
                         color: '#ffffff',
                       }
                     : {
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        color: '#c8d4f5',
+                        background: 'var(--card2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text2)',
                       }),
                 }}
               >
                 {msg.content}
                 {msg.streaming && msg.content.length === 0 && (
                   <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center', padding: '2px 0' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8b97c3', animation: 'pulse 1.2s ease-in-out infinite' }} />
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8b97c3', animation: 'pulse 1.2s ease-in-out 0.2s infinite' }} />
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8b97c3', animation: 'pulse 1.2s ease-in-out 0.4s infinite' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--muted)', animation: 'pulse 1.2s ease-in-out infinite' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--muted)', animation: 'pulse 1.2s ease-in-out 0.2s infinite' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--muted)', animation: 'pulse 1.2s ease-in-out 0.4s infinite' }} />
                   </span>
                 )}
               </div>
@@ -382,18 +382,18 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
                 style={{
                   padding: '8px 12px',
                   borderRadius: '12px 12px 12px 4px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--card2)',
+                  border: '1px solid var(--border)',
                 }}
               >
-                <Loader2 size={14} style={{ color: '#8b97c3', animation: 'spin 1s linear infinite' }} />
+                <Loader2 size={14} style={{ color: 'var(--muted)', animation: 'spin 1s linear infinite' }} />
               </div>
             </div>
           )}
 
           {apiUnavailable && (
-            <p style={{ fontSize: 11, color: '#f87171', textAlign: 'center' }}>
-              {apiError ?? 'AI chat is temporarily unavailable.'}
+            <p style={{ fontSize: 11, color: 'var(--danger)', textAlign: 'center' }}>
+              {apiError ?? 'Chat is temporarily unavailable.'}
             </p>
           )}
 
@@ -404,22 +404,22 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
         <div
           style={{
             padding: '12px 16px',
-            borderTop: '1px solid rgba(255,255,255,0.07)',
+            borderTop: '1px solid var(--border)',
             flexShrink: 0,
-            background: 'rgba(0,0,0,0.20)',
+            background: 'var(--surface2)',
           }}
         >
           {atLimit ? (
             <div style={{ textAlign: 'center', padding: '8px 0' }}>
-              <p style={{ fontSize: 12, color: '#8b97c3', marginBottom: 8 }}>
+              <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
                 Maximum conversation length reached.
               </p>
               <button
                 onClick={() => setMessages([])}
                 style={{
-                  background: 'rgba(110,168,255,0.12)',
-                  border: '1px solid rgba(110,168,255,0.25)',
-                  color: '#6ea8ff',
+                  background: 'var(--accent-muted)',
+                  border: '1px solid var(--accent-muted)',
+                  color: 'var(--accent)',
                   fontSize: 11,
                   borderRadius: 8,
                   padding: '5px 12px',
@@ -440,12 +440,12 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
                 rows={2}
                 style={{
                   flex: 1,
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.10)',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
                   borderRadius: 10,
                   padding: '8px 12px',
                   fontSize: 13,
-                  color: '#eaf0ff',
+                  color: 'var(--text)',
                   resize: 'none',
                   outline: 'none',
                   lineHeight: 1.4,
@@ -461,10 +461,10 @@ export function AskAiDrawer({ isOpen, onClose, context }: AskAiDrawerProps) {
                   height: 36,
                   borderRadius: 10,
                   background: inputText.trim() && !isStreaming
-                    ? 'linear-gradient(135deg, #3b5bdb, #1e40af)'
-                    : 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(110,168,255,0.25)',
-                  color: inputText.trim() && !isStreaming ? '#ffffff' : '#8b97c3',
+                    ? 'var(--accent)'
+                    : 'var(--surface2)',
+                  border: '1px solid var(--accent-muted)',
+                  color: inputText.trim() && !isStreaming ? '#ffffff' : 'var(--muted)',
                   cursor: inputText.trim() && !isStreaming ? 'pointer' : 'not-allowed',
                   display: 'flex',
                   alignItems: 'center',

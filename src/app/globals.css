@@ -167,6 +167,9 @@ html, body {
   .card-body {
     padding: 16px 18px;
   }
+  .hover-surface:hover {
+    background: var(--surface2);
+  }
   .btn-primary {
     display: inline-flex;
     align-items: center;

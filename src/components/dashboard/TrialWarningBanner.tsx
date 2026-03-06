@@ -19,8 +19,8 @@ export function TrialWarningBanner({ trials, onDismiss }: TrialWarningBannerProp
         alignItems: 'flex-start',
         justifyContent: 'space-between',
         gap: 12,
-        background: 'rgba(251,191,36,0.08)',
-        border: '1px solid rgba(251,191,36,0.20)',
+        background: 'var(--warn-muted)',
+        border: '1px solid var(--warn-muted)',
         borderRadius: 12,
         padding: '12px 16px',
         marginBottom: 12,
@@ -30,13 +30,13 @@ export function TrialWarningBanner({ trials, onDismiss }: TrialWarningBannerProp
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
         <AlertCircle
           size={18}
-          style={{ color: '#fbbf24', flexShrink: 0, marginTop: 1 }}
+          style={{ color: 'var(--warn)', flexShrink: 0, marginTop: 1 }}
         />
         <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#fde68a', margin: 0, lineHeight: 1.4 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--warn)', margin: 0, lineHeight: 1.4 }}>
             {`\u26a0 ${n} possible trial charge${plural} detected: ${merchantList}`}
           </p>
-          <p style={{ fontSize: 12, color: '#fcd34d', margin: '3px 0 0', lineHeight: 1.4, opacity: 0.85 }}>
+          <p style={{ fontSize: 12, color: 'var(--warn)', margin: '3px 0 0', lineHeight: 1.4, opacity: 0.85 }}>
             Review these recurring charges before they auto-renew.
           </p>
         </div>
@@ -49,7 +49,7 @@ export function TrialWarningBanner({ trials, onDismiss }: TrialWarningBannerProp
         style={{
           background: 'transparent',
           border: 'none',
-          color: '#fbbf24',
+          color: 'var(--warn)',
           cursor: 'pointer',
           padding: 2,
           flexShrink: 0,

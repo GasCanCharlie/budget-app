@@ -83,15 +83,15 @@ export function InsightCard({ card, onDismiss, onAction }: InsightCardProps) {
             width: 32,
             height: 32,
             borderRadius: 8,
-            background: 'rgba(110,168,255,0.12)',
-            border: '1px solid rgba(110,168,255,0.20)',
+            background: 'var(--accent-muted)',
+            border: '1px solid var(--accent-muted)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
           }}
         >
-          <IconComponent size={15} style={{ color: '#6ea8ff' }} />
+          <IconComponent size={15} style={{ color: 'var(--accent)' }} />
         </div>
 
         {/* Title */}
@@ -177,7 +177,7 @@ export function InsightCard({ card, onDismiss, onAction }: InsightCardProps) {
             href={href}
             style={{
               fontSize: 11,
-              color: '#6ea8ff',
+              color: 'var(--accent)',
               background: 'transparent',
               border: 'none',
               padding: '4px 0',
@@ -223,9 +223,9 @@ export function InsightCard({ card, onDismiss, onAction }: InsightCardProps) {
             key={action.action_key}
             onClick={() => onAction(card.id, action.action_key, action.href)}
             style={{
-              background: i === 0 ? 'rgba(110,168,255,0.12)' : 'rgba(110,168,255,0.06)',
-              border: `1px solid ${i === 0 ? 'rgba(110,168,255,0.25)' : 'rgba(110,168,255,0.12)'}`,
-              color: '#6ea8ff',
+              background: 'var(--accent-muted)',
+              border: '1px solid var(--accent-muted)',
+              color: 'var(--accent)',
               fontSize: 11,
               fontWeight: 500,
               borderRadius: 8,
@@ -237,12 +237,10 @@ export function InsightCard({ card, onDismiss, onAction }: InsightCardProps) {
               transition: 'background 0.15s',
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(110,168,255,0.20)'
+              (e.currentTarget as HTMLButtonElement).style.opacity = '0.8'
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = i === 0
-                ? 'rgba(110,168,255,0.12)'
-                : 'rgba(110,168,255,0.06)'
+              (e.currentTarget as HTMLButtonElement).style.opacity = '1'
             }}
           >
             {action.href && <ExternalLink size={10} />}
@@ -267,10 +265,10 @@ export function InsightCard({ card, onDismiss, onAction }: InsightCardProps) {
               transition: 'color 0.15s',
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.color = '#c8d4f5'
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text2)'
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.color = '#8b97c3'
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text3)'
             }}
           >
             <X size={10} />
@@ -288,11 +286,11 @@ export function InsightCardSkeleton() {
   return (
     <div
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--card2)',
+        border: '1px solid var(--border)',
         borderRadius: 16,
         padding: 16,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--shadow-soft)',
       }}
     >
       {/* Header row */}

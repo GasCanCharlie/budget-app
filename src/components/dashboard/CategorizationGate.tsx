@@ -48,21 +48,19 @@ export function CategorizationGate({
 
       {/* ── Hero glass card ─────────────────────────────────────────────────── */}
       <div style={{
-        background: 'rgba(255,255,255,0.05)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
         borderRadius: 28,
         padding: 28,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+        boxShadow: 'var(--shadow)',
       }}>
-        <p style={{ fontSize: 12, letterSpacing: 1, fontWeight: 700, opacity: .6, textTransform: 'uppercase' }}>
+        <p style={{ fontSize: 12, letterSpacing: 1, fontWeight: 700, opacity: .6, textTransform: 'uppercase', color: 'var(--muted)' }}>
           Step 2 of 3
         </p>
-        <h1 style={{ fontSize: 34, marginTop: 6, fontWeight: 800, color: '#eaf0ff' }}>
+        <h1 style={{ fontSize: 34, marginTop: 6, fontWeight: 800, color: 'var(--text)' }}>
           Organize your transactions
         </h1>
-        <p style={{ opacity: .7, marginTop: 12, fontSize: 15, color: '#eaf0ff' }}>
+        <p style={{ opacity: .7, marginTop: 12, fontSize: 15, color: 'var(--text)' }}>
           Your statement is imported. Assign a category to each transaction to unlock insights and reports.
         </p>
       </div>
@@ -76,35 +74,35 @@ export function CategorizationGate({
 
         {/* Left: Progress card */}
         <div style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
           borderRadius: 24,
           padding: 24,
         }}>
-          <p style={{ fontSize: 13, opacity: .6, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
+          <p style={{ fontSize: 13, opacity: .6, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, color: 'var(--muted)' }}>
             Progress
           </p>
-          <h2 style={{ marginTop: 6, fontSize: 22, fontWeight: 700, color: '#eaf0ff' }}>
+          <h2 style={{ marginTop: 6, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
             {headlineText}
           </h2>
-          <p style={{ opacity: .7, marginTop: 6, fontSize: 14, color: '#eaf0ff' }}>
+          <p style={{ opacity: .7, marginTop: 6, fontSize: 14, color: 'var(--text)' }}>
             {pct === 0 ? 'Start assigning categories below.' : "You're building structure fast."}
           </p>
 
           {/* Big stat boxes */}
           <div style={{ display: 'flex', gap: 12, marginTop: 18 }}>
             {[
-              { label: 'Categorized', value: categorizedCount, color: '#eaf0ff' },
-              { label: 'Remaining',   value: uncategorizedCount, color: '#ffd87a' },
-              { label: 'Total',       value: totalCount, color: '#eaf0ff' },
+              { label: 'Categorized', value: categorizedCount, color: 'var(--text)' },
+              { label: 'Remaining',   value: uncategorizedCount, color: 'var(--warn)' },
+              { label: 'Total',       value: totalCount, color: 'var(--text)' },
             ].map(({ label, value, color }) => (
               <div key={label} style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--surface2)',
                 padding: 16,
                 borderRadius: 18,
                 fontSize: 13,
-                color: '#8b97c3',
+                color: 'var(--muted)',
               }}>
                 {label}
                 <strong style={{ fontSize: 22, display: 'block', marginTop: 4, color }}>{value}</strong>
@@ -117,7 +115,7 @@ export function CategorizationGate({
             marginTop: 20,
             height: 14,
             borderRadius: 999,
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--track)',
             overflow: 'hidden',
           }}>
             <div style={{
@@ -128,7 +126,7 @@ export function CategorizationGate({
               transition: 'width 0.5s ease',
             }} />
           </div>
-          <p style={{ marginTop: 8, fontSize: 12, opacity: .55, color: '#eaf0ff' }}>
+          <p style={{ marginTop: 8, fontSize: 12, opacity: .7, color: 'var(--muted)' }}>
             {pct}% complete — {uncategorizedCount} remaining
           </p>
 
@@ -156,9 +154,9 @@ export function CategorizationGate({
               style={{
                 padding: '14px 24px',
                 borderRadius: 18,
-                border: '1px solid rgba(255,255,255,0.2)',
+                border: '1px solid var(--border2)',
                 background: 'transparent',
-                color: 'white',
+                color: 'var(--text)',
                 fontWeight: 600,
                 fontSize: 14,
                 textDecoration: 'none',
@@ -171,15 +169,15 @@ export function CategorizationGate({
 
         {/* Right: Unlock preview card */}
         <div style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
           borderRadius: 24,
           padding: 24,
         }}>
-          <p style={{ fontSize: 13, opacity: .6, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
+          <p style={{ fontSize: 13, opacity: .6, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, color: 'var(--muted)' }}>
             Unlock Next
           </p>
-          <h2 style={{ marginTop: 6, fontSize: 22, fontWeight: 700, color: '#eaf0ff' }}>
+          <h2 style={{ marginTop: 6, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
             Insights after categorizing
           </h2>
 
@@ -191,11 +189,12 @@ export function CategorizationGate({
           }}>
             {UNLOCK_ITEMS.map(item => (
               <div key={item} style={{
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
                 padding: 16,
                 borderRadius: 14,
                 fontSize: 13,
-                color: '#a8b3d6',
+                color: 'var(--text2)',
                 fontWeight: 500,
               }}>
                 {item}
@@ -205,7 +204,7 @@ export function CategorizationGate({
 
           {/* Statement info */}
           {(dateRangeStart || accountNames.length > 0) && (
-            <div style={{ marginTop: 24, fontSize: 14, opacity: .75, color: '#8b97c3', lineHeight: 1.8 }}>
+            <div style={{ marginTop: 24, fontSize: 14, opacity: .85, color: 'var(--muted)', lineHeight: 1.8 }}>
               {dateRangeStart && dateRangeEnd && (
                 <div>{fmtDate(dateRangeStart)} — {fmtDate(dateRangeEnd)}</div>
               )}
@@ -220,7 +219,7 @@ export function CategorizationGate({
       </div>
 
       {/* ── Footer tip ───────────────────────────────────────────────────────── */}
-      <p style={{ opacity: .6, fontSize: 13, color: '#8b97c3' }}>
+      <p style={{ opacity: .75, fontSize: 13, color: 'var(--muted)' }}>
         Tip: Categorizing now makes future uploads faster — the system remembers your assignments.
       </p>
 

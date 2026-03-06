@@ -40,8 +40,8 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-md text-sm">
-      <p className="mb-1 font-medium text-slate-700">{label}</p>
+    <div className="card px-3 py-2 shadow-md text-sm" style={{ borderRadius: 8 }}>
+      <p className="mb-1 font-medium" style={{ color: 'var(--text)' }}>{label}</p>
       {payload.map((entry) => (
         <p key={entry.name} style={{ color: entry.color }} className="tabular-nums">
           {entry.name === 'income' ? 'Income' : 'Spending'}:{' '}
@@ -63,8 +63,8 @@ export function TrendChart({ months }: Props) {
   }))
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-      <p className="mb-4 text-sm font-medium text-slate-700">12-Month Trends</p>
+    <div className="card p-5">
+      <p className="mb-4 text-sm font-medium" style={{ color: 'var(--text)' }}>12-Month Trends</p>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart
           data={data}
@@ -84,7 +84,7 @@ export function TrendChart({ months }: Props) {
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,.05)' }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,.05)' }} />
           <Legend
             verticalAlign="bottom"
             formatter={(value: string) =>
@@ -95,13 +95,13 @@ export function TrendChart({ months }: Props) {
           <Bar
             dataKey="income"
             name="income"
-            fill="#16a34a"
+            fill="#22c55e"
             radius={[3, 3, 0, 0]}
           />
           <Bar
             dataKey="spending"
             name="spending"
-            fill="#2563eb"
+            fill="#7c89ff"
             radius={[3, 3, 0, 0]}
           />
         </BarChart>

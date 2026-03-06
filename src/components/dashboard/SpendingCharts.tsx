@@ -54,8 +54,8 @@ export function SpendingCharts({ categories }: Props) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       {/* Bar chart — 2/3 width on md+ */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 md:col-span-2">
-        <p className="mb-4 text-sm font-semibold text-slate-700">
+      <div className="card p-5 md:col-span-2">
+        <p className="mb-4 text-sm font-semibold" style={{ color: 'var(--text)' }}>
           Spending by Category
         </p>
         {isEmpty ? (
@@ -84,17 +84,17 @@ export function SpendingCharts({ categories }: Props) {
               />
               <Tooltip
                 formatter={(v: number) => [`$${v.toLocaleString()}`, 'Spent']}
-                cursor={{ fill: 'rgba(255,255,255,.05)' }}
+                cursor={{ fill: 'rgba(0,0,0,.05)' }}
               />
-              <Bar dataKey="value" fill="#2563eb" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="value" fill="#7c89ff" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
       </div>
 
       {/* Donut chart — 1/3 width on md+ */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 md:col-span-1">
-        <p className="mb-4 text-sm font-semibold text-slate-700">Breakdown</p>
+      <div className="card p-5 md:col-span-1">
+        <p className="mb-4 text-sm font-semibold" style={{ color: 'var(--text)' }}>Breakdown</p>
         {isEmpty ? (
           <EmptyState />
         ) : (
