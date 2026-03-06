@@ -39,30 +39,47 @@ FILTERS: merchant=[X] | category=[Y] | dateFrom=[YYYY-MM-DD] | dateTo=[YYYY-MM-D
 
 // ─── Web search intent + helpers ──────────────────────────────────────────────
 
-const SEARCH_INTENT_RE = /cheap(er|est)|better (price|deal|rate|plan|option)|find.*(price|deal|store|place|cheapest|cheapest place|where)|where (can i|to) (buy|get|find)|best (price|deal|place|store|rate|plan)|search|look.?up|look for|lowest price|good deal|great deal|on sale|discount|coupon|promo|compare (plan|price|cost)|how much (does|is|do) .+ cost|current (price|rate)|going rate|lower.*(bill|cost|rate|price)|too expensive|worth it|save.*on|switch.*from|alternative to|alternatives? for|nearby|near me|in (maui|hawaii|[a-z]+ area)|local (store|price)|grocery store|what store|which store|where.*sell/i
+const SEARCH_INTENT_RE = /cheap(er|est)|better (price|deal|rate|plan|option)|find.*(price|deal|store|place|cheapest|cheapest place|where)|where (can i|to) (buy|get|find)|best.*(deal|price|place|option|store)|search|look.?up|look for|lowest price|good deal|great deal|on sale|discount|coupon|promo|compare (plan|price|cost)|how much (does|is|do) .+ cost|current (price|rate)|going rate|lower.*(bill|cost|rate|price)|too expensive|worth it|save.*on|switch.*from|alternative to|alternatives? for|nearby|near me|in (maui|hawaii|[a-z]+ area)|local (store|price)|grocery store|what store|which store|where.*sell|(check|scan).*(around|near)|around (maui|hawaii|here|town|the area|my area|kahului|kihei|lahaina|oahu|honolulu)|(deal|deals|bargain).*(around|near|in\s+maui|in\s+hawaii)/i
 
 function needsWebSearch(msg: string): boolean {
   return SEARCH_INTENT_RE.test(msg)
 }
 
-/** Build a safe search query — uses conversation history for context */
+const LOCATION_RE = /\b(maui|hawaii|kahului|kihei|lahaina|paia|wailea|wailuku|haiku|hana|lanai|oahu|honolulu|kona|hilo|kauai|lihue)\b/i
+
+function mentionsLocation(msg: string): boolean {
+  return LOCATION_RE.test(msg)
+}
+
+/** Build a smart search query using conversation history for context */
 function buildSearchQuery(message: string, history: Array<{ role: string; content: string }>): string {
-  // Pull last 3 user messages as context (most recent first)
   const priorUserMessages = history
     .filter(m => m.role === 'user')
     .slice(-3)
     .map(m => m.content)
     .join(' ')
 
-  // Combine prior context + current message, then strip noise
-  const combined = `${priorUserMessages} ${message}`
+  const fullContext = `${priorUserMessages} ${message}`
+
+  // Extract product/brand/quantity keywords from full conversation context
+  const productMatches = fullContext.match(
+    /\b(beer|alcohol|wine|liquor|spirits|budweiser|coors|corona|modelo|heineken|bud\s*light|miller|white\s*claw|seltzer|vodka|whiskey|rum|tequila|hard\s*seltzer|\d+[\s-]?pack|six[\s-]?pack|twelve[\s-]?pack|thirty[\s-]?pack|case\s+of|bottles?)\b/gi,
+  ) ?? []
+  const uniqueProducts = [...new Set(productMatches.map(p => p.toLowerCase().replace(/\s+/g, ' ')))]
+
+  // Minimal strip — remove only pronouns/articles/conjunctions; keep intent words, places, products
+  const cleaned = fullContext
     .replace(/\$[\d,.]+/g, '')
-    .replace(/\b(my|i|me|we|our|the|a|an|can|you|do|did|does|is|are|was|were|have|has|had|will|would|could|should|please|tell|show|find|search|look|get|give)\b/gi, ' ')
+    .replace(/\b(my|i|me|we|our|please|just|really|very|actually|so|and|or|but|to|of|for|by|this|that|it|its|was|were|been|has|had|have|will|would|could|should|an|a|the)\b/gi, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim()
 
-  if (combined.length > 10) return `${combined} 2025`.slice(0, 200)
-  return `${combined} best price where to buy 2025`.slice(0, 200)
+  // Append any extracted products not already in the cleaned string
+  const extraProducts = uniqueProducts.filter(p => !cleaned.toLowerCase().includes(p)).join(' ')
+  const withProducts = extraProducts ? `${cleaned} ${extraProducts}`.trim() : cleaned
+
+  const base = withProducts.length > 10 ? withProducts : `${withProducts} best price where to buy`
+  return `${base} 2025`.slice(0, 200)
 }
 
 interface TavilyResult {
@@ -157,7 +174,8 @@ export async function POST(req: NextRequest) {
     const needsComparison = /compare|vs |versus|last month|changed|difference|previous/.test(msg)
     const needsSubscriptions = /subscription|trial|recurring|charging|new charge|cancel/.test(msg)
     const tavilyKey = (process.env.TAVILY_API_KEY ?? '').trim()
-    const doWebSearch = needsWebSearch(message) && !!tavilyKey
+    const doWebSearch = (needsWebSearch(message) || mentionsLocation(message)) && !!tavilyKey
+    console.log('[insights/chat] webSearch:', { doWebSearch, tavilyKeySet: !!tavilyKey, message: message.slice(0, 60) })
 
     // Extract merchant name if present
     const merchantMatch = message.match(
@@ -321,6 +339,8 @@ ${highConf.slice(0, 8).map(s => `    - ${s.merchantNormalized}: $${s.typicalAmou
   Trials detected: ${trials.length}
 ${trials.slice(0, 5).map(t => `    - ${t.merchantNormalized}: $${t.trialAmount.toFixed(2)}`).join('\n')}`
     }
+
+    if (doWebSearch) console.log('[insights/chat] webSearch result chars:', webSearchResults.length, webSearchResults.slice(0, 100))
 
     const contextBlock = `FINANCIAL DATA FOR ${monthName.toUpperCase()}:${webSearchResults}
 
