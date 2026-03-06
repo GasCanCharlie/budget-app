@@ -2,7 +2,7 @@
  * POST /api/insights/chat
  * Auth: JWT required
  *
- * Body: { message: string, year: number, month: number }
+ * Body: { message: string, year: number, month: number, history?: Array<{role: string, content: string}> }
  *
  * Server fetches all context from DB using the authenticated userId.
  * Returns: { message: string, numbersUsed: Array<{label:string,value:string}>, filters?: {merchant?:string, category?:string, dateFrom?:string, dateTo?:string} }
@@ -45,17 +45,24 @@ function needsWebSearch(msg: string): boolean {
   return SEARCH_INTENT_RE.test(msg)
 }
 
-/** Build a safe search query — topic only, no user PII or dollar amounts */
-function buildSearchQuery(message: string): string {
-  // Strip dollar amounts but keep quantities and place names
-  const stripped = message
+/** Build a safe search query — uses conversation history for context */
+function buildSearchQuery(message: string, history: Array<{ role: string; content: string }>): string {
+  // Pull last 3 user messages as context (most recent first)
+  const priorUserMessages = history
+    .filter(m => m.role === 'user')
+    .slice(-3)
+    .map(m => m.content)
+    .join(' ')
+
+  // Combine prior context + current message, then strip noise
+  const combined = `${priorUserMessages} ${message}`
     .replace(/\$[\d,.]+/g, '')
-    .replace(/\bmy\b/gi, '')
-    .replace(/\bi\b/gi, '')
+    .replace(/\b(my|i|me|we|our|the|a|an|can|you|do|did|does|is|are|was|were|have|has|had|will|would|could|should|please|tell|show|find|search|look|get|give)\b/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
     .trim()
-  // If the message already has good search terms, use it directly
-  if (stripped.length > 10) return `${stripped} 2025`.slice(0, 150)
-  return `${stripped} best price where to buy 2025`.slice(0, 150)
+
+  if (combined.length > 10) return `${combined} 2025`.slice(0, 200)
+  return `${combined} best price where to buy 2025`.slice(0, 200)
 }
 
 interface TavilyResult {
@@ -120,8 +127,9 @@ export async function POST(req: NextRequest) {
     let message: string
     let year: number
     let month: number
+    let history: Array<{ role: string; content: string }> = []
     try {
-      const body = (await req.json()) as { message?: unknown; year?: unknown; month?: unknown }
+      const body = (await req.json()) as { message?: unknown; year?: unknown; month?: unknown; history?: unknown }
       if (typeof body.message !== 'string' || !body.message.trim()) {
         return NextResponse.json({ error: 'message is required' }, { status: 400 })
       }
@@ -130,6 +138,14 @@ export async function POST(req: NextRequest) {
       month = typeof body.month === 'number' ? body.month : parseInt(String(body.month ?? ''))
       if (isNaN(year) || isNaN(month) || month < 1 || month > 12 || year < 2000 || year > 2100) {
         return NextResponse.json({ error: 'Valid year and month are required' }, { status: 400 })
+      }
+      if (Array.isArray(body.history)) {
+        history = (body.history as Array<unknown>)
+          .filter((m): m is { role: string; content: string } =>
+            typeof (m as { role?: unknown }).role === 'string' &&
+            typeof (m as { content?: unknown }).content === 'string'
+          )
+          .slice(-6)
       }
     } catch {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
@@ -195,7 +211,7 @@ export async function POST(req: NextRequest) {
         : Promise.resolve(null),
       // Conditional: web search for price/deal questions
       doWebSearch
-        ? tavilySearch(buildSearchQuery(message), tavilyKey)
+        ? tavilySearch(buildSearchQuery(message, history), tavilyKey)
         : Promise.resolve(''),
     ])
 
@@ -342,7 +358,16 @@ IMPORTANT: Only reference the data shown above. Do not invent any numbers, merch
         max_tokens: doWebSearch ? 900 : 600,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `${contextBlock}\n\nUser question: ${message}` },
+          // Financial context is always first, attached to a user turn
+          { role: 'user', content: contextBlock },
+          { role: 'assistant', content: 'Got it — I have your financial data for this month. What would you like to know?' },
+          // Prior conversation turns (skip the opening assistant greeting, max 6)
+          ...history
+            .filter(m => m.role === 'user' || m.role === 'assistant')
+            .slice(-6)
+            .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+          // Current user message
+          { role: 'user', content: message },
         ],
       }),
     })

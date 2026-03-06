@@ -180,7 +180,12 @@ export default function InsightsPage() {
       const response = await fetch('/api/insights/chat', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ message: trimmed, year, month }),
+        body: JSON.stringify({
+          message: trimmed,
+          year,
+          month,
+          history: withUser.slice(-7, -1).map(m => ({ role: m.role, content: m.content })),
+        }),
         signal: abortControllerRef.current.signal,
       })
 
