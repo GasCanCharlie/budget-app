@@ -53,10 +53,10 @@
   --border:       rgba(17,24,39,0.10);
   --border2:      rgba(17,24,39,0.16);
   --text:         rgba(17,24,39,0.92);
-  --text2:        rgba(17,24,39,0.66);
-  --text3:        rgba(17,24,39,0.50);
-  --muted:        rgba(17,24,39,0.66);
-  --subtle:       rgba(17,24,39,0.50);
+  --text2:        rgba(17,24,39,0.75);
+  --text3:        rgba(17,24,39,0.60);
+  --muted:        rgba(17,24,39,0.75);
+  --subtle:       rgba(17,24,39,0.60);
   --accent:       #4f46e5;
   --accent2:      #6d4fd4;
   --accent-muted: rgba(79,70,229,0.14);

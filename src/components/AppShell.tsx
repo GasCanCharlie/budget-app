@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Upload, ArrowLeftRight, Tags, Layers,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, Inbox, History, MessageCircle, Lightbulb
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, MessageCircle, Lightbulb
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
@@ -32,7 +32,6 @@ const navItems = [
   { href: '/categories',   label: 'Categories',   icon: Layers },
   { href: '/rules',        label: 'Rules',        icon: Gavel },
   { href: '/chat',         label: 'Chat',         icon: MessageCircle },
-  { href: '/staging',      label: 'Inbox',        icon: Inbox },
 ]
 
 export function AppShell({ children, year, month, availableMonths, onMonthChange }: AppShellProps) {
