@@ -27,6 +27,8 @@ const SYSTEM_PROMPT = `You are a helpful financial assistant for BudgetLens. The
 
 When relevant, include specific numbers from the data. If you genuinely don't have the data to answer something, say so briefly and move on.
 
+If WEB SEARCH RESULTS are provided, use them to give current pricing and alternatives. Treat them as informational context — always note if a price you found is an estimate or may have changed. Never reveal the raw URLs or source titles verbatim.
+
 At the end of your response, if you referenced specific numbers, include:
 
 Numbers used:
@@ -34,6 +36,60 @@ Numbers used:
 
 FILTERS: merchant=[X] | category=[Y] | dateFrom=[YYYY-MM-DD] | dateTo=[YYYY-MM-DD]
 (only include the FILTERS line when your answer is specifically about a merchant, category, or date range)`
+
+// ─── Web search intent + helpers ──────────────────────────────────────────────
+
+const SEARCH_INTENT_RE = /better (price|deal|rate|plan|option)|cheaper|cheaper alternative|find.*alternative|switch.*from|save.*on|discount|coupon|promo|compare plan|compare price|how much (does|is|do) .+ cost|current price|current rate|going rate|best plan|lower.*(bill|cost|rate|price)|cheaper than|too expensive|worth it/i
+
+function needsWebSearch(msg: string): boolean {
+  return SEARCH_INTENT_RE.test(msg)
+}
+
+/** Build a safe search query — topic only, no user PII or dollar amounts */
+function buildSearchQuery(message: string): string {
+  // Strip numbers and currency to avoid leaking user spend data
+  const stripped = message.replace(/\$[\d,.]+/g, '').replace(/\b\d+(\.\d+)?\b/g, '').trim()
+  return `${stripped} best price alternatives 2025`.slice(0, 120)
+}
+
+interface TavilyResult {
+  title: string
+  content: string
+  url: string
+}
+
+interface TavilyResponse {
+  results: TavilyResult[]
+}
+
+async function tavilySearch(query: string, apiKey: string): Promise<string> {
+  try {
+    const res = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: apiKey,
+        query,
+        search_depth: 'basic',
+        max_results: 4,
+        include_answer: false,
+        include_images: false,
+      }),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return ''
+    const data = await res.json() as TavilyResponse
+    if (!data.results?.length) return ''
+
+    const lines = data.results
+      .slice(0, 4)
+      .map(r => `• ${r.title}: ${r.content.slice(0, 220).replace(/\n+/g, ' ')}`)
+      .join('\n')
+    return `\nWEB SEARCH RESULTS (for: "${query}"):\n${lines}\n(Results may not be current — verify before acting)`
+  } catch {
+    return ''
+  }
+}
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
@@ -78,6 +134,8 @@ export async function POST(req: NextRequest) {
     const needsMerchant = /how many|how often|times|visits|frequency|costco|starbucks|amazon|walmart|safeway|target/.test(msg)
     const needsComparison = /compare|vs |versus|last month|changed|difference|previous/.test(msg)
     const needsSubscriptions = /subscription|trial|recurring|charging|new charge|cancel/.test(msg)
+    const tavilyKey = (process.env.TAVILY_API_KEY ?? '').trim()
+    const doWebSearch = needsWebSearch(message) && !!tavilyKey
 
     // Extract merchant name if present
     const merchantMatch = message.match(
@@ -93,7 +151,7 @@ export async function POST(req: NextRequest) {
     const start = new Date(year, month - 1, 1)
     const end   = new Date(year, month, 0, 23, 59, 59)
 
-    const [summary, txRows, merchantStats, comparison, subscriptionData] = await Promise.all([
+    const [summary, txRows, merchantStats, comparison, subscriptionData, webSearchResults] = await Promise.all([
       // Always: summary
       computeMonthSummary(userId, year, month),
       // Always: raw transactions (up to 200)
@@ -129,6 +187,10 @@ export async function POST(req: NextRequest) {
       needsSubscriptions
         ? detectSubscriptions(userId, year, month).catch(() => null)
         : Promise.resolve(null),
+      // Conditional: web search for price/deal questions
+      doWebSearch
+        ? tavilySearch(buildSearchQuery(message), tavilyKey)
+        : Promise.resolve(''),
     ])
 
     // Map raw transaction rows to a clean shape
@@ -238,7 +300,7 @@ ${highConf.slice(0, 8).map(s => `    - ${s.merchantNormalized}: $${s.typicalAmou
 ${trials.slice(0, 5).map(t => `    - ${t.merchantNormalized}: $${t.trialAmount.toFixed(2)}`).join('\n')}`
     }
 
-    const contextBlock = `FINANCIAL DATA FOR ${monthName.toUpperCase()}:
+    const contextBlock = `FINANCIAL DATA FOR ${monthName.toUpperCase()}:${webSearchResults}
 
 Summary:
   Total Income:     $${summary.totalIncome.toFixed(2)}
@@ -271,7 +333,7 @@ IMPORTANT: Only reference the data shown above. Do not invent any numbers, merch
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        max_tokens: 600,
+        max_tokens: doWebSearch ? 900 : 600,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: `${contextBlock}\n\nUser question: ${message}` },
