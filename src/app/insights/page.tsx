@@ -332,7 +332,7 @@ export default function InsightsPage() {
                           <button
                             key={prompt}
                             onClick={() => sendMessage(prompt)}
-                            disabled={isStreaming || dashboardState === 'categorization_required'}
+                            disabled={isStreaming}
                             style={{ padding: '5px 11px', borderRadius: 20, background: 'var(--accent-muted)', border: '1px solid var(--border2)', color: 'var(--accent)', fontSize: 12, cursor: 'pointer', fontWeight: 500, transition: 'opacity 0.15s' }}
                             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.7' }}
                             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '1' }}
