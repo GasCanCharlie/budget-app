@@ -24,15 +24,22 @@ export function computeSnapshot(transactions: StagingTransaction[]): SnapshotDat
   const active = transactions.filter(tx => tx.status !== 'excluded' && tx.status !== 'transfer')
   const transactionCount = active.length
 
-  // Top merchant by total spend (positive amounts only)
+  // Detect sign convention: if majority of non-zero amounts are negative, expenses are negative
+  const nonZero = active.filter(tx => tx.amountCents !== 0)
+  const negativeCount = nonZero.filter(tx => tx.amountCents < 0).length
+  const expensesAreNegative = negativeCount > nonZero.length / 2
+  const isExpense = (cents: number) => expensesAreNegative ? cents < 0 : cents > 0
+
+  // Top merchant by total spend (expenses only)
   const merchantMap = new Map<string, { name: string; total: number }>()
   for (const tx of active) {
-    if (!tx.vendorKey?.trim() || tx.amountCents <= 0) continue
+    if (!tx.vendorKey?.trim() || !isExpense(tx.amountCents)) continue
     const existing = merchantMap.get(tx.vendorKey)
+    const abs = Math.abs(tx.amountCents)
     if (existing) {
-      existing.total += tx.amountCents
+      existing.total += abs
     } else {
-      merchantMap.set(tx.vendorKey, { name: tx.vendorRaw || tx.vendorKey, total: tx.amountCents })
+      merchantMap.set(tx.vendorKey, { name: tx.vendorRaw || tx.vendorKey, total: abs })
     }
   }
   let topMerchant: { name: string; total: number } | null = null
@@ -40,18 +47,20 @@ export function computeSnapshot(transactions: StagingTransaction[]): SnapshotDat
     if (!topMerchant || entry.total > topMerchant.total) topMerchant = entry
   }
 
-  // Largest single purchase
+  // Largest single purchase (expense)
   let largestPurchase = 0
   for (const tx of active) {
-    if (tx.amountCents > largestPurchase) largestPurchase = tx.amountCents
+    if (isExpense(tx.amountCents) && Math.abs(tx.amountCents) > largestPurchase) {
+      largestPurchase = Math.abs(tx.amountCents)
+    }
   }
 
-  // Recurring detection: same vendor, 2+ txns, amounts within 10% of each other
+  // Recurring detection: same vendor, 2+ expense txns, amounts within 10% of each other
   const byVendor = new Map<string, number[]>()
   for (const tx of active) {
-    if (!tx.vendorKey?.trim() || tx.amountCents <= 0) continue
+    if (!tx.vendorKey?.trim() || !isExpense(tx.amountCents)) continue
     const arr = byVendor.get(tx.vendorKey) ?? []
-    arr.push(tx.amountCents)
+    arr.push(Math.abs(tx.amountCents))
     byVendor.set(tx.vendorKey, arr)
   }
   let subscriptionCount = 0
