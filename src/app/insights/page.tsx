@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
@@ -67,17 +67,73 @@ const fmtCurrency = (n: number) =>
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function MessageContent({ content }: { content: string }) {
-  const dashIdx = content.lastIndexOf('\n—')
-  if (dashIdx === -1) return <span>{content}</span>
-  return (
-    <>
-      <span>{content.slice(0, dashIdx)}</span>
-      <span style={{ display: 'block', marginTop: 8, color: 'var(--muted)', fontStyle: 'italic' }}>
-        {content.slice(dashIdx + 1)}
-      </span>
-    </>
+function renderInline(text: string): React.ReactNode {
+  // Render **bold** inline
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  return parts.map((part, i) =>
+    part.startsWith('**') && part.endsWith('**')
+      ? <strong key={i}>{part.slice(2, -2)}</strong>
+      : part
   )
+}
+
+function MessageContent({ content }: { content: string }) {
+  const lines = content.split('\n')
+  const nodes: React.ReactNode[] = []
+  let listItems: string[] = []
+  let listType: 'ul' | 'ol' | null = null
+
+  function flushList() {
+    if (!listItems.length) return
+    if (listType === 'ul') {
+      nodes.push(
+        <ul key={nodes.length} style={{ margin: '6px 0 6px 0', paddingLeft: 18, lineHeight: 1.6 }}>
+          {listItems.map((item, i) => <li key={i}>{renderInline(item)}</li>)}
+        </ul>
+      )
+    } else {
+      nodes.push(
+        <ol key={nodes.length} style={{ margin: '6px 0 6px 0', paddingLeft: 20, lineHeight: 1.6 }}>
+          {listItems.map((item, i) => <li key={i}>{renderInline(item)}</li>)}
+        </ol>
+      )
+    }
+    listItems = []
+    listType = null
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const h3 = line.match(/^###\s+(.+)/)
+    const h2 = line.match(/^##\s+(.+)/)
+    const bullet = line.match(/^[-*]\s+(.+)/)
+    const numbered = line.match(/^\d+\.\s+(.+)/)
+
+    if (h3) {
+      flushList()
+      nodes.push(<p key={nodes.length} style={{ fontWeight: 700, fontSize: '0.9em', marginTop: 10, marginBottom: 2, color: 'var(--text)' }}>{renderInline(h3[1])}</p>)
+    } else if (h2) {
+      flushList()
+      nodes.push(<p key={nodes.length} style={{ fontWeight: 700, fontSize: '0.95em', marginTop: 12, marginBottom: 2, color: 'var(--text)' }}>{renderInline(h2[1])}</p>)
+    } else if (bullet) {
+      if (listType === 'ol') flushList()
+      listType = 'ul'
+      listItems.push(bullet[1])
+    } else if (numbered) {
+      if (listType === 'ul') flushList()
+      listType = 'ol'
+      listItems.push(numbered[1])
+    } else if (line.trim() === '') {
+      flushList()
+      if (nodes.length > 0) nodes.push(<br key={nodes.length} />)
+    } else {
+      flushList()
+      nodes.push(<p key={nodes.length} style={{ margin: '4px 0', lineHeight: 1.6 }}>{renderInline(line)}</p>)
+    }
+  }
+  flushList()
+
+  return <div style={{ fontSize: '0.875rem' }}>{nodes}</div>
 }
 
 function TypingDots() {

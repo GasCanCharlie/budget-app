@@ -442,7 +442,6 @@ IMPORTANT: Only reference the data shown above. Do not invent any numbers, merch
       .replace(/^FILTERS:[^\n]*\n?/m, '')
       .replace(/^Sources:[^\n]*\n?/m, '')
       .replace(/^Numbers used:\n((?:•[^\n]+\n?)+)/m, '')
-      .replace(/\*\*([^*]+)\*\*/g, '$1')
       .trim()
 
     return NextResponse.json({
