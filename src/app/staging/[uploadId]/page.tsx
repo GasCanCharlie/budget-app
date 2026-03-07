@@ -34,6 +34,7 @@ import {
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useApi } from '@/hooks/useApi'
+import { QuickSnapshot, computeSnapshot } from '@/components/QuickSnapshot'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -749,6 +750,7 @@ export default function StagingInboxPage() {
 
   const categories = categoriesData?.categories ?? []
   const transactions = data?.transactions ?? []
+  const snapshot = useMemo(() => computeSnapshot(transactions), [transactions])
   const counts = data?.counts
   const stagingUpload = data?.stagingUpload
 
@@ -1253,6 +1255,9 @@ export default function StagingInboxPage() {
             ))}
           </div>
         )}
+
+        {/* ── Quick Snapshot ────────────────────────────────────────────── */}
+        <QuickSnapshot data={snapshot} />
 
         {/* ── Action bar ────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-2">
