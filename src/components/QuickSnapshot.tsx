@@ -92,31 +92,31 @@ export function QuickSnapshot({ data }: { data: SnapshotData }) {
   }
 
   const metrics = [
-    { icon: Receipt,   label: 'Transactions',     value: String(data.transactionCount),                           detail: null },
-    { icon: Store,     label: 'Top Merchant',      value: data.topMerchant?.name ?? 'Top spending merchant',       detail: data.topMerchant ? fmtDollars(data.topMerchant.total) : null },
-    { icon: TrendingUp, label: 'Largest Purchase', value: fmtDollars(data.largestPurchase),                        detail: null },
-    { icon: Repeat2,   label: 'Subscriptions',     value: String(data.subscriptionCount),                          detail: data.subscriptionCount > 0 ? 'possible recurring' : 'none detected' },
+    { icon: Receipt,    label: 'Transactions',              value: String(data.transactionCount),                     detail: null },
+    { icon: Store,      label: 'Top Payee',                 value: data.topMerchant?.name ?? '—',                    detail: data.topMerchant ? fmtDollars(data.topMerchant.total) : null },
+    { icon: TrendingUp, label: 'Largest Transaction',       value: fmtDollars(data.largestPurchase),                  detail: null },
+    { icon: Repeat2,    label: 'Recurring Payments Detected', value: String(data.subscriptionCount),                  detail: data.subscriptionCount > 0 ? 'possible recurring' : 'none detected' },
   ]
 
   return (
     <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px' }}>
-      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)', margin: '0 0 14px' }}>
-        Quick Snapshot
+      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)', margin: '0 0 16px' }}>
+        Financial Snapshot
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
         {metrics.map(({ icon: Icon, label, value, detail }) => (
-          <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Icon size={15} style={{ color: 'var(--accent)' }} />
             <div>
-              <p style={{ color: 'var(--text)', fontSize: 15, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{value}</p>
-              {detail && <p style={{ color: 'var(--muted)', fontSize: 11, margin: '2px 0 0' }}>{detail}</p>}
-              <p style={{ color: 'var(--muted)', fontSize: 11, margin: '2px 0 0' }}>{label}</p>
+              <p style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 600, margin: '0 0 4px', letterSpacing: '0.02em' }}>{label}</p>
+              <p style={{ color: 'var(--text)', fontSize: 16, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{value}</p>
+              {detail && <p style={{ color: 'var(--muted)', fontSize: 12, margin: '3px 0 0' }}>{detail}</p>}
             </div>
           </div>
         ))}
       </div>
-      <p style={{ color: 'var(--muted)', fontSize: 12, margin: '14px 0 0', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-        Categorize transactions below to unlock deeper insights.
+      <p style={{ color: 'var(--muted)', fontSize: 12, margin: '16px 0 0', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+        → Categorize transactions below to unlock deeper insights.
       </p>
     </div>
   )
