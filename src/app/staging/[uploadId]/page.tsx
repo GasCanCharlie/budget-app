@@ -30,12 +30,14 @@ import {
   Repeat2,
   MinusCircle,
   CornerDownRight,
+  TrendingUp,
+  RotateCcw,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useApi } from '@/hooks/useApi'
 import { ImportReview } from '@/components/ImportReview'
-import { scrubTransactions } from '@/lib/scrubbing'
+import { scrubTransactions, type ScrubFilter } from '@/lib/scrubbing'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -706,6 +708,8 @@ export default function StagingInboxPage() {
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [filterMode, setFilterMode] = useState<FilterMode>('all')
+  const [scrubFilter, setScrubFilter] = useState<ScrubFilter | null>(null)
+  const tableRef = useRef<HTMLDivElement>(null)
   const [showCommitConfirm, setShowCommitConfirm] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
@@ -782,13 +786,29 @@ export default function StagingInboxPage() {
   }, [transactions, sortKey, sortDir])
 
   const filtered = useMemo(() => {
+    // ScrubFilter (from ImportReview) takes precedence over filterMode chips
+    if (scrubFilter) {
+      return sorted.filter(tx => {
+        const s = importSummary.suggestions.get(tx.id)
+        if (!s) return false
+        switch (scrubFilter.kind) {
+          case 'category':           return s.category === scrubFilter.value
+          case 'merchant_type':      return s.merchantType === scrubFilter.value
+          case 'canonical_merchant': return s.canonicalMerchant === scrubFilter.value
+          case 'recurring':          return s.isRecurring
+          case 'transfer':           return s.isTransfer
+          case 'income':             return s.isIncome
+          case 'needs_review':       return s.reviewFlags.includes('needs_manual_review')
+        }
+      })
+    }
     if (filterMode === 'all') return sorted
     if (filterMode === 'uncategorized') return sorted.filter(t => t.status === 'uncategorized')
     if (filterMode === 'needs_review') return sorted.filter(t => t.status === 'needs_review')
     if (filterMode === 'auto')
       return sorted.filter(t => t.status === 'categorized' && t.categorySource === 'rule')
     return sorted
-  }, [sorted, filterMode])
+  }, [sorted, filterMode, scrubFilter, importSummary])
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
@@ -799,7 +819,7 @@ export default function StagingInboxPage() {
       body,
     }: {
       txId: string
-      body: { categoryId?: string; categorySource?: string; status?: string }
+      body: { categoryId?: string | null; categorySource?: string; status?: string }
     }) =>
       apiFetch(`/api/staging/${uploadId}/tx/${txId}`, {
         method: 'PATCH',
@@ -1012,6 +1032,47 @@ export default function StagingInboxPage() {
 
   function handleBulkCommit() {
     commitMutation.mutate([...selectedIds])
+  }
+
+  function handleBulkNeedsReview() {
+    const ids = [...selectedIds]
+    for (const id of ids) {
+      patchTx.mutate({ txId: id, body: { status: 'needs_review' } })
+    }
+    setSelectedIds(new Set())
+    addToast(`${ids.length} transaction${ids.length !== 1 ? 's' : ''} flagged for review`, 'info')
+  }
+
+  function handleBulkIncome() {
+    const ids = [...selectedIds]
+    const incomeCat = categories.find(c => c.name.toLowerCase() === 'income')
+    for (const id of ids) {
+      patchTx.mutate({
+        txId: id,
+        body: incomeCat
+          ? { categoryId: incomeCat.id, categorySource: 'manual', status: 'categorized' }
+          : { status: 'needs_review' },
+      })
+    }
+    setSelectedIds(new Set())
+    addToast(
+      incomeCat
+        ? `${ids.length} transaction${ids.length !== 1 ? 's' : ''} marked as Income`
+        : `${ids.length} flagged for review — add an Income category to assign directly`,
+      'success',
+    )
+  }
+
+  function handleBulkReset() {
+    const ids = [...selectedIds]
+    for (const id of ids) {
+      patchTx.mutate({
+        txId: id,
+        body: { status: 'uncategorized', categoryId: null, categorySource: 'none' },
+      })
+    }
+    setSelectedIds(new Set())
+    addToast(`${ids.length} suggestion${ids.length !== 1 ? 's' : ''} cleared`, 'info')
   }
 
   const categorizedCount = counts?.categorized ?? 0
@@ -1258,7 +1319,22 @@ export default function StagingInboxPage() {
         )}
 
         {/* ── Import Review ─────────────────────────────────────────────── */}
-        <ImportReview summary={importSummary} />
+        <ImportReview
+          summary={importSummary}
+          activeFilter={scrubFilter}
+          onFilter={f => {
+            setScrubFilter(f)
+            // Clear status-based filter when a scrub filter is applied
+            if (f) setFilterMode('all')
+            // Scroll to the transaction table
+            setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+          }}
+          onStartCategorizing={() => {
+            setScrubFilter(null)
+            setFilterMode('uncategorized')
+            setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+          }}
+        />
 
         {/* ── Action bar ────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-2">
@@ -1340,129 +1416,215 @@ export default function StagingInboxPage() {
 
           {/* Filter chips */}
           <div className="flex items-center gap-1 ml-auto flex-wrap">
-            {(
-              [
+            {/* Active scrub filter chip — shown instead of status chips when a scrub filter is active */}
+            {scrubFilter ? (
+              <div
+                className="flex items-center gap-1.5 rounded-full px-3 py-1"
+                style={{
+                  background: 'var(--accent-muted)',
+                  border: '1px solid var(--accent)',
+                  color: 'var(--accent)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                <span>
+                  {scrubFilter.kind === 'category' && scrubFilter.value}
+                  {scrubFilter.kind === 'canonical_merchant' && scrubFilter.value}
+                  {scrubFilter.kind === 'merchant_type' && scrubFilter.value}
+                  {scrubFilter.kind === 'recurring' && 'Recurring'}
+                  {scrubFilter.kind === 'transfer' && 'Transfers'}
+                  {scrubFilter.kind === 'income' && 'Income'}
+                  {scrubFilter.kind === 'needs_review' && 'Needs Review'}
+                  {' '}({filtered.length})
+                </span>
+                <button
+                  onClick={() => setScrubFilter(null)}
+                  className="flex items-center hover:opacity-70 transition-opacity"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              ([
                 { key: 'all', label: 'All' },
                 { key: 'uncategorized', label: 'Uncategorized' },
                 { key: 'needs_review', label: 'Needs Review' },
                 { key: 'auto', label: 'Auto-categorized' },
-              ] as { key: FilterMode; label: string }[]
-            ).map(f => (
-              <button
-                key={f.key}
-                onClick={() => setFilterMode(f.key)}
-                className="rounded-full px-3 py-1 text-xs font-medium transition-all"
-                style={{
-                  background:
-                    filterMode === f.key
-                      ? 'var(--accent-muted)'
-                      : 'var(--card2)',
-                  border:
-                    filterMode === f.key
-                      ? '1px solid var(--accent-muted)'
-                      : '1px solid var(--border)',
-                  color: filterMode === f.key ? 'var(--accent)' : 'var(--muted)',
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
+              ] as { key: FilterMode; label: string }[]).map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setFilterMode(f.key)}
+                  className="rounded-full px-3 py-1 text-xs font-medium transition-all"
+                  style={{
+                    background:
+                      filterMode === f.key
+                        ? 'var(--accent-muted)'
+                        : 'var(--card2)',
+                    border:
+                      filterMode === f.key
+                        ? '1px solid var(--accent-muted)'
+                        : '1px solid var(--border)',
+                    color: filterMode === f.key ? 'var(--accent)' : 'var(--muted)',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
-        {/* ── Bulk actions bar ──────────────────────────────────────────── */}
+        {/* ── Batch action bar ──────────────────────────────────────────── */}
         {selectedIds.size >= 1 && (
           <div
-            className="flex flex-wrap items-center gap-3 rounded-2xl px-5 py-3"
+            className="sticky z-40 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-2.5"
             style={{
-              background: 'var(--accent-muted)',
-              border: '1px solid var(--accent-muted)',
+              top: 68,
+              background: 'var(--surface)',
+              border: '1px solid var(--border2)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+              backdropFilter: 'blur(14px)',
             }}
           >
-            <span className="text-sm font-semibold text-[color:var(--text)]">
-              {selectedIds.size} selected
-            </span>
-
-            {/* Bulk assign category */}
-            <div ref={bulkCatRef} className="relative">
-              <button
-                onClick={() => setBulkCatOpen(v => !v)}
-                className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
-                style={{
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border2)',
-                  color: 'var(--text2)',
-                }}
+            {/* ── Count + clear ─────────────────────────────────── */}
+            <div
+              className="flex items-center gap-2 pr-3 mr-1 flex-shrink-0"
+              style={{ borderRight: '1px solid var(--border)' }}
+            >
+              <span
+                className="flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                style={{ background: 'var(--accent)', color: '#fff' }}
               >
-                <Tag size={12} />
-                Assign Category
-                <ChevronDown size={11} className="opacity-60" />
+                {selectedIds.size > 99 ? '99+' : selectedIds.size}
+              </span>
+              <span className="text-sm font-semibold text-[color:var(--text)] whitespace-nowrap">
+                {selectedIds.size === 1 ? '1 transaction' : `${selectedIds.size} transactions`}
+              </span>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="flex items-center transition-opacity hover:opacity-60"
+                style={{ color: 'var(--muted)' }}
+                title="Clear selection"
+              >
+                <X size={13} />
               </button>
-              {bulkCatOpen && (
-                <div
-                  className="absolute left-0 top-full mt-1 z-50 w-52 rounded-xl overflow-hidden"
-                  style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border2)',
-                    boxShadow: 'var(--shadow)',
-                  }}
-                >
-                  <div className="max-h-60 overflow-y-auto py-1">
-                    {categories.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => handleBulkCategory(cat.id)}
-                        className="flex w-full items-center gap-2 px-3.5 py-2 text-xs text-left text-[color:var(--text2)] transition-colors hover-surface"
-                      >
-                        <span>{cat.icon}</span>
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
-            <button
-              onClick={handleBulkTransfer}
-              className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
-              style={{
-                background: 'var(--card)',
-                border: '1px solid var(--border)',
-                color: 'var(--text2)',
-              }}
-            >
-              <Repeat2 size={12} />
-              Mark Transfer
-            </button>
+            {/* ── Action buttons ────────────────────────────────── */}
+            <div className="flex items-center gap-1.5 flex-wrap flex-1">
 
-            <button
-              onClick={handleBulkExclude}
-              className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
-              style={{
-                background: 'var(--card)',
-                border: '1px solid var(--border)',
-                color: 'var(--text2)',
-              }}
-            >
-              <MinusCircle size={12} />
-              Exclude
-            </button>
+              {/* Assign Category */}
+              <div ref={bulkCatRef} className="relative">
+                <button
+                  onClick={() => setBulkCatOpen(v => !v)}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all hover-surface"
+                  style={{
+                    border: '1px solid var(--border)',
+                    color: 'var(--text2)',
+                  }}
+                >
+                  <Tag size={11} />
+                  Assign Category
+                  <ChevronDown size={10} className="opacity-60" />
+                </button>
+                {bulkCatOpen && (
+                  <div
+                    className="absolute left-0 top-full mt-1 z-50 w-52 rounded-xl overflow-hidden"
+                    style={{
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border2)',
+                      boxShadow: 'var(--shadow)',
+                    }}
+                  >
+                    <div className="max-h-60 overflow-y-auto py-1">
+                      {categories.map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => handleBulkCategory(cat.id)}
+                          className="flex w-full items-center gap-2 px-3.5 py-2 text-xs text-left text-[color:var(--text2)] transition-colors hover-surface"
+                        >
+                          <span>{cat.icon}</span>
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
+              {/* Mark Transfer */}
+              <button
+                onClick={handleBulkTransfer}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all hover-surface"
+                style={{ border: '1px solid var(--border)', color: 'var(--text2)' }}
+                title="Mark selected as bank transfers (excluded from spending)"
+              >
+                <Repeat2 size={11} />
+                Transfer
+              </button>
+
+              {/* Mark Income */}
+              <button
+                onClick={handleBulkIncome}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all hover-surface"
+                style={{ border: '1px solid var(--border)', color: 'var(--text2)' }}
+                title="Assign to Income category"
+              >
+                <TrendingUp size={11} />
+                Income
+              </button>
+
+              {/* Needs Review */}
+              <button
+                onClick={handleBulkNeedsReview}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all hover-surface"
+                style={{ border: '1px solid var(--border)', color: 'var(--warn)' }}
+                title="Flag for manual review"
+              >
+                <AlertCircle size={11} />
+                Flag Review
+              </button>
+
+              {/* Clear Suggestion */}
+              <button
+                onClick={handleBulkReset}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all hover-surface"
+                style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}
+                title="Clear suggestions and reset to uncategorized"
+              >
+                <RotateCcw size={11} />
+                Clear
+              </button>
+
+              {/* Exclude */}
+              <button
+                onClick={handleBulkExclude}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all hover-surface"
+                style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}
+                title="Exclude from import entirely"
+              >
+                <MinusCircle size={11} />
+                Exclude
+              </button>
+            </div>
+
+            {/* ── Primary: commit ───────────────────────────────── */}
             <button
               onClick={handleBulkCommit}
               disabled={commitMutation.isPending}
-              className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ml-auto disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all disabled:opacity-50 flex-shrink-0"
               style={{
-                background: 'var(--accent-muted)',
-                border: '1px solid var(--accent-muted)',
-                color: 'var(--accent)',
+                background: 'var(--accent)',
+                border: '1px solid var(--accent)',
+                color: '#fff',
               }}
+              title="Commit selected transactions to your ledger"
             >
               {commitMutation.isPending ? (
-                <Loader2 size={12} className="animate-spin" />
+                <Loader2 size={11} className="animate-spin" />
               ) : (
-                <CornerDownRight size={12} />
+                <CornerDownRight size={11} />
               )}
               Add to Ledger
             </button>
@@ -1471,6 +1633,7 @@ export default function StagingInboxPage() {
 
         {/* ── Transaction list ──────────────────────────────────────────── */}
         <div
+          ref={tableRef}
           className="rounded-2xl overflow-hidden"
           style={{
             background: 'var(--surface)',
@@ -1481,9 +1644,11 @@ export default function StagingInboxPage() {
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <CheckCircle2 size={32} className="text-[color:var(--success)] opacity-60" />
               <p className="text-sm text-[color:var(--muted)]">
-                {filterMode === 'all'
-                  ? 'No transactions in this staging upload.'
-                  : `No transactions match the "${filterMode}" filter.`}
+                {scrubFilter
+                  ? 'No transactions match this filter.'
+                  : filterMode === 'all'
+                    ? 'No transactions in this staging upload.'
+                    : `No transactions match the "${filterMode}" filter.`}
               </p>
             </div>
           ) : (
@@ -1491,44 +1656,108 @@ export default function StagingInboxPage() {
               {filtered.map(tx => {
                 const isSelected = selectedIds.has(tx.id)
                 const prompt = rulePrompts[tx.id]
+                const suggestion = importSummary.suggestions.get(tx.id)
+
+                // ── Row signal: safe / suggest / manual / neutral ──────────
+                const signal =
+                  tx.status === 'excluded' || tx.status === 'transfer' ? 'neutral'
+                  : tx.status === 'categorized' ? 'safe'
+                  : tx.status === 'needs_review' ? 'manual'
+                  : !suggestion || suggestion.confidence === 'low' ? 'manual'
+                  : 'suggest'
+
+                const stripeColor =
+                  signal === 'safe'    ? 'var(--success)'
+                  : signal === 'suggest' ? 'var(--warn)'
+                  : signal === 'manual'  ? 'var(--danger)'
+                  : 'transparent'
+
+                // ── Merchant display ───────────────────────────────────────
+                const rawLabel = tx.vendorRaw || tx.description || '(no description)'
+                const canonicalLabel =
+                  suggestion && suggestion.merchantConfidence !== 'low'
+                    ? suggestion.canonicalMerchant
+                    : null
+                const showSubtitle =
+                  canonicalLabel !== null &&
+                  canonicalLabel.toLowerCase() !== rawLabel.toLowerCase()
 
                 return (
                   <div key={tx.id}>
                     {/* Transaction row */}
                     <div
                       className={clsx(
-                        'flex items-center gap-3 px-4 py-3 transition-colors group',
+                        'flex items-stretch gap-3 pr-4 py-2.5 transition-colors group',
                         isSelected
                           ? 'bg-[color:var(--accent-muted)]'
                           : 'hover-surface',
-                        tx.status === 'excluded' && 'opacity-50'
+                        tx.status === 'excluded' && 'opacity-40'
                       )}
                     >
+                      {/* Confidence stripe */}
+                      <div
+                        className="w-[3px] flex-shrink-0 rounded-sm"
+                        style={{ background: stripeColor, margin: '4px 0 4px 4px' }}
+                      />
+
                       {/* Checkbox */}
                       <button
                         onClick={() => toggleSelect(tx.id)}
-                        className="flex-shrink-0 text-[color:var(--muted)] hover:text-[color:var(--accent)] transition-colors"
+                        className="flex-shrink-0 self-center text-[color:var(--muted)] hover:text-[color:var(--accent)] transition-colors"
                       >
                         {isSelected ? (
-                          <CheckSquare size={16} className="text-[color:var(--accent)]" />
+                          <CheckSquare size={15} className="text-[color:var(--accent)]" />
                         ) : (
-                          <Square size={16} />
+                          <Square size={15} />
                         )}
                       </button>
 
                       {/* Date */}
-                      <span className="w-[52px] flex-shrink-0 text-xs tabular-nums text-[color:var(--muted)]">
+                      <span className="w-[48px] flex-shrink-0 self-center text-xs tabular-nums text-[color:var(--muted)]">
                         {fmtDate(tx.date)}
                       </span>
 
-                      {/* Vendor */}
-                      <span className="flex-1 min-w-0 truncate text-sm font-medium text-[color:var(--text)]">
-                        {tx.vendorRaw || tx.description || '(no description)'}
-                      </span>
+                      {/* Vendor — canonical primary + raw subtitle */}
+                      <div className="flex-1 min-w-0 self-center">
+                        <span className="block truncate text-sm font-medium text-[color:var(--text)] leading-snug">
+                          {canonicalLabel ?? rawLabel}
+                        </span>
+                        {showSubtitle && (
+                          <span className="block truncate text-[10px] text-[color:var(--muted)] leading-snug mt-0.5">
+                            {rawLabel}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Suggestion hint — visible when uncategorized + high/medium confidence */}
+                      {suggestion &&
+                        tx.status === 'uncategorized' &&
+                        suggestion.confidence !== 'low' && (
+                          <span
+                            className="flex-shrink-0 self-center hidden md:inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                            style={{
+                              background:
+                                suggestion.confidence === 'high'
+                                  ? 'var(--success-muted, rgba(52,211,153,0.12))'
+                                  : 'var(--warn-muted)',
+                              color:
+                                suggestion.confidence === 'high'
+                                  ? 'var(--success)'
+                                  : 'var(--warn)',
+                              border: `1px solid ${
+                                suggestion.confidence === 'high'
+                                  ? 'var(--success-muted, rgba(52,211,153,0.2))'
+                                  : 'var(--warn-muted)'
+                              }`,
+                            }}
+                          >
+                            → {suggestion.category}
+                          </span>
+                        )}
 
                       {/* Amount */}
                       <span
-                        className="flex-shrink-0 text-sm font-bold tabular-nums"
+                        className="flex-shrink-0 self-center text-sm font-bold tabular-nums"
                         style={{
                           color: tx.amountCents < 0 ? 'var(--danger)' : 'var(--success)',
                         }}
@@ -1537,12 +1766,12 @@ export default function StagingInboxPage() {
                       </span>
 
                       {/* Status pill */}
-                      <div className="flex-shrink-0 hidden sm:block">
+                      <div className="flex-shrink-0 self-center hidden sm:block">
                         <StatusPill tx={tx} categories={categories} />
                       </div>
 
                       {/* Category select */}
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 self-center">
                         <CategorySelect
                           categories={categories}
                           value={tx.categoryId}
@@ -1551,7 +1780,7 @@ export default function StagingInboxPage() {
                       </div>
 
                       {/* ··· menu */}
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 self-center">
                         <TxMenu
                           tx={tx}
                           onMarkTransfer={() => handleTxAction(tx, 'transfer')}

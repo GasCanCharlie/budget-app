@@ -22,15 +22,56 @@ interface StagingTx {
 
 export type Confidence = 'high' | 'medium' | 'low'
 
+export type MerchantType =
+  | 'grocery'
+  | 'gas'
+  | 'restaurant'
+  | 'transport'
+  | 'income'
+  | 'transfer'
+  | 'subscription'
+  | 'shopping'
+  | 'utility'
+  | 'health'
+  | 'travel'
+  | 'insurance'
+  | 'fees'
+  | 'unknown'
+
+export type ReviewFlag =
+  | 'aggregator_prefix'
+  | 'unclear_merchant'
+  | 'possible_transfer'
+  | 'possible_income'
+  | 'needs_manual_review'
+
 export interface TxSuggestion {
+  // Original display
+  normalizedMerchant: string
+  canonicalMerchant: string
+  merchantConfidence: Confidence
+  merchantType: MerchantType
+  // Category suggestion
   category: string
   confidence: Confidence
+  // Flags
   isDuplicate: boolean
   isTransfer: boolean
   isIncome: boolean
   isRecurring: boolean
-  normalizedMerchant: string
+  reviewFlags: ReviewFlag[]
 }
+
+// ─── Filter discriminant ──────────────────────────────────────────────────────
+
+export type ScrubFilter =
+  | { kind: 'category'; value: string }
+  | { kind: 'merchant_type'; value: MerchantType }
+  | { kind: 'canonical_merchant'; value: string }
+  | { kind: 'recurring' }
+  | { kind: 'transfer' }
+  | { kind: 'income' }
+  | { kind: 'needs_review' }
 
 export interface ImportSummary {
   transactionCount: number
@@ -64,6 +105,154 @@ function normalizeMerchantDisplay(raw: string): string {
   s = s.replace(/,\s*[a-z\s]+$/, '').trim()
   // Title case
   return s.split(' ').map(w => w ? w.charAt(0).toUpperCase() + w.slice(1) : '').join(' ').trim()
+}
+
+// ─── Aggregator prefix stripping ─────────────────────────────────────────────
+
+const AGGREGATOR_RE = /^(paypal\s*\*|sq\s*\*|tst\s*\*|ach\s+(credit|debit)\s+|pos\s+(debit|purchase)\s+|visa\s+purchase\s+|checkcard\s+|debit\s+card\s+|zelle\s+(payment\s+to|payment\s+from|to|from)\s+|venmo\s+payment\s+)/i
+
+function stripAggregatorPrefix(raw: string): { stripped: string; hasAggregator: boolean } {
+  const match = AGGREGATOR_RE.exec(raw.trim())
+  if (match) return { stripped: raw.trim().slice(match[0].length).trim(), hasAggregator: true }
+  return { stripped: raw.trim(), hasAggregator: false }
+}
+
+// ─── Canonical merchant map ───────────────────────────────────────────────────
+// [pattern, canonicalName, merchantType]
+
+const CANONICAL: Array<[RegExp, string, MerchantType]> = [
+  // Amazon variants
+  [/\bamazon\b|\bamzn\b/i, 'Amazon', 'shopping'],
+  // Apple
+  [/\bapple\.com\/bill\b|\bapple\s+cash\b|\bitunes\b/i, 'Apple', 'subscription'],
+  // Google
+  [/\bgoogle\s+play\b|\bgoogle\s+\*\b/i, 'Google Play', 'subscription'],
+  // Grocery
+  [/\bsafeway\b/i, 'Safeway', 'grocery'],
+  [/\bwhole\s+foods\b/i, 'Whole Foods', 'grocery'],
+  [/\btrader\s+joe/i, "Trader Joe's", 'grocery'],
+  [/\bkroger\b/i, 'Kroger', 'grocery'],
+  [/\bpublix\b/i, 'Publix', 'grocery'],
+  [/\baldi\b/i, 'Aldi', 'grocery'],
+  [/\bwegmans\b/i, 'Wegmans', 'grocery'],
+  [/\bsprouts\b/i, 'Sprouts', 'grocery'],
+  [/\bfoodland\b/i, 'Foodland', 'grocery'],
+  [/\btimes\s+supermarket\b/i, 'Times Supermarket', 'grocery'],
+  [/\bwalmarts?\b/i, 'Walmart', 'shopping'],
+  [/\btarget\b/i, 'Target', 'shopping'],
+  // Gas stations
+  [/\bshell\b/i, 'Shell', 'gas'],
+  [/\bchevron\b/i, 'Chevron', 'gas'],
+  [/\bexxon(mobil)?\b/i, 'ExxonMobil', 'gas'],
+  [/\bmobil\b/i, 'Mobil', 'gas'],
+  [/\btexaco\b/i, 'Texaco', 'gas'],
+  [/\bvalero\b/i, 'Valero', 'gas'],
+  [/\bspeedway\b/i, 'Speedway', 'gas'],
+  [/\bcircle\s*k\b/i, 'Circle K', 'gas'],
+  [/\bwawa\b/i, 'Wawa', 'gas'],
+  [/\bsheetz\b/i, 'Sheetz', 'gas'],
+  // Restaurants / food
+  [/\bmcdonald/i, "McDonald's", 'restaurant'],
+  [/\bstarbucks\b/i, 'Starbucks', 'restaurant'],
+  [/\bsubway\b/i, 'Subway', 'restaurant'],
+  [/\bchipotle\b/i, 'Chipotle', 'restaurant'],
+  [/\bdoordash\b/i, 'DoorDash', 'restaurant'],
+  [/\bgrubhub\b/i, 'Grubhub', 'restaurant'],
+  [/\buber\s+eats\b/i, 'Uber Eats', 'restaurant'],
+  [/\btaco\s+bell\b/i, 'Taco Bell', 'restaurant'],
+  [/\bburger\s+king\b/i, 'Burger King', 'restaurant'],
+  [/\bpizza\s+hut\b/i, 'Pizza Hut', 'restaurant'],
+  [/\bdomino/i, "Domino's", 'restaurant'],
+  [/\bpanera\b/i, 'Panera Bread', 'restaurant'],
+  [/\bdunkin/i, "Dunkin'", 'restaurant'],
+  [/\bchick.fil.a\b/i, 'Chick-fil-A', 'restaurant'],
+  [/\bwendy/i, "Wendy's", 'restaurant'],
+  [/\bpanda\s+express\b/i, 'Panda Express', 'restaurant'],
+  [/\bpostmates\b/i, 'Postmates', 'restaurant'],
+  [/\binstacart\b/i, 'Instacart', 'grocery'],
+  // Transport
+  [/\buber\b/i, 'Uber', 'transport'],
+  [/\blyft\b/i, 'Lyft', 'transport'],
+  [/\be.?zpass\b/i, 'E-ZPass', 'transport'],
+  [/\bautozone\b/i, 'AutoZone', 'transport'],
+  [/\bjiffy\s+lube\b/i, 'Jiffy Lube', 'transport'],
+  // Subscriptions / streaming
+  [/\bnetflix\b/i, 'Netflix', 'subscription'],
+  [/\bhulu\b/i, 'Hulu', 'subscription'],
+  [/\bdisney\+?\b/i, 'Disney+', 'subscription'],
+  [/\bhbo\b|\bmax\b/i, 'HBO Max', 'subscription'],
+  [/\bparamount\+?\b/i, 'Paramount+', 'subscription'],
+  [/\bpeacock\b/i, 'Peacock', 'subscription'],
+  [/\bspotify\b/i, 'Spotify', 'subscription'],
+  [/\bmicrosoft\b/i, 'Microsoft', 'subscription'],
+  [/\badobe\b/i, 'Adobe', 'subscription'],
+  [/\bdropbox\b/i, 'Dropbox', 'subscription'],
+  [/\bnotion\b/i, 'Notion', 'subscription'],
+  [/\bopenai\b/i, 'OpenAI', 'subscription'],
+  [/\bchatgpt\b/i, 'ChatGPT', 'subscription'],
+  [/\banthropiccom\b|\banthropoic\b|\bAnthropic\b/i, 'Anthropic', 'subscription'],
+  [/\bzoom\b/i, 'Zoom', 'subscription'],
+  [/\bgithub\b/i, 'GitHub', 'subscription'],
+  // Shopping
+  [/\bcostco\b/i, 'Costco', 'shopping'],
+  [/\bhome\s+depot\b/i, 'Home Depot', 'shopping'],
+  [/\blowe'?s\b/i, "Lowe's", 'shopping'],
+  [/\bbest\s+buy\b/i, 'Best Buy', 'shopping'],
+  [/\bikea\b/i, 'IKEA', 'shopping'],
+  [/\bwayfair\b/i, 'Wayfair', 'shopping'],
+  [/\bebay\b/i, 'eBay', 'shopping'],
+  [/\betsy\b/i, 'Etsy', 'shopping'],
+  [/\bkohl'?s\b/i, "Kohl's", 'shopping'],
+  [/\btj\s+maxx\b/i, 'TJ Maxx', 'shopping'],
+  [/\bmarshalls\b/i, 'Marshalls', 'shopping'],
+  // Health
+  [/\bcvs\b/i, 'CVS', 'health'],
+  [/\bwalgreens\b/i, 'Walgreens', 'health'],
+  [/\brite\s+aid\b/i, 'Rite Aid', 'health'],
+  [/\blongs\s+drug\b/i, 'Longs Drug', 'health'],
+  [/\bplanet\s+fitness\b/i, 'Planet Fitness', 'health'],
+  [/\bla\s+fitness\b/i, 'LA Fitness', 'health'],
+  [/\bymca\b/i, 'YMCA', 'health'],
+  // Utilities / telecom
+  [/\bat&t\b/i, 'AT&T', 'utility'],
+  [/\bverizon\b/i, 'Verizon', 'utility'],
+  [/\bt.mobile\b/i, 'T-Mobile', 'utility'],
+  [/\bxfinity\b/i, 'Xfinity', 'utility'],
+  [/\bcomcast\b/i, 'Comcast', 'utility'],
+  [/\bspectrum\b/i, 'Spectrum', 'utility'],
+  // Travel
+  [/\bairbnb\b/i, 'Airbnb', 'travel'],
+  [/\bmarriott\b/i, 'Marriott', 'travel'],
+  [/\bhilton\b/i, 'Hilton', 'travel'],
+  [/\bdelta\b/i, 'Delta Air Lines', 'travel'],
+  [/\bunited\s+air/i, 'United Airlines', 'travel'],
+  [/\bsouthwest\b/i, 'Southwest Airlines', 'travel'],
+  [/\bexpedia\b/i, 'Expedia', 'travel'],
+  [/\bbooking\.com\b/i, 'Booking.com', 'travel'],
+  // Insurance
+  [/\busaa\b/i, 'USAA', 'insurance'],
+  [/\bgeico\b/i, 'GEICO', 'insurance'],
+  [/\bstate\s+farm\b/i, 'State Farm', 'insurance'],
+  [/\ballstate\b/i, 'Allstate', 'insurance'],
+  [/\bprogressive\b/i, 'Progressive', 'insurance'],
+  // Income / transfer
+  [/\bdirect\s+dep/i, 'Direct Deposit', 'income'],
+  [/\bpayroll\b/i, 'Payroll', 'income'],
+  [/\bsalary\b/i, 'Salary', 'income'],
+  [/\bzelle\b/i, 'Zelle', 'transfer'],
+  [/\bvenmo\b/i, 'Venmo', 'transfer'],
+  [/\bpaypal\b/i, 'PayPal', 'transfer'],
+  [/\bcash\s+app\b/i, 'Cash App', 'transfer'],
+]
+
+function resolveCanonical(
+  raw: string,
+): { canonical: string; type: MerchantType; confidence: Confidence } {
+  for (const [pattern, name, type] of CANONICAL) {
+    if (pattern.test(raw)) return { canonical: name, type, confidence: 'high' }
+  }
+  // Fall back to the cleaned display name with unknown type
+  return { canonical: normalizeMerchantDisplay(raw), type: 'unknown', confidence: 'low' }
 }
 
 // ─── Transfer pattern detection (mirrored from intelligence/transfers.ts) ─────
@@ -230,27 +419,52 @@ export function scrubTransactions(transactions: StagingTx[]): ImportSummary {
 
   for (const tx of active) {
     const normalizedMerchant = normalizeMerchantDisplay(tx.vendorRaw)
+
+    // ── Stage 1C: aggregator strip + canonical resolution ─────────────────
+    const { stripped, hasAggregator } = stripAggregatorPrefix(tx.vendorRaw)
+    const { canonical, type: merchantType, confidence: merchantConfidence } = resolveCanonical(
+      stripped || tx.vendorRaw,
+    )
+
+    // ── Review flags ───────────────────────────────────────────────────────
+    const reviewFlags: ReviewFlag[] = []
+    if (hasAggregator) reviewFlags.push('aggregator_prefix')
+    if (merchantType === 'unknown') reviewFlags.push('unclear_merchant')
+
+    // ── Category suggestion ────────────────────────────────────────────────
     const suggestion = suggestCategory(tx.vendorRaw, tx.amountCents, expensesAreNegative)
     const isDuplicate = duplicateIds.has(tx.id)
     const isRecurring = tx.vendorKey ? recurringVendors.has(tx.vendorKey) : false
-    const isTransfer = suggestion?.category === 'Transfer'
-    const isIncome = suggestion?.category === 'Income'
+    const isTransfer = suggestion?.category === 'Transfer' || merchantType === 'transfer'
+    const isIncome = suggestion?.category === 'Income' || merchantType === 'income'
+
+    if (isTransfer) reviewFlags.push('possible_transfer')
+    if (isIncome) reviewFlags.push('possible_income')
 
     if (isTransfer) transferCount++
     if (isIncome) incomeCount++
-    if (!suggestion || suggestion.confidence === 'low') needsReview++
+    if (!suggestion || suggestion.confidence === 'low') {
+      needsReview++
+      if (!reviewFlags.includes('possible_transfer') && !reviewFlags.includes('possible_income')) {
+        reviewFlags.push('needs_manual_review')
+      }
+    }
 
     const cat = suggestion?.category ?? 'Uncategorized'
     catCounts.set(cat, (catCounts.get(cat) ?? 0) + 1)
 
     suggestions.set(tx.id, {
+      normalizedMerchant,
+      canonicalMerchant: canonical,
+      merchantConfidence,
+      merchantType,
       category: cat,
       confidence: suggestion?.confidence ?? 'low',
       isDuplicate,
       isTransfer,
       isIncome,
       isRecurring,
-      normalizedMerchant,
+      reviewFlags,
     })
   }
 
