@@ -66,6 +66,20 @@ function normalizeMerchantDisplay(raw: string): string {
   return s.split(' ').map(w => w ? w.charAt(0).toUpperCase() + w.slice(1) : '').join(' ').trim()
 }
 
+// ─── Transfer pattern detection (mirrored from intelligence/transfers.ts) ─────
+// Kept in sync manually — the original requires Prisma so cannot be imported.
+
+const TRANSFER_PATTERNS = [
+  /payment\s+thank\s+you/i, /autopay/i, /auto\s+pay/i,
+  /credit\s+card\s+payment/i, /card\s+payment/i, /online\s+payment/i,
+  /bill\s+payment/i, /bank\s+transfer/i, /ach\s+transfer/i,
+  /wire\s+transfer/i, /transfer\s+(to|from)/i, /account\s+transfer/i,
+]
+
+function isTransferDescription(description: string): boolean {
+  return TRANSFER_PATTERNS.some(p => p.test(description))
+}
+
 // ─── Category keyword mapping (client-safe, no DB) ───────────────────────────
 
 const KEYWORDS: Array<[string, string, Confidence]> = [
@@ -147,6 +161,11 @@ function suggestCategory(
   amountCents: number,
   expensesAreNegative: boolean,
 ): { category: string; confidence: Confidence } | null {
+  // Transfer pattern check first (high confidence)
+  if (isTransferDescription(vendorRaw)) {
+    return { category: 'Transfer', confidence: 'high' }
+  }
+
   const lower = vendorRaw.toLowerCase()
 
   for (const [keyword, category, confidence] of KEYWORDS) {
