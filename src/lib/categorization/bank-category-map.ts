@@ -425,6 +425,28 @@ const KEYWORD_FALLBACK: Array<[string, string]> = [
 ]
 
 /**
+ * Resolve a raw bank category string to a BudgetLens category name.
+ * Does not require the DB categories list — name-only, client-safe.
+ *
+ * Returns null when the string cannot be mapped (treat as unknown → fall back to engine).
+ */
+export function mapBankCategoryToName(raw: string): string | null {
+  if (!raw?.trim()) return null
+  const normalized = normalizeBankCategory(raw)
+
+  // 1. Exact match
+  const exactName = BANK_CATEGORY_MAP[normalized] ?? null
+  if (exactName) return exactName
+
+  // 2. Keyword/substring fallback
+  for (const [keyword, categoryName] of KEYWORD_FALLBACK) {
+    if (normalized.includes(keyword)) return categoryName
+  }
+
+  return null
+}
+
+/**
  * Given a raw bank category string and the list of system categories,
  * return the matching category ID or null if unmapped.
  *

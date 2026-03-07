@@ -8,6 +8,8 @@
  * Nothing here is persisted. All suggestions are session-level only.
  */
 
+import { mapBankCategoryToName } from '@/lib/categorization/bank-category-map'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface StagingTx {
@@ -18,6 +20,8 @@ interface StagingTx {
   date: string | null
   description: string
   status: 'uncategorized' | 'categorized' | 'needs_review' | 'excluded' | 'transfer'
+  /** Raw bank-provided category string from the CSV (e.g. "Gasoline/Fuel") */
+  bankCategoryRaw?: string | null
 }
 
 export type Confidence = 'high' | 'medium' | 'low'
@@ -54,6 +58,8 @@ export interface TxSuggestion {
   // Category suggestion
   category: string
   confidence: Confidence
+  /** 'bank' = came from CSV Transaction Category column; 'engine' = merchant/keyword engine */
+  categorySource: 'bank' | 'engine'
   // Flags
   isDuplicate: boolean
   isTransfer: boolean
@@ -431,26 +437,59 @@ export function scrubTransactions(transactions: StagingTx[]): ImportSummary {
     if (hasAggregator) reviewFlags.push('aggregator_prefix')
     if (merchantType === 'unknown') reviewFlags.push('unclear_merchant')
 
-    // ── Category suggestion ────────────────────────────────────────────────
-    const suggestion = suggestCategory(tx.vendorRaw, tx.amountCents, expensesAreNegative)
+    // ── Category resolution — bank first, engine fallback ─────────────────
+    // Run the engine always (needed for transfer-pattern detection + merchant signals)
+    const engineSuggestion = suggestCategory(tx.vendorRaw, tx.amountCents, expensesAreNegative)
+
+    // Transfer pattern detection (description-based) always takes precedence.
+    // It overrides bank category when the description clearly matches a transfer pattern
+    // (e.g. bank says "Transport" but desc says "PAYMENT THANK YOU").
+    const isDescriptionTransfer = engineSuggestion?.category === 'Transfer'
+
+    let cat: string
+    let conf: Confidence
+    let categorySource: 'bank' | 'engine'
+
+    if (isDescriptionTransfer) {
+      cat = 'Transfer'
+      conf = 'high'
+      categorySource = 'engine'
+    } else if (tx.bankCategoryRaw) {
+      const bankMapped = mapBankCategoryToName(tx.bankCategoryRaw)
+      if (bankMapped) {
+        cat = bankMapped
+        // "Other" is a vague bank category → medium confidence; all others → high
+        conf = bankMapped === 'Other' ? 'medium' : 'high'
+        categorySource = 'bank'
+      } else {
+        // Bank category present but unmappable → fall back to engine
+        cat = engineSuggestion?.category ?? 'Uncategorized'
+        conf = engineSuggestion?.confidence ?? 'low'
+        categorySource = 'engine'
+      }
+    } else {
+      cat = engineSuggestion?.category ?? 'Uncategorized'
+      conf = engineSuggestion?.confidence ?? 'low'
+      categorySource = 'engine'
+    }
+
     const isDuplicate = duplicateIds.has(tx.id)
     const isRecurring = tx.vendorKey ? recurringVendors.has(tx.vendorKey) : false
-    const isTransfer = suggestion?.category === 'Transfer' || merchantType === 'transfer'
-    const isIncome = suggestion?.category === 'Income' || merchantType === 'income'
+    const isTransfer = cat === 'Transfer' || merchantType === 'transfer'
+    const isIncome = cat === 'Income' || merchantType === 'income'
 
     if (isTransfer) reviewFlags.push('possible_transfer')
     if (isIncome) reviewFlags.push('possible_income')
 
     if (isTransfer) transferCount++
     if (isIncome) incomeCount++
-    if (!suggestion || suggestion.confidence === 'low') {
+    if (conf === 'low') {
       needsReview++
       if (!reviewFlags.includes('possible_transfer') && !reviewFlags.includes('possible_income')) {
         reviewFlags.push('needs_manual_review')
       }
     }
 
-    const cat = suggestion?.category ?? 'Uncategorized'
     catCounts.set(cat, (catCounts.get(cat) ?? 0) + 1)
 
     suggestions.set(tx.id, {
@@ -459,7 +498,8 @@ export function scrubTransactions(transactions: StagingTx[]): ImportSummary {
       merchantConfidence,
       merchantType,
       category: cat,
-      confidence: suggestion?.confidence ?? 'low',
+      confidence: conf,
+      categorySource,
       isDuplicate,
       isTransfer,
       isIncome,

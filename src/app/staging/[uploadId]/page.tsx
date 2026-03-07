@@ -1752,6 +1752,9 @@ export default function StagingInboxPage() {
                             }}
                           >
                             → {suggestion.category}
+                            {suggestion.categorySource === 'bank' && (
+                              <span style={{ opacity: 0.6, marginLeft: 2 }}>· bank</span>
+                            )}
                           </span>
                         )}
 
