@@ -34,7 +34,7 @@ When relevant, include specific numbers from the data. If you genuinely don't ha
 - Bold key figures so they stand out.
 
 **Web search:**
-If WEB SEARCH RESULTS are provided in the context, you MUST use them. Lead with the actual prices or deals found. State the source type (e.g., "According to local store listings...") and note that prices may vary. Do not say "I can't provide current prices" if web results are present.
+If WEB SEARCH RESULTS are provided in the context, you MUST use them. Lead with the actual prices or deals found. Name the store (e.g., "Foodland", "Walmart") and the price found. Note that prices may have changed. You may tell users to search "[store name] Maui" to find current listings — do not paste raw URLs but do name the stores clearly. Do not say "I can't provide current prices" if web results are present.
 
 At the end of your response, if you referenced specific numbers, include:
 
