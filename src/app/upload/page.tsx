@@ -64,6 +64,7 @@ export default function UploadPage() {
   const [showNewAcct,    setShowNewAcct]     = useState(false)
   const [accountsLoaded, setAccountsLoaded] = useState(false)
   const [result,         setResult]         = useState<null | { success: true; data: Record<string, unknown> } | { success: false; error: string }>(null)
+  const [redirecting,    setRedirecting]    = useState(false)
   const [menuOpenId,     setMenuOpenId]     = useState<string | null>(null)
   const [confirmState,   setConfirmState]   = useState<{ id: string; action: 'reset' | 'delete' } | null>(null)
   const [confirmReady,   setConfirmReady]   = useState(false)
@@ -87,6 +88,18 @@ export default function UploadPage() {
     }
     if (accounts.length > 0 && !accountId) setAccountId(accounts[0].id)
   }, [accounts, accountId, accountsData, accountsLoaded])
+
+  // Auto-redirect to staging after successful upload
+  useEffect(() => {
+    if (result?.success !== true) return
+    const stagingId = result.data.stagingUploadId
+    if (!stagingId) return
+    setRedirecting(true)
+    const t = setTimeout(() => {
+      router.push(`/staging/${String(stagingId)}`)
+    }, 1500)
+    return () => clearTimeout(t)
+  }, [result, router])
 
   useEffect(() => {
     if (!confirmState) { setConfirmReady(false); return }
@@ -538,28 +551,27 @@ export default function UploadPage() {
                           Date format was ambiguous (MM/DD vs DD/MM). Please verify your transaction dates.
                         </div>
                       )}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {Boolean((result.data as Record<string, unknown>).stagingUploadId) && (
+                      {redirecting ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(124,137,255,0.25)', background: 'rgba(124,137,255,0.10)' }}>
+                          <Loader2 size={15} style={{ color: 'var(--accent)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
+                          <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>Preparing review workspace…</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           <button
-                            onClick={() => router.push(`/staging/${String((result.data as Record<string, unknown>).stagingUploadId)}`)}
-                            style={{ width: '100%', padding: '12px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(124,137,255,0.35)', background: 'rgba(124,137,255,0.18)', color: 'var(--accent)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                            onClick={() => router.push(`/upload/${String(result.data.uploadId)}`)}
+                            style={{ width: '100%', padding: '12px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card2)', color: 'var(--text)', fontWeight: 500, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                           >
-                            Review &amp; Add to Budget →
+                            View reconciliation report →
                           </button>
-                        )}
-                        <button
-                          onClick={() => router.push(`/upload/${String(result.data.uploadId)}`)}
-                          style={{ width: '100%', padding: '12px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card2)', color: 'var(--text)', fontWeight: 500, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                        >
-                          View reconciliation report →
-                        </button>
-                        <button
-                          onClick={() => router.push('/dashboard')}
-                          style={{ width: '100%', padding: '12px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card2)', color: 'var(--muted)', fontWeight: 500, fontSize: 13, cursor: 'pointer' }}
-                        >
-                          View Dashboard →
-                        </button>
-                      </div>
+                          <button
+                            onClick={() => router.push('/dashboard')}
+                            style={{ width: '100%', padding: '12px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card2)', color: 'var(--muted)', fontWeight: 500, fontSize: 13, cursor: 'pointer' }}
+                          >
+                            View Dashboard →
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
