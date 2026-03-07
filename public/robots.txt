@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Allow: /llms.txt
+
+# AI crawlers — allow public pages
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: Googlebot
+Allow: /
+
+Sitemap: https://budgetapp-lyqzujzll-gascancharlies-projects.vercel.app/sitemap.xml
