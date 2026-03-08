@@ -168,64 +168,63 @@ export function InitialAnalysis({
         <section style={{
           background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))',
           border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 24,
-          padding: 30,
-          boxShadow: '0 16px 40px rgba(0,0,0,0.28)',
-          marginBottom: 22,
+          borderRadius: 18,
+          padding: '16px 20px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
+          marginBottom: 16,
           position: 'relative',
           overflow: 'hidden',
         }}>
           {/* Glow orb */}
           <div style={{
-            position: 'absolute', right: -100, top: -80, width: 280, height: 280,
-            background: 'radial-gradient(circle, rgba(127,140,255,0.18), transparent 70%)',
+            position: 'absolute', right: -60, top: -50, width: 180, height: 180,
+            background: 'radial-gradient(circle, rgba(127,140,255,0.14), transparent 70%)',
             pointerEvents: 'none',
           }} />
 
-          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a6b5d8', marginBottom: 10 }}>
-            Initial analysis ready
-          </div>
+          {/* Top row: label + CTAs + tags all inline */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px 16px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a6b5d8', marginBottom: 3 }}>
+                Initial analysis ready
+              </div>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', color: 'var(--text)' }}>
+                Here&apos;s your first money snapshot.
+              </h1>
+            </div>
 
-          <h1 style={{ margin: '0 0 12px', fontSize: 40, fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.04em', color: 'var(--text)', maxWidth: 820 }}>
-            Here&apos;s your first money snapshot.
-          </h1>
-
-          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 16, lineHeight: 1.65, maxWidth: 860 }}>
-            We analyzed your imported statement and grouped the transactions into likely categories.
-            This first-pass view estimates where your money is going. Confirm categories next to make this analysis exact and improve future imports.
-          </p>
-
-          {/* CTAs */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22 }}>
-            <button
-              onClick={onStartCategorizing}
-              className="ia-btn ia-btn-primary"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)',
-                color: '#fff', padding: '13px 18px', fontSize: 14, fontWeight: 700,
-                cursor: 'pointer', transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-              }}
-            >
-              Start Categorizing
-            </button>
-            <button
-              onClick={onViewTransactions}
-              className="ia-btn"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.04)',
-                color: '#fff', padding: '13px 18px', fontSize: 14, fontWeight: 700,
-                cursor: 'pointer', transition: 'transform 0.18s ease',
-              }}
-            >
-              View Imported Transactions
-            </button>
+            {/* CTAs */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto', flexShrink: 0 }}>
+              <button
+                onClick={onStartCategorizing}
+                className="ia-btn ia-btn-primary"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#fff', padding: '8px 14px', fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer', transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                }}
+              >
+                Start Categorizing
+              </button>
+              <button
+                onClick={onViewTransactions}
+                className="ia-btn"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.04)',
+                  color: '#fff', padding: '8px 14px', fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer', transition: 'transform 0.18s ease',
+                }}
+              >
+                View Transactions
+              </button>
+            </div>
           </div>
 
           {/* Tags */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
             {[
               `${counts.total} transactions imported`,
               format + ' detected',
@@ -233,10 +232,10 @@ export function InitialAnalysis({
               ...(summary.recurringCount > 0 ? [`${summary.recurringCount} recurring detected`] : []),
             ].map(tag => (
               <div key={tag} style={{
-                padding: '8px 10px', borderRadius: 999,
+                padding: '5px 8px', borderRadius: 999,
                 border: '1px solid rgba(255,255,255,0.08)',
                 background: 'rgba(255,255,255,0.04)',
-                color: '#dbe4ff', fontSize: 12, fontWeight: 700,
+                color: '#dbe4ff', fontSize: 11, fontWeight: 700,
               }}>
                 {tag}
               </div>
