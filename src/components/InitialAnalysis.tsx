@@ -278,7 +278,7 @@ export function InitialAnalysis({
                     {top.category} — {fmtDollars(top.amount)}
                   </div>
                   <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.45 }}>
-                    {top.count} transaction{top.count !== 1 ? 's' : ''} detected in the first pass
+                    {top.count} transaction{top.count !== 1 ? 's' : ''} in the first pass
                   </div>
                 </div>
                 <div style={{
@@ -341,7 +341,7 @@ export function InitialAnalysis({
                       {fmtDollars(row.amount)}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0, minWidth: 52, textAlign: 'right' }}>
-                      {row.count} tx
+                      {row.count}
                     </div>
                   </div>
                 ))}
