@@ -291,9 +291,9 @@ export function InitialAnalysis({
             )}
 
             {/* Pie chart + legend */}
-            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 32, alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 20, alignItems: 'center' }}>
               {/* Donut */}
-              <div style={{ width: 260, height: 260 }}>
+              <div style={{ width: 180, height: 180 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -302,8 +302,8 @@ export function InitialAnalysis({
                       nameKey="category"
                       cx="50%"
                       cy="50%"
-                      innerRadius={72}
-                      outerRadius={118}
+                      innerRadius={50}
+                      outerRadius={82}
                       paddingAngle={2}
                       strokeWidth={0}
                     >
