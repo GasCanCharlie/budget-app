@@ -800,13 +800,13 @@ function buildCollisionDetector(activeKind: 'tx' | 'cat' | null): CollisionDetec
 
 // ─── Categorization Tips Panel ───────────────────────────────────────────────
 
-const TIPS: Array<{ Icon: React.ElementType; keyword: string; text: string; color: string }> = [
-  { Icon: ArrowUpDown, keyword: 'Amount',     color: '#7c8fff', text: 'groups identical transactions — great for bills and subscriptions.' },
-  { Icon: Store,       keyword: 'Vendor',     color: '#7c8fff', text: 'clusters the same merchant so you can categorize many at once.' },
-  { Icon: Equal,       keyword: 'Same Price', color: '#7c8fff', text: 'surfaces recurring charges like Netflix or Spotify instantly.' },
-]
+interface CategorizationTipsProps {
+  onSortAmount:    () => void
+  onSortVendor:    () => void
+  onSortSamePrice: () => void
+}
 
-function CategorizationTips() {
+function CategorizationTips({ onSortAmount, onSortVendor, onSortSamePrice }: CategorizationTipsProps) {
   const [dismissed, setDismissed] = useState<boolean>(() => {
     try { return localStorage.getItem('budgetlens:tips-dismissed') === '1' }
     catch { return false }
@@ -820,40 +820,94 @@ function CategorizationTips() {
     setDismissed(true)
   }
 
+  const cards: Array<{ Icon: React.ElementType; title: string; body: string; sub: string; onClick: () => void }> = [
+    {
+      Icon: ArrowUpDown,
+      title: 'Amount',
+      body: 'Groups identical transactions.',
+      sub: 'Great for bills and subscriptions.',
+      onClick: onSortAmount,
+    },
+    {
+      Icon: Store,
+      title: 'Vendor',
+      body: 'Clusters merchants together.',
+      sub: 'Categorize many at once.',
+      onClick: onSortVendor,
+    },
+    {
+      Icon: Equal,
+      title: 'Same Price',
+      body: 'Detect recurring payments.',
+      sub: 'Netflix, Spotify, utilities.',
+      onClick: onSortSamePrice,
+    },
+  ]
+
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 20px',
-      marginBottom: 14, padding: '9px 14px', borderRadius: 10,
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+      marginBottom: 16, padding: '12px 16px', borderRadius: 12,
+      background: 'rgba(30,40,60,0.55)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
     }}>
-      {/* Label */}
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#8494b8', whiteSpace: 'nowrap' }}>
-        <Lightbulb size={13} style={{ color: '#6f80ff' }} />
-        Tips
-      </span>
+
+      {/* Header label */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <Lightbulb size={14} style={{ color: '#6f80ff' }} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#8494b8', whiteSpace: 'nowrap' }}>
+          Smart Tips
+        </span>
+      </div>
 
       {/* Divider */}
-      <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
 
-      {TIPS.map(({ Icon, keyword, text }) => (
-        <span key={keyword} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, whiteSpace: 'nowrap' }}>
-          <Icon size={12} style={{ color: '#6f80ff', flexShrink: 0 }} />
-          <strong style={{ color: '#c5d0f0', fontWeight: 700 }}>{keyword}</strong>
-          <span style={{ color: '#5a6a8a' }}>{text}</span>
-        </span>
-      ))}
+      {/* Tip cards */}
+      <div style={{ display: 'flex', gap: 10, flex: 1, flexWrap: 'wrap' }}>
+        {cards.map(({ Icon, title, body, sub, onClick }) => (
+          <button
+            key={title}
+            onClick={onClick}
+            style={{
+              display: 'flex', alignItems: 'flex-start', gap: 9,
+              padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              textAlign: 'left', transition: 'background 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(111,128,255,0.10)'
+              e.currentTarget.style.borderColor = 'rgba(111,128,255,0.3)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+            }}
+          >
+            <Icon size={13} style={{ color: '#6f80ff', marginTop: 2, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#c5d0f0', lineHeight: 1.3 }}>{title}</div>
+              <div style={{ fontSize: 11, color: '#7a8aaa', lineHeight: 1.4 }}>{body}</div>
+              <div style={{ fontSize: 11, color: '#4e5e7a', lineHeight: 1.4 }}>{sub}</div>
+            </div>
+          </button>
+        ))}
+      </div>
 
+      {/* Dismiss */}
       <button
         onClick={dismiss}
         style={{
-          marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4,
-          fontSize: 11, color: '#404e6a', background: 'none',
+          marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3,
+          fontSize: 11, color: '#3d4d66', background: 'none',
           border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', padding: 0,
-          transition: 'color 0.15s',
+          transition: 'color 0.15s', flexShrink: 0,
         }}
-        onMouseEnter={e => (e.currentTarget.style.color = '#7c8aaa')}
-        onMouseLeave={e => (e.currentTarget.style.color = '#404e6a')}
+        onMouseEnter={e => (e.currentTarget.style.color = '#6b7a9e')}
+        onMouseLeave={e => (e.currentTarget.style.color = '#3d4d66')}
       >
         <X size={11} />
         Dismiss
@@ -1533,7 +1587,11 @@ export default function CategorizePage() {
           </div>
 
           {/* ── Categorization tips panel ─────────────────────────────────── */}
-          <CategorizationTips />
+          <CategorizationTips
+            onSortAmount={() => { handleCatSort('amount'); setSamePriceOnly(false) }}
+            onSortVendor={() => { handleCatSort('vendor'); setSamePriceOnly(false) }}
+            onSortSamePrice={() => { setSamePriceOnly(true); setSortKey('amount'); setSortDir('desc') }}
+          />
 
           {queueTxs.length === 0 ? (
             /* All caught up */
