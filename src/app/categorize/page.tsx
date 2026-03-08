@@ -237,10 +237,7 @@ function TxCard({
             <span className="badge-warning">Uncategorized</span>
           )}
           {tx.bankCategoryRaw && (
-            <span className="badge-tag">
-              <span className="badge-icon">🏦</span>
-              <span>{tx.bankCategoryRaw}</span>
-            </span>
+            <span className="badge-tag">{tx.bankCategoryRaw}</span>
           )}
         </div>
       </div>
