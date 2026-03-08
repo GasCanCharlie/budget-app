@@ -549,3 +549,50 @@ h3 { letter-spacing: -0.01em; }
   box-shadow: 0 4px 14px rgba(0,0,0,0.07);
   transform: translateY(-1px);
 }
+
+/* ─── Transaction card reference styles ─────────────────────────────────── */
+.transaction-check {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  border: 1.5px solid var(--border2);
+  background: var(--surface);
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+.tx-card:hover .transaction-check {
+  transform: scale(1.03);
+  border-color: var(--accent);
+}
+.tx-card[data-selected="true"] .transaction-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.transaction-vendor {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  transition: color 180ms ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.transaction-date {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 2px 0 8px;
+}
+.transaction-amount {
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.transaction-amount.expense { color: #d84b63; }
+.transaction-amount.income  { color: #13a055; }
+.transaction-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

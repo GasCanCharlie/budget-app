@@ -219,45 +219,35 @@ function TxCard({
         borderColor: 'var(--border)',
       } : undefined}
     >
-      {/* Drag handle */}
-      <div
-        aria-hidden="true"
-        className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-[10px] flex items-center justify-center border opacity-60 group-hover:opacity-100 transition-opacity duration-[140ms]"
-        style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}
-      >
-        <div className="grid grid-cols-3 gap-[3px]" aria-hidden="true">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <span key={i} className="block w-[3px] h-[3px] rounded-sm" style={{ background: 'var(--muted)' }} />
-          ))}
-        </div>
-      </div>
+      {/* Checkbox / drag handle */}
+      <div className="transaction-check" aria-hidden="true" />
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-semibold" style={{ color: 'var(--text)' }}>
+      <div className="transaction-main">
+        <div className="transaction-top">
+          <span className="transaction-vendor">
             {tx.merchantNormalized || tx.description}
-          </p>
-          <p style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: tx.amount < 0 ? '#FF5B78' : '#2EE59D', margin: 0 }}>
+          </span>
+          <span className={clsx('transaction-amount', tx.amount < 0 ? 'expense' : 'income')}>
             {fmtAmt(tx.amount)}
-          </p>
+          </span>
         </div>
 
-        <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--muted)' }}>{fmtDate(tx.date)}</p>
+        <p className="transaction-date">{fmtDate(tx.date)}</p>
 
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <div className="transaction-tags">
           {tx.appCategory ? (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border"
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border"
               style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', borderColor: 'rgba(16,185,129,0.25)' }}>
               ✓ {tx.appCategory}
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border"
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border"
               style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', borderColor: 'rgba(245,158,11,0.25)' }}>
               Uncategorized
             </span>
           )}
           {tx.bankCategoryRaw && (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border"
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border"
               style={{ background: 'var(--accent-muted)', color: 'var(--accent)', borderColor: 'var(--border2)' }}>
               🏦 {tx.bankCategoryRaw}
             </span>
