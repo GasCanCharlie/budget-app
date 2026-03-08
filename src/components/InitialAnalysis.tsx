@@ -291,7 +291,7 @@ export function InitialAnalysis({
             )}
 
             {/* Pie chart + legend */}
-            <div style={{ display: 'flex', gap: 24, alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: 32, alignItems: 'center', maxWidth: 700, margin: '0 auto' }}>
               {/* Donut */}
               <div style={{ width: 160, height: 160, flexShrink: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -326,7 +326,7 @@ export function InitialAnalysis({
               </div>
 
               {/* Legend */}
-              <div style={{ flex: 1, minWidth: 0, maxHeight: 400, overflowY: 'auto' }}>
+              <div style={{ minWidth: 0, flex: 1, maxHeight: 400, overflowY: 'auto' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', columnGap: 16, rowGap: 7, alignItems: 'center' }}>
                   {rows.map((row, i) => (
                     <>
