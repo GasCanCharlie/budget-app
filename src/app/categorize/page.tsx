@@ -207,13 +207,10 @@ function TxCard({
       data-source={isSource ? 'true' : undefined}
       data-selected={isSelected ? 'true' : undefined}
       className={clsx(
-        'tx-card group flex items-start gap-3 rounded-[18px] border p-3.5 touch-none select-none',
-        isSource ? 'opacity-50 border-dashed cursor-grabbing' : 'cursor-grab',
+        'tx-card group flex items-start gap-3 p-4 touch-none select-none',
+        isSource ? 'opacity-50 !border-dashed cursor-grabbing' : 'cursor-grab',
       )}
-      style={{
-        background: 'var(--card)',
-        borderColor: 'var(--border)',
-      }}
+      style={undefined}
     >
       {/* Checkbox / drag handle */}
       <div className="transaction-check" aria-hidden="true" />
@@ -232,21 +229,12 @@ function TxCard({
 
         <div className="transaction-tags">
           {tx.appCategory ? (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border"
-              style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', borderColor: 'rgba(16,185,129,0.25)' }}>
-              ✓ {tx.appCategory}
-            </span>
+            <span className="badge-success">✓ {tx.appCategory}</span>
           ) : (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border"
-              style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', borderColor: 'rgba(245,158,11,0.25)' }}>
-              Uncategorized
-            </span>
+            <span className="badge-warning">Uncategorized</span>
           )}
           {tx.bankCategoryRaw && (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border"
-              style={{ background: 'var(--accent-muted)', color: 'var(--accent)', borderColor: 'var(--border2)' }}>
-              🏦 {tx.bankCategoryRaw}
-            </span>
+            <span className="badge-tag">🏦 {tx.bankCategoryRaw}</span>
           )}
         </div>
       </div>
@@ -316,17 +304,13 @@ function CategoryBucket({
         ...style,
         // @ts-ignore CSS custom property for accent bar color
         '--cat-accent': cat.color,
-        background: showOver ? 'rgba(120,170,255,0.10)' : 'var(--card)',
-        border: showOver ? '1px solid rgba(120,170,255,.40)' : '1px solid var(--border)',
-        boxShadow: showOver ? '0 0 0 3px rgba(120,170,255,.16)' : undefined,
-        borderRadius: 16,
         padding: '12px 14px',
         opacity: isSortDragging ? 0.4 : 1,
       }}
       onClick={() => { if (!isDraggingTx) onToggleExpand(cat.id) }}
       className={clsx(
-        'cat-bucket flex items-center gap-3 select-none cursor-pointer overflow-hidden',
-        showOver && '!transform-none',
+        'cat-bucket flex items-center gap-3 select-none cursor-pointer',
+        showOver && 'drag-over',
       )}
     >
       {/* Reorder grip */}
@@ -357,13 +341,6 @@ function CategoryBucket({
       <span className="flex-1 min-w-0 truncate font-semibold" style={{ fontSize: 15, color: 'var(--text)' }}>
         {cat.name}
       </span>
-
-      {/* Drop hint */}
-      {showOver && (
-        <span className="flex-shrink-0 text-[11px] font-medium" style={{ color: 'rgba(120,170,255,0.9)' }}>
-          Drop to assign
-        </span>
-      )}
 
       {/* Count badge */}
       {txCount != null && txCount > 0 && !showOver && (

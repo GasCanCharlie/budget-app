@@ -41,15 +41,20 @@
   --track:          rgba(255,255,255,0.10);
   --warning:        var(--warn);
   --tile:           rgba(255,255,255,0.09);
-  /* Shared interaction tokens */
-  --ui-hover-bg:      rgba(120,170,255,0.08);
-  --ui-hover-border:  rgba(120,170,255,0.30);
-  --ui-hover-shadow:  0 8px 16px rgba(0,0,0,0.20);
-  --ui-hover-lift:    translateY(-1px);
-  --ui-hover-duration: 180ms;
-  --ui-hover-ease:    ease;
+  /* Interaction tokens — dark */
+  --bg-card:          rgba(255,255,255,0.06);
+  --bg-hover:         rgba(120,170,255,0.07);
+  --bg-selected:      rgba(91,111,245,0.14);
+  --bg-dragover:      rgba(91,111,245,0.10);
+  --border-soft:      rgba(255,255,255,0.10);
+  --border-hover:     rgba(255,255,255,0.18);
+  --border-selected:  rgba(91,111,245,0.45);
+  --shadow-rest:      0 1px 3px rgba(0,0,0,0.25);
+  --shadow-hover:     0 8px 24px rgba(0,0,0,0.30);
+  --shadow-selected:  0 0 0 1px rgba(91,111,245,0.22), 0 8px 24px rgba(91,111,245,0.18);
+  --radius-row:       18px;
+  --transition-fast:  180ms ease;
   --ui-accent-bar:    #8aa2ff;
-  --ui-icon-hover:    rgba(255,255,255,0.80);
 }
 
 [data-theme="light"] {
@@ -89,15 +94,20 @@
   --track:          rgba(17,24,39,0.10);
   --warning:        var(--warn);
   --tile:           #edf0f7;
-  /* Shared interaction tokens */
-  --ui-hover-bg:      #f7faff;
-  --ui-hover-border:  #dbe5f2;
-  --ui-hover-shadow:  0 8px 16px rgba(0,0,0,0.05);
-  --ui-hover-lift:    translateY(-1px);
-  --ui-hover-duration: 180ms;
-  --ui-hover-ease:    ease;
+  /* Interaction tokens — light */
+  --bg-card:          #ffffff;
+  --bg-hover:         #fafcff;
+  --bg-selected:      #f3f6ff;
+  --bg-dragover:      #eef4ff;
+  --border-soft:      #e7edf5;
+  --border-hover:     #d9e3f2;
+  --border-selected:  #c7d4ff;
+  --shadow-rest:      0 1px 2px rgba(15,23,42,0.03);
+  --shadow-hover:     0 8px 24px rgba(15,23,42,0.06);
+  --shadow-selected:  0 0 0 1px rgba(91,111,245,0.10), 0 8px 24px rgba(91,111,245,0.08);
+  --radius-row:       18px;
+  --transition-fast:  180ms ease;
   --ui-accent-bar:    #8aa2ff;
-  --ui-icon-hover:    #5f6f88;
 }
 
 /* ─── Smooth theme transition ───────────────────────────────────────────── */
@@ -527,19 +537,23 @@ h3 { letter-spacing: -0.01em; }
 
 /* ─── Unified interactive surface system ─────────────────────────────────── */
 
-/* Shared base for both category items and transaction cards */
+/* Shared base */
 .cat-bucket,
 .tx-card {
   position: relative;
   overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-row);
+  box-shadow: var(--shadow-rest);
   transition:
-    background var(--ui-hover-duration) var(--ui-hover-ease),
-    border-color var(--ui-hover-duration) var(--ui-hover-ease),
-    transform var(--ui-hover-duration) var(--ui-hover-ease),
-    box-shadow var(--ui-hover-duration) var(--ui-hover-ease);
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
-/* Left accent bar — same for both */
+/* Left accent bar */
 .cat-bucket::before,
 .tx-card::before {
   content: "";
@@ -550,20 +564,19 @@ h3 { letter-spacing: -0.01em; }
   width: 4px;
   border-radius: 999px;
   background: transparent;
-  transition: background var(--ui-hover-duration) var(--ui-hover-ease);
+  transition: background var(--transition-fast);
+  pointer-events: none;
 }
 .tx-card::before { top: 12px; bottom: 12px; }
 
-/* Hover state — same recipe for both */
+/* Hover */
 .cat-bucket:hover,
 .tx-card:not([data-source="true"]):not([data-selected="true"]):hover {
-  background: var(--ui-hover-bg) !important;
-  border-color: var(--ui-hover-border) !important;
-  transform: var(--ui-hover-lift);
-  box-shadow: var(--ui-hover-shadow);
+  background: var(--bg-hover) !important;
+  border-color: var(--border-hover) !important;
+  box-shadow: var(--shadow-hover) !important;
+  transform: translateY(-1px);
 }
-
-/* Accent bar on hover */
 .cat-bucket:hover::before {
   background: var(--cat-accent, var(--ui-accent-bar));
 }
@@ -571,54 +584,83 @@ h3 { letter-spacing: -0.01em; }
   background: var(--ui-accent-bar);
 }
 
+/* Drag-over — category */
+.cat-bucket.drag-over {
+  background: var(--bg-dragover) !important;
+  border-color: var(--border-selected) !important;
+  box-shadow: inset 0 0 0 1px rgba(91,111,245,0.10), 0 10px 24px rgba(91,111,245,0.10) !important;
+  transform: none !important;
+}
+.cat-bucket.drag-over::before {
+  background: var(--ui-accent-bar);
+}
+/* "Drop here" pill via CSS — no React span needed */
+.cat-bucket.drag-over::after {
+  content: "Drop here";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 700;
+  color: #6a7ce8;
+  background: rgba(255,255,255,0.82);
+  border: 1px solid #d9e2ff;
+  padding: 5px 10px;
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+/* Selected — transaction card */
+.tx-card[data-selected="true"] {
+  background: var(--bg-selected) !important;
+  border-color: var(--border-selected) !important;
+  box-shadow: var(--shadow-selected) !important;
+  transform: none !important;
+}
+.tx-card[data-selected="true"]::before {
+  background: var(--ui-accent-bar);
+}
+
 /* Icon / check scale on hover */
 .cat-bucket:hover .cat-icon,
-.tx-card:hover .transaction-check {
+.tx-card:not([data-selected="true"]):hover .transaction-check {
   transform: scale(1.03);
 }
-
-/* cat-icon base transition */
 .cat-icon {
-  transition: transform var(--ui-hover-duration) var(--ui-hover-ease);
+  transition: transform var(--transition-fast);
 }
 
-/* ─── Transaction card inner elements ───────────────────────────────────── */
+/* ─── Transaction inner elements ────────────────────────────────────────── */
 .transaction-check {
-  width: 26px;
-  height: 26px;
-  border-radius: 9px;
-  border: 1.5px solid var(--border2);
-  background: var(--surface);
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1.5px solid #ccd6e5;
+  background: #fff;
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: 1px;
   transition:
-    border-color var(--ui-hover-duration) var(--ui-hover-ease),
-    background var(--ui-hover-duration) var(--ui-hover-ease),
-    transform var(--ui-hover-duration) var(--ui-hover-ease);
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 .tx-card:hover .transaction-check {
-  border-color: #b9c7d8;
+  border-color: #b9c7dc;
 }
 .tx-card[data-selected="true"] .transaction-check {
   background: var(--accent);
   border-color: var(--accent);
-}
-
-/* Selected card state */
-.tx-card[data-selected="true"] {
-  background: var(--accent-muted) !important;
-  border-color: var(--accent) !important;
-  box-shadow: var(--ring) !important;
-}
-.tx-card[data-selected="true"]::before {
-  background: var(--ui-accent-bar);
+  box-shadow: 0 4px 10px rgba(91,111,245,0.22);
 }
 
 .transaction-vendor {
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
-  transition: color var(--ui-hover-duration) var(--ui-hover-ease);
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -626,7 +668,8 @@ h3 { letter-spacing: -0.01em; }
 .transaction-date {
   font-size: 13px;
   color: var(--muted);
-  margin: 2px 0 8px;
+  margin-top: 2px;
+  margin-bottom: 8px;
 }
 .transaction-amount {
   font-size: 15px;
@@ -634,10 +677,39 @@ h3 { letter-spacing: -0.01em; }
   white-space: nowrap;
   flex-shrink: 0;
 }
-.transaction-amount.expense { color: #d84b63; }
-.transaction-amount.income  { color: #13a055; }
+.transaction-amount.expense { color: #d84e65; }
+.transaction-amount.income  { color: #1b9c5a; }
 .transaction-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* Badge variants */
+.badge-warning {
+  background: #fff4dd;
+  color: #b57400;
+  border: 1px solid #f1dfb0;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-tag {
+  background: #eef2ff;
+  color: #5c6eb8;
+  border: 1px solid #dce4ff;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-success {
+  background: rgba(16,185,129,0.10);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.22);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
 }
