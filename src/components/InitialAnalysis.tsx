@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import type { ImportSummary } from '@/lib/scrubbing'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -75,16 +76,25 @@ function useCategoryBreakdown(transactions: Tx[], summary: ImportSummary): Categ
         })
       }
     }
-    return Array.from(map.values()).sort((a, b) => b.amount - a.amount).slice(0, 7)
+    return Array.from(map.values()).sort((a, b) => b.amount - a.amount)
   }, [transactions, summary.suggestions])
 }
 
-// ─── Bar fill gradient ────────────────────────────────────────────────────────
+// ─── Colour palette ───────────────────────────────────────────────────────────
 
-function barGradient(row: CategoryRow): string {
-  if (row.isUncategorized) return 'linear-gradient(90deg, #f0b544, #ffd780)'
-  if (row.isIncome) return 'linear-gradient(90deg, #39d07f, #7be5ad)'
-  return 'linear-gradient(90deg, #8b97ff, #6578ff)'
+const PALETTE = [
+  '#6f80ff','#39d07f','#f0b544','#ff7aac','#59c7ff','#a78bfa',
+  '#fb923c','#34d399','#f472b6','#38bdf8','#facc15','#4ade80',
+  '#e879f9','#22d3ee','#fb7185','#a3e635','#818cf8','#fbbf24',
+  '#2dd4bf','#f97316','#c084fc','#86efac','#fca5a5','#67e8f9',
+  '#d946ef','#84cc16','#60a5fa','#fdba74','#4fd1c5','#f9a8d4','#a8a29e',
+]
+
+function sliceColor(row: CategoryRow, index: number): string {
+  if (row.isIncome) return '#39d07f'
+  if (row.isUncategorized) return '#f0b544'
+  if (row.isTransfer) return '#94a3b8'
+  return PALETTE[index % PALETTE.length]
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -98,7 +108,6 @@ export function InitialAnalysis({
   onViewTransactions,
 }: InitialAnalysisProps) {
   const rows = useCategoryBreakdown(transactions, summary)
-  const maxAmount = rows[0]?.amount ?? 1
   const top = rows[0]
 
   const bankCatCount = useMemo(() => {
@@ -282,26 +291,61 @@ export function InitialAnalysis({
               </div>
             )}
 
-            {/* Bar chart */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {rows.map(row => (
-                <div key={row.category} style={{ display: 'grid', gridTemplateColumns: '210px 1fr 180px', alignItems: 'center', gap: 18 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#f0f4ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {row.category}
-                  </div>
-                  <div style={{ height: 16, background: 'rgba(255,255,255,0.07)', borderRadius: 999, overflow: 'hidden' }}>
+            {/* Pie chart + legend */}
+            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 32, alignItems: 'center' }}>
+              {/* Donut */}
+              <div style={{ width: 260, height: 260 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={rows}
+                      dataKey="amount"
+                      nameKey="category"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={72}
+                      outerRadius={118}
+                      paddingAngle={2}
+                      strokeWidth={0}
+                    >
+                      {rows.map((row, i) => (
+                        <Cell key={row.category} fill={sliceColor(row, i)} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => [fmtDollars(value), 'Amount']}
+                      contentStyle={{
+                        background: 'rgba(13,25,48,0.97)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: 10,
+                        color: '#f0f4ff',
+                        fontSize: 13,
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Legend */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+                {rows.map((row, i) => (
+                  <div key={row.category} style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                     <div style={{
-                      height: '100%', borderRadius: 999,
-                      background: barGradient(row),
-                      width: `${Math.round((row.amount / maxAmount) * 100)}%`,
+                      width: 10, height: 10, borderRadius: 3, flexShrink: 0,
+                      background: sliceColor(row, i),
                     }} />
+                    <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#d8e1ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {row.category}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#f4f7ff', flexShrink: 0 }}>
+                      {fmtDollars(row.amount)}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0, minWidth: 52, textAlign: 'right' }}>
+                      {row.count} tx
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#f4f7ff' }}>{fmtDollars(row.amount)}</div>
-                    <div style={{ color: 'var(--muted)', fontWeight: 700, fontSize: 12 }}>{row.count} transaction{row.count !== 1 ? 's' : ''}</div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </section>
