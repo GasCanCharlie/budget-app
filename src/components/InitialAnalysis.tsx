@@ -291,7 +291,7 @@ export function InitialAnalysis({
             )}
 
             {/* Pie chart + legend */}
-            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
               {/* Donut */}
               <div style={{ width: 160, height: 160, flexShrink: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -326,24 +326,28 @@ export function InitialAnalysis({
               </div>
 
               {/* Legend */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1, maxHeight: 400, overflowY: 'auto' }}>
-                {rows.map((row, i) => (
-                  <div key={row.category} style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <div style={{
-                      width: 10, height: 10, borderRadius: 3, flexShrink: 0,
-                      background: sliceColor(row, i),
-                    }} />
-                    <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#d8e1ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {row.category}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#f4f7ff', flexShrink: 0 }}>
-                      {fmtDollars(row.amount)}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0, minWidth: 52, textAlign: 'right' }}>
-                      {row.count}
-                    </div>
-                  </div>
-                ))}
+              <div style={{ flex: 1, minWidth: 0, maxHeight: 400, overflowY: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', columnGap: 16, rowGap: 7, alignItems: 'center' }}>
+                  {rows.map((row, i) => (
+                    <>
+                      {/* Name */}
+                      <div key={`n-${row.category}`} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        <div style={{ width: 9, height: 9, borderRadius: 2, flexShrink: 0, background: sliceColor(row, i) }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#d8e1ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {row.category}
+                        </span>
+                      </div>
+                      {/* Amount */}
+                      <div key={`a-${row.category}`} style={{ fontSize: 13, fontWeight: 800, color: '#f4f7ff', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {fmtDollars(row.amount)}
+                      </div>
+                      {/* Count */}
+                      <div key={`c-${row.category}`} style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'right', whiteSpace: 'nowrap', minWidth: 24 }}>
+                        {row.count}
+                      </div>
+                    </>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
