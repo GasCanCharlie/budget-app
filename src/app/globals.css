@@ -506,3 +506,36 @@ h3 { letter-spacing: -0.01em; }
 [data-theme="light"] .data-table th { color: #64748b; border-color: rgba(0,0,0,0.08); }
 [data-theme="light"] .data-table td { color: #334155; border-color: rgba(0,0,0,0.05); }
 [data-theme="light"] .data-table tbody tr:hover td { background-color: #f8fafc; }
+
+/* ─── Category bucket card ───────────────────────────────────────────────── */
+.cat-bucket {
+  position: relative;
+  transition: background 0.18s ease, border-color 0.18s ease,
+              transform 0.18s ease, box-shadow 0.18s ease;
+}
+.cat-bucket::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.18s ease;
+}
+.cat-bucket:hover {
+  background: var(--bg2) !important;
+  border-color: var(--border2) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+}
+.cat-bucket:hover::before {
+  background: var(--cat-accent, #8aa2ff);
+}
+.cat-bucket:hover .cat-icon {
+  transform: scale(1.06);
+}
+.cat-icon {
+  transition: transform 0.18s ease;
+}

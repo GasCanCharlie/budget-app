@@ -319,21 +319,22 @@ function CategoryBucket({
       ref={setRef}
       style={{
         ...style,
-        background: showOver ? 'rgba(120,170,255,0.10)' : 'var(--card2)',
-        border: showOver
-          ? '1px solid rgba(120,170,255,.35)'
-          : '1px solid var(--border)',
-        boxShadow: showOver ? '0 0 0 3px rgba(120,170,255,.16),0 10px 30px rgba(0,0,0,.2)' : undefined,
+        // @ts-ignore CSS custom property for accent bar color
+        '--cat-accent': cat.color,
+        background: showOver ? 'rgba(120,170,255,0.10)' : 'var(--card)',
+        border: showOver ? '1px solid rgba(120,170,255,.40)' : '1px solid var(--border)',
+        boxShadow: showOver ? '0 0 0 3px rgba(120,170,255,.16)' : undefined,
+        borderRadius: 16,
+        padding: '12px 14px',
+        opacity: isSortDragging ? 0.4 : 1,
       }}
-      onClick={() => {
-        if (!isDraggingTx) onToggleExpand(cat.id)
-      }}
+      onClick={() => { if (!isDraggingTx) onToggleExpand(cat.id) }}
       className={clsx(
-        'relative flex items-center gap-3 rounded-[14px] px-4 py-3.5 min-h-[54px]',
-        'transition-all duration-[160ms] ease-out select-none cursor-pointer overflow-hidden',
+        'cat-bucket flex items-center gap-3 select-none cursor-pointer overflow-hidden',
+        showOver && '!transform-none',
       )}
     >
-      {/* Reorder grip — this is the sort activator */}
+      {/* Reorder grip */}
       <div
         {...attributes}
         {...listeners}
@@ -345,23 +346,31 @@ function CategoryBucket({
         <GripVertical size={13} style={{ color: 'var(--muted)' }} />
       </div>
 
-      {/* Icon box */}
+      {/* Icon box — tinted with category color */}
       <div
-        className="flex-shrink-0 w-7 h-7 rounded-[9px] flex items-center justify-center"
-        style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+        className="cat-icon flex-shrink-0 flex items-center justify-center"
+        style={{
+          width: 36, height: 36, borderRadius: 12,
+          background: cat.color + '22',
+          border: `1px solid ${cat.color}33`,
+        }}
       >
-        <CategoryIcon name={cat.icon} color={cat.color} size={15} />
+        <CategoryIcon name={cat.icon} color={cat.color} size={18} />
       </div>
 
-      <span className="flex-1 min-w-0 truncate text-[13.5px] font-semibold tracking-[-0.01em]" style={{ color: 'var(--text)' }}>{cat.name}</span>
+      {/* Name */}
+      <span className="flex-1 min-w-0 truncate font-semibold" style={{ fontSize: 15, color: 'var(--text)' }}>
+        {cat.name}
+      </span>
 
-      {/* "Drop to assign" hint — only visible while hovering with a tx drag */}
+      {/* Drop hint */}
       {showOver && (
-        <span className="flex-shrink-0 text-[11px] font-medium text-[rgba(160,200,255,.9)]">
+        <span className="flex-shrink-0 text-[11px] font-medium" style={{ color: 'rgba(120,170,255,0.9)' }}>
           Drop to assign
         </span>
       )}
 
+      {/* Count badge */}
       {txCount != null && txCount > 0 && !showOver && (
         <span
           className="flex-shrink-0 text-[11.5px] font-medium px-2 py-0.5 rounded-full"
@@ -371,9 +380,10 @@ function CategoryBucket({
         </span>
       )}
 
+      {/* Chevron */}
       {!isDraggingTx && (
         <ChevronRight
-          size={13}
+          size={14}
           style={{ color: 'var(--muted)', flexShrink: 0 }}
           className={clsx('transition-transform duration-150', isExpanded ? 'rotate-90' : '')}
         />
