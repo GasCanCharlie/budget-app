@@ -319,9 +319,11 @@ function CategoryBucket({
       ref={setRef}
       style={{
         ...style,
-        background: showOver
-          ? 'linear-gradient(180deg, rgba(120,170,255,.10), rgba(255,255,255,.02))'
-          : 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))',
+        background: showOver ? 'rgba(120,170,255,0.10)' : 'var(--card2)',
+        border: showOver
+          ? '1px solid rgba(120,170,255,.35)'
+          : '1px solid var(--border)',
+        boxShadow: showOver ? '0 0 0 3px rgba(120,170,255,.16),0 10px 30px rgba(0,0,0,.2)' : undefined,
       }}
       onClick={() => {
         if (!isDraggingTx) onToggleExpand(cat.id)
@@ -329,9 +331,6 @@ function CategoryBucket({
       className={clsx(
         'relative flex items-center gap-3 rounded-[14px] px-4 py-3.5 min-h-[54px]',
         'transition-all duration-[160ms] ease-out select-none cursor-pointer overflow-hidden',
-        showOver
-          ? '[border:1px_solid_rgba(120,170,255,.35)] [box-shadow:0_0_0_3px_rgba(120,170,255,.16),0_10px_30px_rgba(0,0,0,.35)]'
-          : '[border:1px_solid_rgba(255,255,255,0.06)] hover:[border-color:rgba(255,255,255,0.12)] hover:[box-shadow:0_10px_24px_rgba(0,0,0,0.45),0_0_0_2px_rgba(255,255,255,0.03)]',
       )}
     >
       {/* Reorder grip — this is the sort activator */}
@@ -343,18 +342,18 @@ function CategoryBucket({
         className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-40 hover:!opacity-80 transition-opacity duration-100"
         style={{ cursor: isSortDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
-        <GripVertical size={13} className="text-white/50" />
+        <GripVertical size={13} style={{ color: 'var(--muted)' }} />
       </div>
 
       {/* Icon box */}
       <div
         className="flex-shrink-0 w-7 h-7 rounded-[9px] flex items-center justify-center"
-        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
       >
         <CategoryIcon name={cat.icon} color={cat.color} size={15} />
       </div>
 
-      <span className="flex-1 min-w-0 truncate text-[13.5px] font-semibold tracking-[-0.01em] text-[rgba(255,255,255,0.90)]">{cat.name}</span>
+      <span className="flex-1 min-w-0 truncate text-[13.5px] font-semibold tracking-[-0.01em]" style={{ color: 'var(--text)' }}>{cat.name}</span>
 
       {/* "Drop to assign" hint — only visible while hovering with a tx drag */}
       {showOver && (
@@ -365,8 +364,8 @@ function CategoryBucket({
 
       {txCount != null && txCount > 0 && !showOver && (
         <span
-          className="flex-shrink-0 text-[11.5px] font-medium px-2 py-0.5 rounded-full text-[rgba(255,255,255,0.72)]"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+          className="flex-shrink-0 text-[11.5px] font-medium px-2 py-0.5 rounded-full"
+          style={{ color: 'var(--muted)', background: 'var(--surface2)', border: '1px solid var(--border)' }}
         >
           {txCount}
         </span>
@@ -375,10 +374,8 @@ function CategoryBucket({
       {!isDraggingTx && (
         <ChevronRight
           size={13}
-          className={clsx(
-            'flex-shrink-0 text-white/25 transition-transform duration-150',
-            isExpanded ? 'rotate-90' : ''
-          )}
+          style={{ color: 'var(--muted)', flexShrink: 0 }}
+          className={clsx('transition-transform duration-150', isExpanded ? 'rotate-90' : '')}
         />
       )}
     </div>
@@ -848,22 +845,20 @@ function CategorizationTips({ onSortAmount, onSortVendor, onSortSamePrice }: Cat
     <div style={{
       display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
       marginBottom: 16, padding: '12px 16px', borderRadius: 12,
-      background: 'rgba(30,40,60,0.55)',
-      border: '1px solid rgba(255,255,255,0.06)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
+      background: 'var(--card)',
+      border: '1px solid var(--border)',
     }}>
 
       {/* Header label */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <Lightbulb size={14} style={{ color: '#6f80ff' }} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#8494b8', whiteSpace: 'nowrap' }}>
+        <Lightbulb size={14} style={{ color: 'var(--accent)' }} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
           Smart Tips
         </span>
       </div>
 
       {/* Divider */}
-      <div style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+      <div style={{ width: 1, height: 32, background: 'var(--border)', flexShrink: 0 }} />
 
       {/* Tip cards */}
       <div style={{ display: 'flex', gap: 10, flex: 1, flexWrap: 'wrap' }}>
@@ -874,24 +869,24 @@ function CategorizationTips({ onSortAmount, onSortVendor, onSortSamePrice }: Cat
             style={{
               display: 'flex', alignItems: 'flex-start', gap: 9,
               padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--card2)',
+              border: '1px solid var(--border)',
               textAlign: 'left', transition: 'background 0.15s, border-color 0.15s',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(111,128,255,0.10)'
-              e.currentTarget.style.borderColor = 'rgba(111,128,255,0.3)'
+              e.currentTarget.style.background = 'var(--accent-muted)'
+              e.currentTarget.style.borderColor = 'var(--border2)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.background = 'var(--card2)'
+              e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >
-            <Icon size={13} style={{ color: '#6f80ff', marginTop: 2, flexShrink: 0 }} />
+            <Icon size={13} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#c5d0f0', lineHeight: 1.3 }}>{title}</div>
-              <div style={{ fontSize: 11, color: '#7a8aaa', lineHeight: 1.4 }}>{body}</div>
-              <div style={{ fontSize: 11, color: '#4e5e7a', lineHeight: 1.4 }}>{sub}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>{title}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>{body}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>{sub}</div>
             </div>
           </button>
         ))}
@@ -902,12 +897,12 @@ function CategorizationTips({ onSortAmount, onSortVendor, onSortSamePrice }: Cat
         onClick={dismiss}
         style={{
           marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3,
-          fontSize: 11, color: '#3d4d66', background: 'none',
+          fontSize: 11, color: 'var(--muted)', background: 'none',
           border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', padding: 0,
           transition: 'color 0.15s', flexShrink: 0,
         }}
-        onMouseEnter={e => (e.currentTarget.style.color = '#6b7a9e')}
-        onMouseLeave={e => (e.currentTarget.style.color = '#3d4d66')}
+        onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
       >
         <X size={11} />
         Dismiss
@@ -1519,7 +1514,7 @@ export default function CategorizePage() {
               }}
             >
               <span style={{ fontSize: 16 }}>🔒</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#c5ceff' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
                 Finish categorizing your transactions to unlock AI Insights.
               </span>
             </div>
@@ -1532,11 +1527,11 @@ export default function CategorizePage() {
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary, #8b97c3)' }}>
                   Categorization Progress
                 </span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: unlocked ? '#39d07f' : 'var(--text-primary, #d0dbff)' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: unlocked ? '#39d07f' : 'var(--text)' }}>
                   {unlocked ? '✓ Complete' : `${catCount} / ${txTotal} categorized · ${Math.round((catCount / txTotal) * 100)}%`}
                 </span>
               </div>
-              <div style={{ height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+              <div style={{ height: 6, borderRadius: 999, background: 'var(--surface2)', overflow: 'hidden' }}>
                 <div style={{
                   height: '100%', borderRadius: 999,
                   width: `${txTotal > 0 ? Math.round((catCount / txTotal) * 100) : 0}%`,
