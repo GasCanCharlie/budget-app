@@ -798,6 +798,75 @@ function buildCollisionDetector(activeKind: 'tx' | 'cat' | null): CollisionDetec
   }
 }
 
+// ─── Categorization Tips Panel ───────────────────────────────────────────────
+
+const TIPS = [
+  {
+    icon: '↕',
+    label: 'Amount sort',
+    keyword: 'Amount',
+    text: 'groups identical transactions — great for bills and subscriptions.',
+  },
+  {
+    icon: '🏪',
+    label: 'Vendor sort',
+    keyword: 'Vendor',
+    text: 'clusters the same merchant so you can categorize many at once.',
+  },
+  {
+    icon: '=',
+    label: 'Same Price',
+    keyword: 'Same Price',
+    text: 'surfaces recurring charges like Netflix, Spotify, or utilities instantly.',
+  },
+]
+
+function CategorizationTips() {
+  const [dismissed, setDismissed] = useState<boolean>(() => {
+    try { return localStorage.getItem('budgetlens:tips-dismissed') === '1' }
+    catch { return false }
+  })
+
+  if (dismissed) return null
+
+  function dismiss() {
+    try { localStorage.setItem('budgetlens:tips-dismissed', '1') }
+    catch { /* ignore */ }
+    setDismissed(true)
+  }
+
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 18px',
+        marginBottom: 14, padding: '10px 14px', borderRadius: 12,
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.07)',
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 800, color: '#a6b5d8', whiteSpace: 'nowrap', marginRight: 4 }}>
+        💡 Tips
+      </span>
+      {TIPS.map(tip => (
+        <span key={tip.keyword} style={{ fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 11 }}>{tip.icon}</span>
+          <strong style={{ color: '#c5d0f0', fontWeight: 700 }}>{tip.keyword}</strong>
+          <span style={{ color: '#6b7a9e' }}>{tip.text}</span>
+        </span>
+      ))}
+      <button
+        onClick={dismiss}
+        style={{
+          marginLeft: 'auto', fontSize: 11, color: '#4e5a78', background: 'none',
+          border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', padding: '2px 0',
+        }}
+      >
+        Dismiss tips
+      </button>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CategorizePage() {
@@ -1432,11 +1501,11 @@ export default function CategorizePage() {
           )}
 
           {/* Header */}
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Categorize</h1>
-              <p className="text-sm text-slate-500 mt-0.5">
-                Bank categories (blue) are imported automatically. Drag transactions to assign your own App Category.
+              <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+                Categorizations go faster when you group similar transactions.
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -1467,6 +1536,9 @@ export default function CategorizePage() {
               </button>
             </div>
           </div>
+
+          {/* ── Categorization tips panel ─────────────────────────────────── */}
+          <CategorizationTips />
 
           {queueTxs.length === 0 ? (
             /* All caught up */
