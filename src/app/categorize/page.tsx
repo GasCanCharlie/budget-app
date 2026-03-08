@@ -329,9 +329,6 @@ function CategoryBucket({
 
       {/* Right: meta */}
       <div className="category-meta">
-        {/* Drop pill — revealed by CSS when drag-over */}
-        {isDraggingTx && <span className="drop-pill">Drop here</span>}
-
         {/* Count badge */}
         {txCount != null && txCount > 0 && !showOver && (
           <span className="cat-count">{txCount}</span>

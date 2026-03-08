@@ -761,26 +761,6 @@ h3 { letter-spacing: -0.01em; }
 /* category right meta */
 .category-meta  { display: flex; align-items: center; gap: 10px; position: relative; flex-shrink: 0; }
 
-/* drop pill */
-.drop-pill {
-  opacity: 0;
-  transform: translateY(-50%) translateX(6px);
-  position: absolute;
-  right: 22px; top: 50%;
-  white-space: nowrap;
-  font-size: 12px; font-weight: 700;
-  color: var(--accent);
-  background: var(--bg-card);
-  border: 1px solid var(--border-selected);
-  padding: 5px 10px; border-radius: 999px;
-  backdrop-filter: blur(6px);
-  pointer-events: none;
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
-}
-.category-item.drag-over .drop-pill {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-}
 
 /* count badge on category */
 .cat-count {
