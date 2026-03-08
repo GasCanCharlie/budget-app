@@ -583,6 +583,10 @@ h3 { letter-spacing: -0.01em; }
   pointer-events: none;
   box-shadow: inset 0 0 0 1px rgba(91,111,245,.12);
 }
+.transaction-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .transaction-card.dragging {
   opacity: 0.96;
   transform: scale(1.02) rotate(-0.35deg);
@@ -596,8 +600,8 @@ h3 { letter-spacing: -0.01em; }
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  border: 1.5px solid #ccd6e5;
-  background: #fff;
+  border: 1.5px solid var(--border-hover);
+  background: var(--bg-card);
   flex-shrink: 0;
   transition:
     border-color var(--transition-fast),
@@ -605,7 +609,7 @@ h3 { letter-spacing: -0.01em; }
     transform var(--transition-fast),
     background var(--transition-fast);
 }
-.transaction-card:hover .transaction-check { border-color: #b8c7e0; }
+.transaction-card:hover .transaction-check { border-color: var(--border-selected); }
 .transaction-card.selected .transaction-check {
   background: var(--accent);
   border-color: var(--accent);
@@ -621,8 +625,8 @@ h3 { letter-spacing: -0.01em; }
 }
 .transaction-date   { font-size: 13px; color: var(--text-secondary); margin-top: 2px; margin-bottom: 10px; }
 .transaction-amount { font-size: 15px; font-weight: 800; white-space: nowrap; }
-.transaction-amount.expense { color: #d84e65; }
-.transaction-amount.income  { color: #1b9c5a; }
+.transaction-amount.expense { color: var(--danger); }
+.transaction-amount.income  { color: var(--success); }
 .transaction-tags   { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* ── Badges ──────────────────────────────────────────────────────────────── */
@@ -631,8 +635,8 @@ h3 { letter-spacing: -0.01em; }
   height: 28px; padding: 0 10px; border-radius: 999px;
   font-size: 12px; font-weight: 700; border: 1px solid transparent;
 }
-.badge-warning { background: #fff4dd; color: #b57400; border-color: #f1dfb0; }
-.badge-tag     { background: #eef2ff; color: #5c6eb8; border-color: #dce4ff; }
+.badge-warning { background: var(--warn-muted); color: var(--warn); border-color: rgba(251,191,36,0.25); }
+.badge-tag     { background: var(--accent-muted); color: var(--accent); border-color: rgba(124,137,255,0.25); }
 .badge-success {
   background: rgba(16,185,129,0.10); color: #10b981;
   border: 1px solid rgba(16,185,129,0.22);
@@ -684,7 +688,6 @@ h3 { letter-spacing: -0.01em; }
   background: var(--bg-hover);
   border-color: var(--border-hover);
   box-shadow: var(--shadow-hover);
-  transform: translateY(-1px);
 }
 .category-item:hover::before { opacity: 1; }
 .category-item:hover::after  { background: #8aa2ff; }
@@ -692,14 +695,14 @@ h3 { letter-spacing: -0.01em; }
 /* drag mode — targets expand slightly */
 .categories-panel.drag-mode .category-item { min-height: 68px; }
 .categories-panel.drag-mode .category-item:not(.drag-over) {
-  background: #fcfdff;
-  border-color: #edf2f8;
+  background: var(--bg-hover);
+  border-color: var(--border-soft);
 }
 
 /* drag-over */
 .category-item.drag-over {
   background: var(--bg-dragover) !important;
-  border-color: #c7d4ff !important;
+  border-color: var(--border-selected) !important;
   box-shadow: inset 0 0 0 1px rgba(91,111,245,.10), 0 12px 28px rgba(91,111,245,.10) !important;
   transform: scale(1.015) !important;
 }
@@ -725,14 +728,14 @@ h3 { letter-spacing: -0.01em; }
 /* drop pill */
 .drop-pill {
   opacity: 0;
-  transform: translateY(0) translateX(6px);
+  transform: translateY(-50%) translateX(6px);
   position: absolute;
   right: 22px; top: 50%;
   white-space: nowrap;
   font-size: 12px; font-weight: 700;
-  color: #6676f0;
-  background: rgba(255,255,255,.90);
-  border: 1px solid #dbe3ff;
+  color: var(--accent);
+  background: var(--bg-card);
+  border: 1px solid var(--border-selected);
   padding: 5px 10px; border-radius: 999px;
   backdrop-filter: blur(6px);
   pointer-events: none;
@@ -740,7 +743,7 @@ h3 { letter-spacing: -0.01em; }
 }
 .category-item.drag-over .drop-pill {
   opacity: 1;
-  transform: translateY(0) translateX(0);
+  transform: translateY(-50%) translateX(0);
 }
 
 /* count badge on category */

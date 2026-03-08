@@ -545,18 +545,18 @@ function CategoryTransactionList({
   }
 
   return (
-    <div className="mt-1.5 mb-1 ml-2 mr-1 rounded-xl overflow-y-auto max-h-72" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+    <div className="mt-1.5 mb-1 ml-2 mr-1 rounded-xl overflow-y-auto max-h-72" style={{ background: 'var(--card2)', border: '1px solid var(--border)' }}>
       {txs.map(tx => {
         const moveCat = pendingMove?.txId === tx.id
           ? categories.find(c => c.name === pendingMove.catName)
           : undefined
         return (
-        <div key={tx.id} className="px-3 py-2.5 hover:bg-white/[.04] transition-colors border-b border-white/[.06] last:border-0">
+        <div key={tx.id} className="px-3 py-2.5 transition-colors border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-start gap-2.5">
             <div className="flex-1 min-w-0">
               {/* Name + amount row */}
               <div className="flex items-start justify-between gap-2">
-                <span className="font-semibold text-sm text-slate-800 truncate">
+                <span className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
                   {tx.merchantNormalized || tx.description}
                 </span>
                 <span className={clsx('font-bold text-sm flex-shrink-0', tx.amount >= 0 ? 'text-green-700' : 'text-red-700')}>
@@ -567,7 +567,7 @@ function CategoryTransactionList({
               {/* Badge row */}
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 <span className="text-xs text-slate-400">{fmtDate(tx.date)}</span>
-                <span className="text-xs text-slate-300">
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   {SOURCE_LABELS[tx.categorizationSource] ?? ''}
                 </span>
               </div>
@@ -582,26 +582,26 @@ function CategoryTransactionList({
 
               {/* Move picker */}
               {pendingMove?.txId === tx.id ? (
-                <div className="mt-2 rounded-2xl p-4" style={{ background: 'rgba(11,16,32,.96)', border: '1px solid rgba(255,255,255,.12)' }}>
+                <div className="mt-2 rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
                   <div className="flex items-center gap-3 mb-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-100">
                       <CategoryIcon name={moveCat?.icon ?? 'tag'} color={moveCat?.color ?? '#6366f1'} size={20} />
                     </span>
                     <div>
-                      <p className="font-bold text-sm text-[#eaf0ff]">Move to {pendingMove.catName}?</p>
-                      <p className="text-xs text-slate-500">{tx.merchantNormalized}</p>
+                      <p className="font-bold text-sm" style={{ color: 'var(--text)' }}>Move to {pendingMove.catName}?</p>
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{tx.merchantNormalized}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 justify-end">
                     <button
                       onClick={() => { setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#8b97c3] hover:bg-white/[.06] transition" style={{ border: '1px solid rgba(255,255,255,.12)' }}
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium transition hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => { onMove(pendingMove.txId, pendingMove.catName, false); setPendingMove(null); setMovingId(null); setCatSearch('') }}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-accent-300 hover:bg-accent-500/10 transition" style={{ border: '1px solid rgba(99,102,241,.35)' }}
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-accent-700 hover:bg-accent-500/10 transition border border-accent-200"
                     >
                       Just this one
                     </button>
@@ -621,7 +621,7 @@ function CategoryTransactionList({
                     autoFocus
                     value={catSearch}
                     onChange={e => setCatSearch(e.target.value)}
-                    className="w-full rounded border border-white/10 px-2 py-1 text-xs mb-1 outline-none focus:border-accent-400 text-[#eaf0ff] placeholder-slate-400" style={{ background: 'rgba(255,255,255,.06)' }}
+                    className="input text-xs mb-1 py-1 px-2"
                   />
                   <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
                     {categories
@@ -641,7 +641,7 @@ function CategoryTransactionList({
                               setCatSearch('')
                             }
                           }}
-                          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium hover:bg-accent-50 hover:text-accent-700 transition text-slate-700 text-left"
+                          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium hover:bg-[var(--bg-hover)] transition text-left" style={{ color: 'var(--text)' }}
                         >
                           <CategoryIcon name={c.icon} color={c.color} size={14} />
                           <span className="truncate">{c.name}</span>
@@ -650,7 +650,7 @@ function CategoryTransactionList({
                   </div>
                   <button
                     onClick={() => { setMovingId(null); setCatSearch('') }}
-                    className="mt-1 text-xs text-slate-400 hover:text-slate-600 transition"
+                    className="mt-1 text-xs transition hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}
                   >
                     ✕ Cancel
                   </button>
@@ -658,7 +658,7 @@ function CategoryTransactionList({
               ) : (
                 <button
                   onClick={() => setMovingId(tx.id)}
-                  className="mt-1.5 flex-shrink-0 px-2 py-0.5 rounded border border-white/10 text-[10px] font-medium text-[#8b97c3] hover:border-accent-400 hover:text-accent-600 transition" style={{ background: 'rgba(255,255,255,.04)' }}
+                  className="mt-1.5 flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-medium hover:border-accent-400 hover:text-accent-600 transition" style={{ border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text-muted)' }}
                 >
                   Move
                 </button>
