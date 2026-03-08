@@ -806,11 +806,9 @@ function CategorizationTips({ onSortAmount, onSortVendor, onSortSamePrice }: Cat
   ]
 
   return (
-    <div style={{
+    <div className="smart-tips-panel" style={{
       display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
-      marginBottom: 16, padding: '12px 16px', borderRadius: 12,
-      background: 'var(--card)',
-      border: '1px solid var(--border)',
+      marginBottom: 16, padding: '12px 16px',
     }}>
 
       {/* Header label */}
@@ -830,20 +828,19 @@ function CategorizationTips({ onSortAmount, onSortVendor, onSortSamePrice }: Cat
           <button
             key={title}
             onClick={onClick}
+            className="smart-tip-item"
             style={{
               display: 'flex', alignItems: 'flex-start', gap: 9,
-              padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
-              background: 'var(--card2)',
-              border: '1px solid var(--border)',
+              padding: '8px 12px', cursor: 'pointer',
               textAlign: 'left', transition: 'background 0.15s, border-color 0.15s',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'var(--accent-muted)'
-              e.currentTarget.style.borderColor = 'var(--border2)'
+              e.currentTarget.style.background = 'rgba(124,145,255,0.08)'
+              e.currentTarget.style.borderColor = 'rgba(124,145,255,0.16)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'var(--card2)'
-              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'
             }}
           >
             <Icon size={13} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
