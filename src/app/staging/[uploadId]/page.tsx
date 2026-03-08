@@ -1175,11 +1175,7 @@ export default function StagingInboxPage() {
             needsReview: counts?.needsReview ?? 0,
           }}
           stagingUpload={stagingUpload ?? null}
-          onStartCategorizing={() => {
-            setScrubFilter(null)
-            setFilterMode('uncategorized')
-            setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
-          }}
+          onStartCategorizing={() => router.push('/categorize')}
           onViewTransactions={() => {
             setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
           }}
