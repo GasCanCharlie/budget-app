@@ -290,8 +290,8 @@ export function InitialAnalysis({
               </div>
             )}
 
-            {/* Pie chart + legend */}
-            <div style={{ display: 'flex', gap: 32, alignItems: 'center', maxWidth: 760, margin: '0 auto' }}>
+            {/* Pie chart + legend — stacked, truly centered */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
               {/* Donut */}
               <div style={{ width: 220, height: 220, flexShrink: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -325,27 +325,27 @@ export function InitialAnalysis({
                 </ResponsiveContainer>
               </div>
 
-              {/* Legend */}
-              <div style={{ minWidth: 0, flex: 1, maxHeight: 400, overflowY: 'auto' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', columnGap: 16, rowGap: 7, alignItems: 'center' }}>
+              {/* Legend — 2 columns side by side */}
+              <div style={{ width: '100%', maxWidth: 680 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 32px' }}>
                   {rows.map((row, i) => (
-                    <>
+                    <div key={row.category} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', columnGap: 12, alignItems: 'center', minWidth: 0 }}>
                       {/* Name */}
-                      <div key={`n-${row.category}`} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                         <div style={{ width: 9, height: 9, borderRadius: 2, flexShrink: 0, background: sliceColor(row, i) }} />
                         <span style={{ fontSize: 13, fontWeight: 600, color: '#d8e1ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {row.category}
                         </span>
                       </div>
                       {/* Amount */}
-                      <div key={`a-${row.category}`} style={{ fontSize: 13, fontWeight: 800, color: '#f4f7ff', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: '#f4f7ff', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {fmtDollars(row.amount)}
-                      </div>
+                      </span>
                       {/* Count */}
-                      <div key={`c-${row.category}`} style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'right', whiteSpace: 'nowrap', minWidth: 24 }}>
+                      <span style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'right', whiteSpace: 'nowrap', minWidth: 22 }}>
                         {row.count}
-                      </div>
-                    </>
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
