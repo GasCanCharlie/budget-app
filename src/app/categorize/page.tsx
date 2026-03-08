@@ -207,8 +207,8 @@ function TxCard({
       data-source={isSource ? 'true' : undefined}
       data-selected={isSelected ? 'true' : undefined}
       className={clsx(
-        'tx-card group flex items-start gap-3 p-4 touch-none select-none',
-        isSource ? 'opacity-50 !border-dashed cursor-grabbing' : 'cursor-grab',
+        'transaction-card touch-none select-none',
+        isSource ? 'dragging cursor-grabbing' : isSelected ? 'selected cursor-grab' : 'cursor-grab',
       )}
       style={undefined}
     >
@@ -300,18 +300,9 @@ function CategoryBucket({
   return (
     <div
       ref={setRef}
-      style={{
-        ...style,
-        // @ts-ignore CSS custom property for accent bar color
-        '--cat-accent': cat.color,
-        padding: '12px 14px',
-        opacity: isSortDragging ? 0.4 : 1,
-      }}
+      style={{ ...style, opacity: isSortDragging ? 0.4 : 1 }}
       onClick={() => { if (!isDraggingTx) onToggleExpand(cat.id) }}
-      className={clsx(
-        'cat-bucket flex items-center gap-3 select-none cursor-pointer',
-        showOver && 'drag-over',
-      )}
+      className={clsx('category-item select-none', showOver && 'drag-over')}
     >
       {/* Reorder grip */}
       <div
@@ -319,47 +310,41 @@ function CategoryBucket({
         {...listeners}
         onClick={e => e.stopPropagation()}
         aria-label="Reorder category"
-        className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-40 hover:!opacity-80 transition-opacity duration-100"
+        className="cat-grip"
         style={{ cursor: isSortDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
-        <GripVertical size={13} style={{ color: 'var(--muted)' }} />
+        <GripVertical size={13} style={{ color: 'var(--text-muted)' }} />
       </div>
 
-      {/* Icon box — tinted with category color */}
-      <div
-        className="cat-icon flex-shrink-0 flex items-center justify-center"
-        style={{
-          width: 36, height: 36, borderRadius: 12,
-          background: cat.color + '22',
-          border: `1px solid ${cat.color}33`,
-        }}
-      >
-        <CategoryIcon name={cat.icon} color={cat.color} size={18} />
-      </div>
-
-      {/* Name */}
-      <span className="flex-1 min-w-0 truncate font-semibold" style={{ fontSize: 15, color: 'var(--text)' }}>
-        {cat.name}
-      </span>
-
-      {/* Count badge */}
-      {txCount != null && txCount > 0 && !showOver && (
-        <span
-          className="flex-shrink-0 text-[11.5px] font-medium px-2 py-0.5 rounded-full"
-          style={{ color: 'var(--muted)', background: 'var(--surface2)', border: '1px solid var(--border)' }}
+      {/* Left: icon + name */}
+      <div className="category-left">
+        <div
+          className="category-icon"
+          style={{ background: cat.color + '22', border: `1px solid ${cat.color}33` }}
         >
-          {txCount}
-        </span>
-      )}
+          <CategoryIcon name={cat.icon} color={cat.color} size={18} />
+        </div>
+        <span className="category-name">{cat.name}</span>
+      </div>
 
-      {/* Chevron */}
-      {!isDraggingTx && (
-        <ChevronRight
-          size={14}
-          style={{ color: 'var(--muted)', flexShrink: 0 }}
-          className={clsx('transition-transform duration-150', isExpanded ? 'rotate-90' : '')}
-        />
-      )}
+      {/* Right: meta */}
+      <div className="category-meta">
+        {/* Drop pill — revealed by CSS when drag-over */}
+        {isDraggingTx && <span className="drop-pill">Drop here</span>}
+
+        {/* Count badge */}
+        {txCount != null && txCount > 0 && !showOver && (
+          <span className="cat-count">{txCount}</span>
+        )}
+
+        {/* Chevron */}
+        {!isDraggingTx && (
+          <ChevronRight
+            size={14}
+            className={clsx('category-arrow transition-transform duration-150', isExpanded && 'rotate-90')}
+          />
+        )}
+      </div>
     </div>
   )
 }
@@ -1540,16 +1525,16 @@ export default function CategorizePage() {
                   {needsReviewCount} uncategorized
                 </span>
               )}
-              <div className="flex rounded-lg border border-white/10 overflow-hidden text-sm font-semibold">
+              <div className="flex rounded-lg overflow-hidden text-sm font-semibold" style={{ border: '1px solid var(--border-soft)' }}>
                 <button
                   onClick={() => setFilterMode('needs-review')}
-                  className={clsx('px-3 py-1.5 transition', filterMode === 'needs-review' ? 'bg-accent-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
+                  className={clsx('px-3 py-1.5 transition', filterMode === 'needs-review' ? 'bg-accent-500 text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]')}
                 >
                   Uncategorized
                 </button>
                 <button
                   onClick={() => setFilterMode('all')}
-                  className={clsx('px-3 py-1.5 transition', filterMode === 'all' ? 'bg-accent-500 text-white' : 'text-[#8b97c3] hover:bg-white/[.06]')}
+                  className={clsx('px-3 py-1.5 transition', filterMode === 'all' ? 'bg-accent-500 text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]')}
                 >
                   All
                 </button>
@@ -1606,7 +1591,7 @@ export default function CategorizePage() {
                         ? 'border-green-300 bg-green-50 text-green-700'
                         : isDirty
                           ? 'border-accent-500 bg-accent-500 text-white hover:bg-accent-600'
-                          : 'border-white/10 bg-white/[.03] text-white/20 cursor-not-allowed'
+                          : 'border-[var(--border-soft)] bg-[var(--surface2)] text-[var(--text-muted)] cursor-not-allowed'
                     )}
                   >
                     {savePrefMutation.isPending
@@ -1619,7 +1604,7 @@ export default function CategorizePage() {
                 </div>
 
                 {/* Category rows — grouped into pairs so accordion expands inline */}
-                <div className="max-h-[calc(100vh-270px)] overflow-x-hidden overflow-y-auto px-1 py-0.5">
+                <div className={clsx('categories-panel max-h-[calc(100vh-270px)] overflow-x-hidden overflow-y-auto px-1 py-0.5', isDraggingTx && 'drag-mode')}>
                   <SortableContext items={sortableCatIds} strategy={verticalListSortingStrategy}>
                     {Array.from({ length: Math.ceil(categories.length / 2) }, (_, rowIdx) => {
                       const row = categories.slice(rowIdx * 2, rowIdx * 2 + 2)
@@ -1647,8 +1632,8 @@ export default function CategorizePage() {
 
                           {/* Inline accordion — spans full width, appears directly under this row */}
                           {expandedCat && (
-                            <div className="mb-2 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.02)' }}>
-                              <div className="flex items-center justify-between px-3 py-2 border-b border-white/[.07]" style={{ background: 'rgba(255,255,255,.04)' }}>
+                            <div className="mb-2 rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-soft)', background: 'var(--card2)' }}>
+                              <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: 'var(--border-soft)', background: 'var(--surface2)' }}>
                                 <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
                                   <CategoryIcon name={expandedCat.icon} color={expandedCat.color} size={14} />
                                   {expandedCat.name}
@@ -1696,7 +1681,7 @@ export default function CategorizePage() {
                             'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
                             active
                               ? 'border-accent-400 bg-accent-50 text-accent-700'
-                              : 'border-white/10 bg-white/[.04] text-[#8b97c3] hover:border-white/20 hover:text-[#c8d4f5]'
+                              : 'border-[var(--border-soft)] bg-[var(--surface2)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text)]'
                           )}
                         >
                           {label}<Icon size={11} />
@@ -1706,7 +1691,7 @@ export default function CategorizePage() {
                     {(sortKey !== 'date' || sortDir !== 'desc' || vendorQuery || samePriceOnly) && (
                       <button
                         onClick={resetSort}
-                        className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.04] px-2 py-1 text-xs text-[#8b97c3] hover:text-[#c8d4f5] transition"
+                        className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface2)] px-2 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text)] transition"
                         title="Reset to default sort"
                       >
                         Reset
@@ -1731,7 +1716,7 @@ export default function CategorizePage() {
                         'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
                         samePriceOnly
                           ? 'border-teal-400 bg-teal-500/20 text-teal-300'
-                          : 'border-white/10 bg-white/[.04] text-[#8b97c3] hover:border-white/20 hover:text-[#c8d4f5]'
+                          : 'border-[var(--border-soft)] bg-[var(--surface2)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text)]'
                       )}
                     >
                       <Equal size={11} />
@@ -1751,7 +1736,8 @@ export default function CategorizePage() {
                       placeholder="Filter by vendor…"
                       value={vendorQuery}
                       onChange={e => setVendorQuery(e.target.value)}
-                      className="w-full rounded-lg border border-white/10 py-1.5 pl-7 pr-7 text-xs text-[#c8d4f5] placeholder-slate-400 outline-none focus:border-accent-400 transition" style={{ background: 'rgba(255,255,255,.06)' }}
+                      className="w-full rounded-lg py-1.5 pl-7 pr-7 text-xs outline-none transition"
+                      style={{ background: 'var(--surface2)', border: '1px solid var(--border-soft)', color: 'var(--text)', borderRadius: 10 }}
                     />
                     {vendorQuery && (
                       <button
