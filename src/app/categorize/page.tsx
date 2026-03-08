@@ -229,12 +229,18 @@ function TxCard({
 
         <div className="transaction-tags">
           {tx.appCategory ? (
-            <span className="badge-success">✓ {tx.appCategory}</span>
+            <span className="badge-success">
+              <span className="badge-icon">✓</span>
+              <span>{tx.appCategory}</span>
+            </span>
           ) : (
             <span className="badge-warning">Uncategorized</span>
           )}
           {tx.bankCategoryRaw && (
-            <span className="badge-tag">🏦 {tx.bankCategoryRaw}</span>
+            <span className="badge-tag">
+              <span className="badge-icon">🏦</span>
+              <span>{tx.bankCategoryRaw}</span>
+            </span>
           )}
         </div>
       </div>

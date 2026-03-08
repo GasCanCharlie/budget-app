@@ -587,11 +587,11 @@ h3 { letter-spacing: -0.01em; }
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 16px;
-  border-radius: var(--radius-card);
-  background: linear-gradient(180deg, #121a2d 0%, #10182a 100%);
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #121a2d 0%, #0f1829 100%);
   border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 1px 2px rgba(0,0,0,.22);
+  box-shadow: 0 1px 2px rgba(0,0,0,.25), 0 12px 28px rgba(0,0,0,.25);
   overflow: hidden;
   transition:
     background var(--transition-fast),
@@ -648,40 +648,49 @@ h3 { letter-spacing: -0.01em; }
 .transaction-main  { flex: 1; min-width: 0; }
 .transaction-top   { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
 .transaction-vendor {
-  font-size: 15px; font-weight: 700; color: var(--text-primary);
+  font-size: 15px; font-weight: 700; color: #f2f5ff;
   line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.transaction-date   { font-size: 13px; color: var(--text-secondary); margin-top: 2px; margin-bottom: 10px; }
-.transaction-amount { font-size: 15px; font-weight: 800; white-space: nowrap; }
-.transaction-amount.expense { color: var(--danger); }
-.transaction-amount.income  { color: var(--success); }
-.transaction-tags   { display: flex; flex-wrap: wrap; gap: 8px; }
+.transaction-date   { font-size: 13px; font-weight: 500; color: #9aa6bf; margin-top: 4px; margin-bottom: 0; }
+.transaction-amount { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.transaction-amount.expense { color: #ff7f90; }
+.transaction-amount.income  { color: #37d67a; }
+.transaction-tags   { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
 /* ── Badges ──────────────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex; align-items: center; gap: 6px;
-  height: 28px; padding: 0 10px; border-radius: 999px;
-  font-size: 12px; font-weight: 700; border: 1px solid transparent;
+  height: 26px; padding: 0 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; border: 1px solid transparent;
 }
 .badge-warning {
-  height: 24px;
-  background: rgba(163,174,194,0.12);
+  display: inline-flex; align-items: center;
+  height: 26px; padding: 0 10px; border-radius: 999px;
+  background: rgba(148,163,184,0.10);
+  border: 1px solid rgba(148,163,184,0.18);
   color: #aab5c8;
-  border-color: rgba(163,174,194,0.16);
-  letter-spacing: 0.01em;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
 }
 .badge-tag {
-  height: 24px;
-  background: rgba(124,145,255,0.14);
-  color: #c6d0ff;
-  border-color: rgba(124,145,255,0.20);
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 10px; border-radius: 999px;
+  background: rgba(124,145,255,0.15);
+  border: 1px solid rgba(124,145,255,0.25);
+  color: #c5d0ff;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
 }
 .badge-success {
-  height: 24px;
-  background: rgba(124,145,255,0.14);
-  color: #c6d0ff;
-  border: 1px solid rgba(124,145,255,0.20);
-  border-radius: 999px; padding: 0 10px; font-size: 12px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 10px; border-radius: 999px;
+  background: rgba(124,145,255,0.15);
+  border: 1px solid rgba(124,145,255,0.25);
+  color: #c5d0ff;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
+}
+.badge-icon {
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; line-height: 1; flex-shrink: 0;
 }
 
 /* Light mode badge overrides */
@@ -690,11 +699,7 @@ h3 { letter-spacing: -0.01em; }
   color: #64748b;
   border-color: rgba(100,116,139,0.16);
 }
-[data-theme="light"] .badge-tag {
-  background: rgba(79,70,229,0.08);
-  color: #4f46e5;
-  border-color: rgba(79,70,229,0.18);
-}
+[data-theme="light"] .badge-tag,
 [data-theme="light"] .badge-success {
   background: rgba(79,70,229,0.08);
   color: #4f46e5;
