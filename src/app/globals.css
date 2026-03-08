@@ -127,21 +127,6 @@
   transition: none !important;
 }
 
-/* ─── Design tokens (RGB channels for opacity compositing) ─────────────── */
-:root {
-  --bg:      7 10 20;        /* #070a14  body base */
-  --panel:   15 19 40;       /* #0f1328  surface */
-  --text:    234 240 255;    /* #eaf0ff  primary text */
-  --muted:   139 151 195;    /* #8b97c3  muted text */
-  --border:  255 255 255;    /* use with opacity: rgba(255,255,255,.10) */
-  --nav:     11 16 32;       /* #0b1020  nav bg */
-  --nav2:    7 10 20;        /* #070a14  nav gradient end */
-  --primary: 110 168 255;    /* #6ea8ff  brand blue */
-  --success: 46 229 157;     /* #2ee59d  positive */
-  --warning: 255 204 102;    /* #ffcc66  warning */
-  --danger:  255 92 122;     /* #ff5c7a  negative */
-}
-
 html, body {
   height: 100%;
 }
@@ -155,7 +140,7 @@ html, body {
       radial-gradient(800px 600px at 85% 12%, rgba(138,125,255,.12), transparent 55%),
       linear-gradient(180deg, #0b1020 0%, #070a14 100%);
     background-attachment: fixed;
-    color: rgb(var(--text));
+    color: var(--text);
     @apply antialiased;
   }
 }
@@ -640,23 +625,23 @@ h3 { letter-spacing: -0.01em; }
 
 /* ── Checkbox ────────────────────────────────────────────────────────────── */
 .transaction-check {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1.5px solid var(--border-hover);
-  background: var(--bg-card);
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid transparent;
+  background: transparent;
   flex-shrink: 0;
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast),
-    transform var(--transition-fast),
     background var(--transition-fast);
 }
-.transaction-card:hover .transaction-check { border-color: var(--border-selected); }
+.transaction-card:hover .transaction-check {
+  border-color: rgba(124,145,255,0.25);
+}
 .transaction-card.selected .transaction-check {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 6px 14px rgba(91,111,245,.25);
+  background: rgba(124,145,255,0.22);
+  border-color: rgba(124,145,255,0.50);
 }
 
 /* ── Transaction content ─────────────────────────────────────────────────── */
