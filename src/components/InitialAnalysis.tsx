@@ -291,9 +291,9 @@ export function InitialAnalysis({
             )}
 
             {/* Pie chart + legend */}
-            <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', maxWidth: 760, margin: '0 auto' }}>
+            <div style={{ display: 'flex', gap: 32, alignItems: 'center', maxWidth: 760, margin: '0 auto' }}>
               {/* Donut */}
-              <div style={{ width: 220, height: 220, flexShrink: 0, marginTop: 4 }}>
+              <div style={{ width: 220, height: 220, flexShrink: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
