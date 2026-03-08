@@ -36,7 +36,7 @@ import {
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useApi } from '@/hooks/useApi'
-import { ImportReview } from '@/components/ImportReview'
+import { InitialAnalysis } from '@/components/InitialAnalysis'
 import { scrubTransactions, type ScrubFilter } from '@/lib/scrubbing'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -1322,23 +1322,50 @@ export default function StagingInboxPage() {
           </div>
         )}
 
-        {/* ── Import Review ─────────────────────────────────────────────── */}
-        <ImportReview
+        {/* ── Initial Analysis ──────────────────────────────────────────── */}
+        <InitialAnalysis
           summary={importSummary}
-          activeFilter={scrubFilter}
-          onFilter={f => {
-            setScrubFilter(f)
-            // Clear status-based filter when a scrub filter is applied
-            if (f) setFilterMode('all')
-            // Scroll to the transaction table
-            setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+          transactions={transactions}
+          counts={{
+            total: counts?.total ?? 0,
+            uncategorized: counts?.uncategorized ?? 0,
+            needsReview: counts?.needsReview ?? 0,
           }}
+          stagingUpload={stagingUpload ?? null}
           onStartCategorizing={() => {
             setScrubFilter(null)
             setFilterMode('uncategorized')
             setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
           }}
+          onViewTransactions={() => {
+            setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+          }}
         />
+
+        {/* ── Scrub filter chips (keep for power users clicking category bars) */}
+        {scrubFilter && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setScrubFilter(null)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 999,
+                border: '1px solid var(--accent)', background: 'var(--accent-muted)',
+                color: 'var(--accent)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              Filtered: {scrubFilter.kind === 'category' ? scrubFilter.value
+                : scrubFilter.kind === 'canonical_merchant' ? scrubFilter.value
+                : scrubFilter.kind === 'merchant_type' ? scrubFilter.value
+                : scrubFilter.kind === 'recurring' ? 'Recurring'
+                : scrubFilter.kind === 'transfer' ? 'Transfers'
+                : scrubFilter.kind === 'income' ? 'Income'
+                : 'Needs Review'}
+              {' '}({filtered.length}) ×
+            </button>
+          </div>
+        )}
+
 
         {/* ── Action bar ────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-2">
