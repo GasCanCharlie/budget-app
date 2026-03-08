@@ -207,17 +207,13 @@ function TxCard({
       data-source={isSource ? 'true' : undefined}
       data-selected={isSelected ? 'true' : undefined}
       className={clsx(
-        'tx-card group relative flex items-start gap-3 rounded-xl border p-3 touch-none select-none',
-        isSource
-          ? 'opacity-50 border-dashed cursor-grabbing'
-          : isSelected
-            ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50 cursor-grab'
-            : 'cursor-grab',
+        'tx-card group flex items-start gap-3 rounded-[18px] border p-3.5 touch-none select-none',
+        isSource ? 'opacity-50 border-dashed cursor-grabbing' : 'cursor-grab',
       )}
-      style={!isSelected ? {
+      style={{
         background: 'var(--card)',
         borderColor: 'var(--border)',
-      } : undefined}
+      }}
     >
       {/* Checkbox / drag handle */}
       <div className="transaction-check" aria-hidden="true" />

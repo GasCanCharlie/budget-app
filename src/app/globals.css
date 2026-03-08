@@ -41,6 +41,15 @@
   --track:          rgba(255,255,255,0.10);
   --warning:        var(--warn);
   --tile:           rgba(255,255,255,0.09);
+  /* Shared interaction tokens */
+  --ui-hover-bg:      rgba(120,170,255,0.08);
+  --ui-hover-border:  rgba(120,170,255,0.30);
+  --ui-hover-shadow:  0 8px 16px rgba(0,0,0,0.20);
+  --ui-hover-lift:    translateY(-1px);
+  --ui-hover-duration: 180ms;
+  --ui-hover-ease:    ease;
+  --ui-accent-bar:    #8aa2ff;
+  --ui-icon-hover:    rgba(255,255,255,0.80);
 }
 
 [data-theme="light"] {
@@ -80,6 +89,15 @@
   --track:          rgba(17,24,39,0.10);
   --warning:        var(--warn);
   --tile:           #edf0f7;
+  /* Shared interaction tokens */
+  --ui-hover-bg:      #f7faff;
+  --ui-hover-border:  #dbe5f2;
+  --ui-hover-shadow:  0 8px 16px rgba(0,0,0,0.05);
+  --ui-hover-lift:    translateY(-1px);
+  --ui-hover-duration: 180ms;
+  --ui-hover-ease:    ease;
+  --ui-accent-bar:    #8aa2ff;
+  --ui-icon-hover:    #5f6f88;
 }
 
 /* ─── Smooth theme transition ───────────────────────────────────────────── */
@@ -507,13 +525,23 @@ h3 { letter-spacing: -0.01em; }
 [data-theme="light"] .data-table td { color: #334155; border-color: rgba(0,0,0,0.05); }
 [data-theme="light"] .data-table tbody tr:hover td { background-color: #f8fafc; }
 
-/* ─── Category bucket card ───────────────────────────────────────────────── */
-.cat-bucket {
+/* ─── Unified interactive surface system ─────────────────────────────────── */
+
+/* Shared base for both category items and transaction cards */
+.cat-bucket,
+.tx-card {
   position: relative;
-  transition: background 0.18s ease, border-color 0.18s ease,
-              transform 0.18s ease, box-shadow 0.18s ease;
+  overflow: hidden;
+  transition:
+    background var(--ui-hover-duration) var(--ui-hover-ease),
+    border-color var(--ui-hover-duration) var(--ui-hover-ease),
+    transform var(--ui-hover-duration) var(--ui-hover-ease),
+    box-shadow var(--ui-hover-duration) var(--ui-hover-ease);
 }
-.cat-bucket::before {
+
+/* Left accent bar — same for both */
+.cat-bucket::before,
+.tx-card::before {
   content: "";
   position: absolute;
   left: 0;
@@ -522,35 +550,39 @@ h3 { letter-spacing: -0.01em; }
   width: 4px;
   border-radius: 999px;
   background: transparent;
-  transition: background 0.18s ease;
+  transition: background var(--ui-hover-duration) var(--ui-hover-ease);
 }
-.cat-bucket:hover {
-  background: var(--bg2) !important;
-  border-color: var(--border2) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.06);
-}
-.cat-bucket:hover::before {
-  background: var(--cat-accent, #8aa2ff);
-}
-.cat-bucket:hover .cat-icon {
-  transform: scale(1.06);
-}
-.cat-icon {
-  transition: transform 0.18s ease;
-}
+.tx-card::before { top: 12px; bottom: 12px; }
 
-/* ─── Transaction card ───────────────────────────────────────────────────── */
-.tx-card {
-  transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
-}
+/* Hover state — same recipe for both */
+.cat-bucket:hover,
 .tx-card:not([data-source="true"]):not([data-selected="true"]):hover {
-  border-color: var(--border2) !important;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.07);
-  transform: translateY(-1px);
+  background: var(--ui-hover-bg) !important;
+  border-color: var(--ui-hover-border) !important;
+  transform: var(--ui-hover-lift);
+  box-shadow: var(--ui-hover-shadow);
 }
 
-/* ─── Transaction card reference styles ─────────────────────────────────── */
+/* Accent bar on hover */
+.cat-bucket:hover::before {
+  background: var(--cat-accent, var(--ui-accent-bar));
+}
+.tx-card:not([data-source="true"]):not([data-selected="true"]):hover::before {
+  background: var(--ui-accent-bar);
+}
+
+/* Icon / check scale on hover */
+.cat-bucket:hover .cat-icon,
+.tx-card:hover .transaction-check {
+  transform: scale(1.03);
+}
+
+/* cat-icon base transition */
+.cat-icon {
+  transition: transform var(--ui-hover-duration) var(--ui-hover-ease);
+}
+
+/* ─── Transaction card inner elements ───────────────────────────────────── */
 .transaction-check {
   width: 26px;
   height: 26px;
@@ -559,21 +591,34 @@ h3 { letter-spacing: -0.01em; }
   background: var(--surface);
   flex-shrink: 0;
   margin-top: 2px;
-  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+  transition:
+    border-color var(--ui-hover-duration) var(--ui-hover-ease),
+    background var(--ui-hover-duration) var(--ui-hover-ease),
+    transform var(--ui-hover-duration) var(--ui-hover-ease);
 }
 .tx-card:hover .transaction-check {
-  transform: scale(1.03);
-  border-color: var(--accent);
+  border-color: #b9c7d8;
 }
 .tx-card[data-selected="true"] .transaction-check {
   background: var(--accent);
   border-color: var(--accent);
 }
+
+/* Selected card state */
+.tx-card[data-selected="true"] {
+  background: var(--accent-muted) !important;
+  border-color: var(--accent) !important;
+  box-shadow: var(--ring) !important;
+}
+.tx-card[data-selected="true"]::before {
+  background: var(--ui-accent-bar);
+}
+
 .transaction-vendor {
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
-  transition: color 180ms ease;
+  transition: color var(--ui-hover-duration) var(--ui-hover-ease);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
