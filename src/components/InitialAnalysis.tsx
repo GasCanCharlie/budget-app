@@ -29,7 +29,6 @@ interface InitialAnalysisProps {
   counts: Counts
   stagingUpload: StagingUploadMeta | null
   onStartCategorizing: () => void
-  onViewTransactions: () => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -105,7 +104,6 @@ export function InitialAnalysis({
   counts,
   stagingUpload,
   onStartCategorizing,
-  onViewTransactions,
 }: InitialAnalysisProps) {
   const rows = useCategoryBreakdown(transactions, summary)
   const top = rows[0]
@@ -193,8 +191,8 @@ export function InitialAnalysis({
               </h1>
             </div>
 
-            {/* CTAs */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto', flexShrink: 0 }}>
+            {/* CTA */}
+            <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
               <button
                 onClick={onStartCategorizing}
                 className="ia-btn ia-btn-primary"
@@ -206,19 +204,6 @@ export function InitialAnalysis({
                 }}
               >
                 Start Categorizing
-              </button>
-              <button
-                onClick={onViewTransactions}
-                className="ia-btn"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)',
-                  background: 'rgba(255,255,255,0.04)',
-                  color: '#fff', padding: '8px 14px', fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', transition: 'transform 0.18s ease',
-                }}
-              >
-                View Transactions
               </button>
             </div>
           </div>
@@ -432,20 +417,6 @@ export function InitialAnalysis({
               }}
             >
               Start Categorizing
-            </button>
-            <button
-              onClick={onViewTransactions}
-              className="ia-btn"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: '100%', borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.04)',
-                color: '#fff', padding: '13px 18px', fontSize: 14, fontWeight: 700,
-                cursor: 'pointer', marginBottom: 0,
-                transition: 'transform 0.18s ease',
-              }}
-            >
-              Review Needs Attention First
             </button>
           </aside>
         </div>

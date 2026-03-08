@@ -1176,7 +1176,6 @@ export default function StagingInboxPage() {
           }}
           stagingUpload={stagingUpload ?? null}
           onStartCategorizing={() => router.push('/categorize')}
-          onViewTransactions={() => router.push('/categorize')}
         />
 
       </div>
