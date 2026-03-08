@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText, Equal } from 'lucide-react'
 import clsx from 'clsx'
 import {
@@ -802,8 +802,7 @@ function buildCollisionDetector(activeKind: 'tx' | 'cat' | null): CollisionDetec
 
 export default function CategorizePage() {
   const router       = useRouter()
-  const searchParams = useSearchParams()
-  const fromInsights = searchParams.get('from') === 'insights'
+  const [fromInsights, setFromInsights] = useState(false)
   const user         = useAuthStore(s => s.user)
   const { apiFetch } = useApi()
   const qc           = useQueryClient()
@@ -834,6 +833,9 @@ export default function CategorizePage() {
   }, [qc])
 
   useEffect(() => { if (!user) router.replace('/login') }, [user, router])
+  useEffect(() => {
+    setFromInsights(new URLSearchParams(window.location.search).get('from') === 'insights')
+  }, [])
 
   const [filterMode,    setFilterMode]    = useState<FilterMode>('needs-review')
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
