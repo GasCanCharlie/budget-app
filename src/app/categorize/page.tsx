@@ -204,52 +204,61 @@ function TxCard({
       {...listeners}
       onClick={e => onClick(tx, e)}
       tabIndex={0}
+      data-source={isSource ? 'true' : undefined}
+      data-selected={isSelected ? 'true' : undefined}
       className={clsx(
-        'group relative flex items-start gap-3 rounded-xl border p-3 transition-all duration-[140ms] ease-[cubic-bezier(.2,.8,.2,1)] touch-none select-none',
+        'tx-card group relative flex items-start gap-3 rounded-xl border p-3 touch-none select-none',
         isSource
-          ? 'opacity-50 border-dashed border-white/[.14] shadow-none translate-y-0 cursor-grabbing'
+          ? 'opacity-50 border-dashed cursor-grabbing'
           : isSelected
             ? 'border-accent-500 ring-2 ring-accent-200 bg-accent-50 cursor-grab'
-            : 'border-white/[.08] hover:border-[rgba(140,190,255,.22)] hover:[box-shadow:0_0_0_3px_rgba(120,170,255,.10),0_10px_30px_rgba(0,0,0,.35)] cursor-grab',
+            : 'cursor-grab',
       )}
-      style={!isSelected ? { background: 'linear-gradient(180deg,#0E162B,#101B33)' } : undefined}
+      style={!isSelected ? {
+        background: 'var(--card)',
+        borderColor: 'var(--border)',
+      } : undefined}
     >
-      {/* Drag handle — 3×3 dot grid (visual affordance only, whole row is activator) */}
+      {/* Drag handle */}
       <div
         aria-hidden="true"
-        className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-[10px] flex items-center justify-center border border-transparent bg-white/[.02] opacity-70 group-hover:opacity-100 transition-all duration-[140ms]"
+        className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-[10px] flex items-center justify-center border opacity-60 group-hover:opacity-100 transition-opacity duration-[140ms]"
+        style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}
       >
         <div className="grid grid-cols-3 gap-[3px]" aria-hidden="true">
           {Array.from({ length: 9 }).map((_, i) => (
-            <span key={i} className="block w-[3px] h-[3px] rounded-sm bg-white/55" />
+            <span key={i} className="block w-[3px] h-[3px] rounded-sm" style={{ background: 'var(--muted)' }} />
           ))}
         </div>
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-semibold text-[rgba(255,255,255,.92)]">
+          <p className="truncate text-sm font-semibold" style={{ color: 'var(--text)' }}>
             {tx.merchantNormalized || tx.description}
           </p>
-          <p className={clsx('flex-shrink-0 text-sm font-bold tabular-nums', tx.amount < 0 ? 'text-[#FF5B78]' : 'text-[#2EE59D]')}>
+          <p style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: tx.amount < 0 ? '#FF5B78' : '#2EE59D', margin: 0 }}>
             {fmtAmt(tx.amount)}
           </p>
         </div>
 
-        <p className="mt-0.5 truncate text-xs text-[rgba(255,255,255,.55)]">{fmtDate(tx.date)}</p>
+        <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--muted)' }}>{fmtDate(tx.date)}</p>
 
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {tx.appCategory ? (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border" style={{ background: 'rgba(46,229,157,.12)', color: '#2EE59D', borderColor: 'rgba(46,229,157,.25)' }}>
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border"
+              style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', borderColor: 'rgba(16,185,129,0.25)' }}>
               ✓ {tx.appCategory}
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border" style={{ background: 'rgba(255,180,60,.10)', color: 'rgba(255,180,60,.9)', borderColor: 'rgba(255,180,60,.22)' }}>
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border"
+              style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', borderColor: 'rgba(245,158,11,0.25)' }}>
               Uncategorized
             </span>
           )}
           {tx.bankCategoryRaw && (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border" style={{ background: 'rgba(120,170,255,.14)', color: 'rgba(160,200,255,.95)', borderColor: 'rgba(120,170,255,.22)' }}>
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border"
+              style={{ background: 'var(--accent-muted)', color: 'var(--accent)', borderColor: 'var(--border2)' }}>
               🏦 {tx.bankCategoryRaw}
             </span>
           )}
