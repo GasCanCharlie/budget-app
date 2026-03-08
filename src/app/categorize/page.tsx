@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText, Equal } from 'lucide-react'
+import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText, Equal, Lightbulb, Store } from 'lucide-react'
 import clsx from 'clsx'
 import {
   DndContext,
@@ -800,25 +800,10 @@ function buildCollisionDetector(activeKind: 'tx' | 'cat' | null): CollisionDetec
 
 // ─── Categorization Tips Panel ───────────────────────────────────────────────
 
-const TIPS = [
-  {
-    icon: '↕',
-    label: 'Amount sort',
-    keyword: 'Amount',
-    text: 'groups identical transactions — great for bills and subscriptions.',
-  },
-  {
-    icon: '🏪',
-    label: 'Vendor sort',
-    keyword: 'Vendor',
-    text: 'clusters the same merchant so you can categorize many at once.',
-  },
-  {
-    icon: '=',
-    label: 'Same Price',
-    keyword: 'Same Price',
-    text: 'surfaces recurring charges like Netflix, Spotify, or utilities instantly.',
-  },
+const TIPS: Array<{ Icon: React.ElementType; keyword: string; text: string; color: string }> = [
+  { Icon: ArrowUpDown, keyword: 'Amount',     color: '#7c8fff', text: 'groups identical transactions — great for bills and subscriptions.' },
+  { Icon: Store,       keyword: 'Vendor',     color: '#7c8fff', text: 'clusters the same merchant so you can categorize many at once.' },
+  { Icon: Equal,       keyword: 'Same Price', color: '#7c8fff', text: 'surfaces recurring charges like Netflix or Spotify instantly.' },
 ]
 
 function CategorizationTips() {
@@ -836,32 +821,42 @@ function CategorizationTips() {
   }
 
   return (
-    <div
-      style={{
-        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 18px',
-        marginBottom: 14, padding: '10px 14px', borderRadius: 12,
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.07)',
-      }}
-    >
-      <span style={{ fontSize: 13, fontWeight: 800, color: '#a6b5d8', whiteSpace: 'nowrap', marginRight: 4 }}>
-        💡 Tips
+    <div style={{
+      display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 20px',
+      marginBottom: 14, padding: '9px 14px', borderRadius: 10,
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.07)',
+    }}>
+      {/* Label */}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#8494b8', whiteSpace: 'nowrap' }}>
+        <Lightbulb size={13} style={{ color: '#6f80ff' }} />
+        Tips
       </span>
-      {TIPS.map(tip => (
-        <span key={tip.keyword} style={{ fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontSize: 11 }}>{tip.icon}</span>
-          <strong style={{ color: '#c5d0f0', fontWeight: 700 }}>{tip.keyword}</strong>
-          <span style={{ color: '#6b7a9e' }}>{tip.text}</span>
+
+      {/* Divider */}
+      <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+
+      {TIPS.map(({ Icon, keyword, text }) => (
+        <span key={keyword} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, whiteSpace: 'nowrap' }}>
+          <Icon size={12} style={{ color: '#6f80ff', flexShrink: 0 }} />
+          <strong style={{ color: '#c5d0f0', fontWeight: 700 }}>{keyword}</strong>
+          <span style={{ color: '#5a6a8a' }}>{text}</span>
         </span>
       ))}
+
       <button
         onClick={dismiss}
         style={{
-          marginLeft: 'auto', fontSize: 11, color: '#4e5a78', background: 'none',
-          border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', padding: '2px 0',
+          marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4,
+          fontSize: 11, color: '#404e6a', background: 'none',
+          border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', padding: 0,
+          transition: 'color 0.15s',
         }}
+        onMouseEnter={e => (e.currentTarget.style.color = '#7c8aaa')}
+        onMouseLeave={e => (e.currentTarget.style.color = '#404e6a')}
       >
-        Dismiss tips
+        <X size={11} />
+        Dismiss
       </button>
     </div>
   )
