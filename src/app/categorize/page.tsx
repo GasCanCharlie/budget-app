@@ -1504,7 +1504,7 @@ export default function CategorizePage() {
                   width: `${txTotal > 0 ? Math.round((catCount / txTotal) * 100) : 0}%`,
                   background: unlocked
                     ? 'linear-gradient(90deg, #39d07f, #7be5ad)'
-                    : 'linear-gradient(90deg, #6f80ff, #9aa5ff)',
+                    : 'linear-gradient(90deg, #7c91ff, #9aa8ff)',
                   transition: 'width 0.4s ease',
                 }} />
               </div>
@@ -1613,7 +1613,7 @@ export default function CategorizePage() {
                         : null
                       return (
                         <div key={rowIdx}>
-                          <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                          <div className="grid grid-cols-2 gap-3 mb-3">
                             {row.map(cat => (
                               <CategoryBucket
                                 key={cat.id}
@@ -1820,29 +1820,29 @@ export default function CategorizePage() {
             <div style={{
               position: 'relative',
               pointerEvents: 'none',
-              width: 48,
-              height: 48,
-              borderRadius: 14,
+              width: 44,
+              height: 44,
+              borderRadius: 12,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.9), rgba(168,85,247,0.85))',
-              boxShadow: '0 0 0 6px rgba(99,102,241,0.18), 0 0 24px rgba(99,102,241,0.55), 0 8px 24px rgba(0,0,0,0.5)',
-              border: '1px solid rgba(168,85,247,0.5)',
+              background: 'var(--bg-card)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12)',
+              border: '1px solid var(--border-selected)',
             }}>
-              <FileText size={22} color="white" strokeWidth={1.75} />
+              <FileText size={18} style={{ color: 'var(--accent)' }} strokeWidth={1.75} />
               {activeDrag.draggingIds.length > 1 && (
                 <span style={{
                   position: 'absolute',
                   top: -6,
                   right: -6,
-                  background: 'rgba(255,180,60,0.95)',
+                  background: 'var(--warn)',
                   color: '#fff',
                   fontSize: 10,
                   fontWeight: 700,
                   borderRadius: 999,
                   padding: '1px 5px',
-                  border: '1.5px solid rgba(0,0,0,0.2)',
+                  border: '1.5px solid rgba(0,0,0,0.12)',
                 }}>
                   {activeDrag.draggingIds.length}
                 </span>

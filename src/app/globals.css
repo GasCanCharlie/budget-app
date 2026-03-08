@@ -300,6 +300,7 @@ html, body {
 
 /* ─── Nav link theming ──────────────────────────────────────────────────── */
 .bl-nav-link {
+  position: relative;
   color: var(--muted);
   font-size: 13px;
   font-weight: 500;
@@ -313,6 +314,16 @@ html, body {
 .bl-nav-link.active {
   color: var(--accent);
   background-color: var(--accent-muted);
+}
+.bl-nav-link.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--accent);
 }
 
 /* ─── Page heading typography ───────────────────────────────────────────── */
@@ -543,6 +554,27 @@ h3 { letter-spacing: -0.01em; }
 [data-theme="light"] .data-table td { color: #334155; border-color: rgba(0,0,0,0.05); }
 [data-theme="light"] .data-table tbody tr:hover td { background-color: #f8fafc; }
 
+/* Light mode transaction card precision overrides */
+[data-theme="light"] .transaction-card {
+  box-shadow: none;
+  border-color: #e6edf5;
+}
+[data-theme="light"] .transaction-card:hover {
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+  border-color: var(--border-hover);
+}
+[data-theme="light"] .transaction-card.selected {
+  background: #f5f7ff;
+  border-color: #cdd8ff;
+}
+
+/* Light mode badge precision overrides */
+[data-theme="light"] .badge-warning {
+  background: #fff4e5;
+  color: #b86a00;
+  border-color: #f2ddb6;
+}
+
 /* ─── Unified interactive surface system ─────────────────────────────────── */
 
 /* ── Transaction card ───────────────────────────────────────────────────── */
@@ -651,7 +683,7 @@ h3 { letter-spacing: -0.01em; }
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: var(--radius-row);
   border: 1px solid transparent;
   background: var(--bg-card);
@@ -688,6 +720,10 @@ h3 { letter-spacing: -0.01em; }
   background: var(--bg-hover);
   border-color: var(--border-hover);
   box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+[data-theme="light"] .category-item:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05), 0 8px 20px rgba(0,0,0,0.06);
 }
 .category-item:hover::before { opacity: 1; }
 .category-item:hover::after  { background: #8aa2ff; }
