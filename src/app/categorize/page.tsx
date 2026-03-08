@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText, Equal } from 'lucide-react'
 import clsx from 'clsx'
 import {
@@ -36,6 +36,7 @@ import { AppShell } from '@/components/AppShell'
 import { CategoryIcon } from '@/components/CategoryIcon'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
+import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import { sortCategorizeTransactions, type CatSortKey, type CatSortDir } from '@/lib/sort-transactions'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -800,10 +801,13 @@ function buildCollisionDetector(activeKind: 'tx' | 'cat' | null): CollisionDetec
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CategorizePage() {
-  const router  = useRouter()
-  const user    = useAuthStore(s => s.user)
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const fromInsights = searchParams.get('from') === 'insights'
+  const user         = useAuthStore(s => s.user)
   const { apiFetch } = useApi()
-  const qc      = useQueryClient()
+  const qc           = useQueryClient()
+  const { unlocked, categorized: catCount, total: txTotal } = useInsightsUnlock()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [, startTransition] = useTransition()
 
@@ -1008,6 +1012,7 @@ export default function CategorizePage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['insights-unlock-status'] })
       invalidateDashboard()
     },
   })
@@ -1383,6 +1388,47 @@ export default function CategorizePage() {
         onDragEnd={onDragEnd}
       >
         <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
+          {/* From-insights banner */}
+          {fromInsights && !unlocked && (
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                marginBottom: 16, padding: '12px 16px', borderRadius: 12,
+                background: 'rgba(111,128,255,0.12)',
+                border: '1px solid rgba(111,128,255,0.3)',
+              }}
+            >
+              <span style={{ fontSize: 16 }}>🔒</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#c5ceff' }}>
+                Finish categorizing your transactions to unlock AI Insights.
+              </span>
+            </div>
+          )}
+
+          {/* Progress bar */}
+          {txTotal > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary, #8b97c3)' }}>
+                  Categorization Progress
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: unlocked ? '#39d07f' : 'var(--text-primary, #d0dbff)' }}>
+                  {unlocked ? '✓ Complete' : `${catCount} / ${txTotal} categorized · ${Math.round((catCount / txTotal) * 100)}%`}
+                </span>
+              </div>
+              <div style={{ height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', borderRadius: 999,
+                  width: `${txTotal > 0 ? Math.round((catCount / txTotal) * 100) : 0}%`,
+                  background: unlocked
+                    ? 'linear-gradient(90deg, #39d07f, #7be5ad)'
+                    : 'linear-gradient(90deg, #6f80ff, #9aa5ff)',
+                  transition: 'width 0.4s ease',
+                }} />
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
+import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import { AiInsightsPanel } from '@/components/dashboard/AiInsightsPanel'
 import { MessageCircle, Send, Loader2 } from 'lucide-react'
 
@@ -170,7 +171,12 @@ export default function InsightsPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  const { unlocked, loading: unlockLoading } = useInsightsUnlock()
+
   useEffect(() => { if (!user) router.replace('/login') }, [user, router])
+  useEffect(() => {
+    if (!unlockLoading && !unlocked) router.replace('/categorize?from=insights')
+  }, [unlocked, unlockLoading, router])
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
   useEffect(() => { return () => { abortControllerRef.current?.abort() } }, [])
 

@@ -4,13 +4,15 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
+import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import {
   LayoutDashboard, Upload, ArrowLeftRight, Tags, Layers,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, Lightbulb
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, Lightbulb, Lock,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useEffect, useRef, useState } from 'react'
 
 interface AppShellProps {
   children: React.ReactNode
@@ -33,12 +35,34 @@ const navItems = [
   { href: '/rules',        label: 'Rules',        icon: Gavel },
 ]
 
+const TOOLTIP_TEXT = 'Finish categorizing all transactions to unlock AI Insights.'
+
 export function AppShell({ children, year, month, availableMonths, onMonthChange }: AppShellProps) {
   const pathname = usePathname()
   const router   = useRouter()
   const logout   = useAuthStore(s => s.logout)
   const user     = useAuthStore(s => s.user)
   const qc       = useQueryClient()
+  const { unlocked, loading: unlockLoading } = useInsightsUnlock()
+
+  // Track transition locked→unlocked to trigger "just unlocked" toast + glow
+  const prevUnlockedRef = useRef<boolean | null>(null)
+  const [justUnlocked, setJustUnlocked] = useState(false)
+  const [showUnlockToast, setShowUnlockToast] = useState(false)
+  const [insightsTooltip, setInsightsTooltip] = useState(false)
+  const tooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (unlockLoading) return
+    if (prevUnlockedRef.current === false && unlocked === true) {
+      setJustUnlocked(true)
+      setShowUnlockToast(true)
+      const t1 = setTimeout(() => setJustUnlocked(false), 2500)
+      const t2 = setTimeout(() => setShowUnlockToast(false), 4500)
+      return () => { clearTimeout(t1); clearTimeout(t2) }
+    }
+    prevUnlockedRef.current = unlocked
+  }, [unlocked, unlockLoading])
 
   function handleLogout() {
     logout()
@@ -60,8 +84,56 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
     ? availableMonths.findIndex(m => m.year === year && m.month === month) > 0
     : false
 
+  function handleLockedInsightsClick() {
+    router.push('/categorize?from=insights')
+  }
+
+  function onInsightsMouseEnter() {
+    if (tooltipTimer.current) clearTimeout(tooltipTimer.current)
+    tooltipTimer.current = setTimeout(() => setInsightsTooltip(true), 200)
+  }
+
+  function onInsightsMouseLeave() {
+    if (tooltipTimer.current) clearTimeout(tooltipTimer.current)
+    setInsightsTooltip(false)
+  }
+
   return (
     <div className="min-h-screen">
+      <style>{`
+        @keyframes bl-unlock-glow {
+          0%   { box-shadow: none; }
+          30%  { box-shadow: 0 0 0 3px rgba(111,128,255,0.35), 0 0 16px rgba(111,128,255,0.25); }
+          100% { box-shadow: none; }
+        }
+        .bl-unlock-glow {
+          animation: bl-unlock-glow 2.5s ease-out forwards;
+        }
+      `}</style>
+
+      {/* ── Unlock toast ────────────────────────────────────────────────── */}
+      {showUnlockToast && (
+        <div
+          style={{
+            position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 9999,
+            background: 'linear-gradient(135deg, rgba(39,210,120,0.18), rgba(63,180,255,0.14))',
+            border: '1px solid rgba(63,220,140,0.4)',
+            borderRadius: 14,
+            padding: '12px 20px',
+            display: 'flex', alignItems: 'center', gap: 10,
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ fontSize: 18 }}>🎉</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#d1fae5' }}>
+            Insights unlocked! Your spending analysis is now ready.
+          </span>
+        </div>
+      )}
+
       {/* ── Desktop sidebar ─────────────────────────────────────────── */}
       <aside className="fixed inset-y-0 left-0 w-64 border-r hidden md:flex flex-col z-40"
         style={{ background: 'var(--sidebar)', borderColor: 'var(--border)', color: 'var(--text)' }}
@@ -80,14 +152,56 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         {/* Nav links */}
         <nav className="p-3 space-y-0.5 flex-1">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href === '/upload' && pathname.startsWith('/upload')) || (href === '/staging' && pathname.startsWith('/staging')) || (href === '/insights' && (pathname.startsWith('/insights') || pathname.startsWith('/chat')))
+            const active = pathname === href
+              || (href === '/upload' && pathname.startsWith('/upload'))
+              || (href === '/staging' && pathname.startsWith('/staging'))
+              || (href === '/insights' && (pathname.startsWith('/insights') || pathname.startsWith('/chat')))
+
+            if (href === '/insights' && !unlocked) {
+              // Locked state
+              return (
+                <div key={href} style={{ position: 'relative' }}>
+                  <button
+                    onClick={handleLockedInsightsClick}
+                    onMouseEnter={onInsightsMouseEnter}
+                    onMouseLeave={onInsightsMouseLeave}
+                    className="bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition w-full text-left"
+                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                    <Lock className="h-3 w-3 ml-auto flex-shrink-0" />
+                  </button>
+                  {insightsTooltip && (
+                    <div style={{
+                      position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
+                      marginLeft: 10, zIndex: 100,
+                      background: 'rgba(10,18,40,0.97)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      borderRadius: 10,
+                      padding: '8px 12px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#d0dbff',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                      pointerEvents: 'none',
+                    }}>
+                      {TOOLTIP_TEXT}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={href}
                 href={href}
                 className={clsx(
                   'bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition',
-                  active ? 'active' : ''
+                  active ? 'active' : '',
+                  href === '/insights' && justUnlocked ? 'bl-unlock-glow' : '',
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -194,13 +308,32 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
       >
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href === '/upload' && pathname.startsWith('/upload'))
+
+          if (href === '/insights' && !unlocked) {
+            return (
+              <button
+                key={href}
+                onClick={handleLockedInsightsClick}
+                className={clsx(
+                  'bl-nav-link flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                )}
+                style={{ opacity: 0.45, cursor: 'not-allowed', position: 'relative' }}
+              >
+                <Icon size={20} />
+                <Lock size={8} style={{ position: 'absolute', top: 4, right: 8 }} />
+                {label}
+              </button>
+            )
+          }
+
           return (
             <Link
               key={href}
               href={href}
               className={clsx(
                 'bl-nav-link flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                active ? 'active' : ''
+                active ? 'active' : '',
+                href === '/insights' && justUnlocked ? 'bl-unlock-glow' : '',
               )}
             >
               <Icon size={20} />
