@@ -261,7 +261,7 @@ export function InitialAnalysis({
             </p>
           </div>
 
-          <div style={{ padding: '26px 24px 28px' }}>
+          <div style={{ padding: '20px 22px 24px' }}>
             {/* Top-category highlight */}
             {top && (
               <div style={{
@@ -291,9 +291,9 @@ export function InitialAnalysis({
             )}
 
             {/* Pie chart + legend */}
-            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 20, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
               {/* Donut */}
-              <div style={{ width: 180, height: 180 }}>
+              <div style={{ width: 160, height: 160, flexShrink: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -326,7 +326,7 @@ export function InitialAnalysis({
               </div>
 
               {/* Legend */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1, maxHeight: 400, overflowY: 'auto' }}>
                 {rows.map((row, i) => (
                   <div key={row.category} style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                     <div style={{
