@@ -164,11 +164,11 @@ export function InitialAnalysis({
 
         {/* ── Hero ────────────────────────────────────────────────────────── */}
         <section style={{
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
           borderRadius: 18,
           padding: '16px 20px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
+          boxShadow: 'var(--shadow-soft)',
           marginBottom: 16,
           position: 'relative',
           overflow: 'hidden',
@@ -176,14 +176,14 @@ export function InitialAnalysis({
           {/* Glow orb */}
           <div style={{
             position: 'absolute', right: -60, top: -50, width: 180, height: 180,
-            background: 'radial-gradient(circle, rgba(127,140,255,0.14), transparent 70%)',
+            background: 'radial-gradient(circle, var(--accent-muted), transparent 70%)',
             pointerEvents: 'none',
           }} />
 
           {/* Top row: label + CTAs + tags all inline */}
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px 16px' }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a6b5d8', marginBottom: 3 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 3 }}>
                 Initial analysis ready
               </div>
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', color: 'var(--text)' }}>
@@ -218,9 +218,9 @@ export function InitialAnalysis({
             ].map(tag => (
               <div key={tag} style={{
                 padding: '5px 8px', borderRadius: 999,
-                border: '1px solid rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.04)',
-                color: '#dbe4ff', fontSize: 11, fontWeight: 700,
+                border: '1px solid var(--border)',
+                background: 'var(--card2)',
+                color: 'var(--text)', fontSize: 11, fontWeight: 700,
               }}>
                 {tag}
               </div>
@@ -230,14 +230,14 @@ export function InitialAnalysis({
 
         {/* ── Initial Spending Analysis panel ───────────────────────────── */}
         <section style={{
-          background: 'rgba(13,25,48,0.96)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
           borderRadius: 22,
-          boxShadow: '0 16px 40px rgba(0,0,0,0.28)',
+          boxShadow: 'var(--shadow)',
           overflow: 'hidden',
           marginBottom: 22,
         }}>
-          <div style={{ padding: '22px 22px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ padding: '22px 22px 16px', borderBottom: '1px solid var(--border)' }}>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text)' }}>
               Initial Spending Analysis
             </h2>
@@ -251,7 +251,7 @@ export function InitialAnalysis({
             {top && (
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--card2)', border: '1px solid var(--border)',
                 borderRadius: 18, padding: 20, marginBottom: 24, flexWrap: 'wrap',
               }}>
                 <div>
@@ -267,8 +267,8 @@ export function InitialAnalysis({
                 </div>
                 <div style={{
                   padding: '10px 12px', borderRadius: 999,
-                  background: 'rgba(127,140,255,0.14)', border: '1px solid rgba(127,140,255,0.3)',
-                  color: '#eef2ff', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap',
+                  background: 'var(--accent-muted)', border: '1px solid var(--border2)',
+                  color: 'var(--text)', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap',
                 }}>
                   Amount-based first result
                 </div>
@@ -299,10 +299,10 @@ export function InitialAnalysis({
                     <Tooltip
                       formatter={(value: number) => [fmtDollars(value), 'Amount']}
                       contentStyle={{
-                        background: 'rgba(13,25,48,0.97)',
-                        border: '1px solid rgba(255,255,255,0.12)',
+                        background: 'var(--card)',
+                        border: '1px solid var(--border2)',
                         borderRadius: 10,
-                        color: '#f0f4ff',
+                        color: 'var(--text)',
                         fontSize: 13,
                       }}
                     />
@@ -318,12 +318,12 @@ export function InitialAnalysis({
                       {/* Name */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                         <div style={{ width: 9, height: 9, borderRadius: 2, flexShrink: 0, background: sliceColor(row, i) }} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#d8e1ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {row.category}
                         </span>
                       </div>
                       {/* Amount */}
-                      <span style={{ fontSize: 13, fontWeight: 800, color: '#f4f7ff', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {fmtDollars(row.amount)}
                       </span>
                       {/* Count */}
@@ -343,13 +343,13 @@ export function InitialAnalysis({
 
           {/* Why categorize? */}
           <section style={{
-            background: 'rgba(13,25,48,0.96)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
             borderRadius: 22,
-            boxShadow: '0 16px 40px rgba(0,0,0,0.28)',
+            boxShadow: 'var(--shadow)',
             overflow: 'hidden',
           }}>
-            <div style={{ padding: '22px 22px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ padding: '22px 22px 16px', borderBottom: '1px solid var(--border)' }}>
               <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text)' }}>
                 Why categorize next?
               </h2>
@@ -367,7 +367,7 @@ export function InitialAnalysis({
                 <div key={item.n} style={{
                   display: 'grid', gridTemplateColumns: '40px 1fr', gap: 14, alignItems: 'start',
                   padding: 14, borderRadius: 16,
-                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
+                  background: 'var(--card2)', border: '1px solid var(--border)',
                 }}>
                   <div style={{
                     width: 40, height: 40, borderRadius: 12,
@@ -388,10 +388,10 @@ export function InitialAnalysis({
 
           {/* Recommended action */}
           <aside style={{
-            background: 'linear-gradient(180deg, rgba(127,140,255,0.11), rgba(127,140,255,0.04))',
-            border: '1px solid rgba(127,140,255,0.20)',
+            background: 'var(--accent-muted)',
+            border: '1px solid var(--border2)',
             borderRadius: 22,
-            boxShadow: '0 16px 40px rgba(0,0,0,0.28)',
+            boxShadow: 'var(--shadow)',
             padding: 22,
             alignSelf: 'start',
           }}>
@@ -401,7 +401,7 @@ export function InitialAnalysis({
             <h3 style={{ margin: '0 0 10px', fontSize: 24, fontWeight: 800, lineHeight: 1.15, color: 'var(--text)' }}>
               Start with uncategorized transactions
             </h3>
-            <p style={{ margin: '0 0 16px', color: '#d3dcf7', fontSize: 14, lineHeight: 1.6 }}>
+            <p style={{ margin: '0 0 16px', color: 'var(--muted)', fontSize: 14, lineHeight: 1.6 }}>
               Review the {counts.uncategorized} uncategorized item{counts.uncategorized !== 1 ? 's' : ''} first.
               Then confirm flagged or recurring transactions to strengthen the final analysis.
             </p>
