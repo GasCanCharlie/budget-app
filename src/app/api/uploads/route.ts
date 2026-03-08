@@ -4,7 +4,9 @@ import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { isTransferDescription } from '@/lib/intelligence/transfers'
 import { normalizeMerchant } from '@/lib/categorization/engine'
-import { normalizeBankCategory } from '@/lib/categorization/bank-category-map'
+import { normalizeBankCategory, mapBankCategoryToName } from '@/lib/categorization/bank-category-map'
+import { suggestCategory } from '@/lib/scrubbing'
+import { detectTransfers } from '@/lib/intelligence/transfers'
 import { computeMonthSummary, getAvailableMonths } from '@/lib/intelligence/summaries'
 import { applyRulesToUpload } from '@/lib/ingestion/auto-apply-rules'
 import { acceptFile } from '@/lib/ingestion/stage0-acceptance'
@@ -265,6 +267,9 @@ export async function POST(req: NextRequest) {
 
       // Auto-apply user rules to newly imported transactions
       const ofxAutoApply = await applyRulesToUpload(ofxUpload.id, payload.userId, accountId)
+
+      // Cross-account transfer pairing for OFX uploads
+      await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
 
       return NextResponse.json(
         {
@@ -757,21 +762,88 @@ export async function POST(req: NextRequest) {
     // Create StagingTransaction for each (excluding REJECTED)
     const stagingRows = createdTxs.filter(tx => tx.ingestionStatus !== 'REJECTED')
     if (stagingRows.length > 0) {
+      // ── Compute sign convention ──────────────────────────────────────────
+      const allCents = stagingRows.map(tx => amountToCents(tx.amount))
+      const negCount2 = allCents.filter(c => c < 0).length
+      const expensesAreNegative = negCount2 > allCents.length / 2
+
+      // ── Compute recurring vendors ────────────────────────────────────────
+      // A vendor is recurring if it appears 2+ times with amounts within ±10%
+      const vendorAmountMap = new Map<string, number[]>()
+      for (const tx of stagingRows) {
+        const key = normalizeVendor(tx.merchantNormalized || tx.descriptionRaw || '')
+        const cents = amountToCents(tx.amount)
+        const spending = expensesAreNegative ? cents < 0 : cents > 0
+        if (!spending) continue
+        const arr = vendorAmountMap.get(key) ?? []
+        arr.push(Math.abs(cents))
+        vendorAmountMap.set(key, arr)
+      }
+      const recurringVendorKeys = new Set<string>()
+      for (const [vendor, amounts] of vendorAmountMap.entries()) {
+        if (amounts.length < 2) continue
+        const ref = amounts[0]
+        if (ref > 0 && amounts.every(a => Math.abs(a - ref) <= ref * 0.1)) {
+          recurringVendorKeys.add(vendor)
+        }
+      }
+
       await prisma.stagingTransaction.createMany({
-        data: stagingRows.map(tx => ({
-          stagingUploadId: stagingUpload.id,
-          userId: payload.userId,
-          uploadId: upload.id,
-          date: tx.date,
-          vendorRaw: tx.merchantNormalized || tx.descriptionRaw || '',
-          vendorKey: normalizeVendor(tx.merchantNormalized || tx.descriptionRaw || ''),
-          amountCents: amountToCents(tx.amount),
-          description: tx.descriptionRaw || '',
-          bankCategoryRaw: tx.bankCategoryRaw || null,
-          status: 'uncategorized',
-        }))
+        data: stagingRows.map(tx => {
+          const vendorRaw = tx.merchantNormalized || tx.descriptionRaw || ''
+          const vendorKey = normalizeVendor(vendorRaw)
+          const cents = amountToCents(tx.amount)
+
+          // ── Compute suggestion (same priority order as scrubbing.ts) ──────
+          const engineSuggestion = suggestCategory(vendorRaw, cents, expensesAreNegative)
+          const isDescriptionTransfer = engineSuggestion?.category === 'Transfer'
+
+          let suggestionCategory: string | null = null
+          let suggestionConfidence: string | null = null
+          let suggestionSource: string | null = null
+
+          if (isDescriptionTransfer) {
+            suggestionCategory = 'Transfer'
+            suggestionConfidence = 'high'
+            suggestionSource = 'engine'
+          } else if (tx.bankCategoryRaw) {
+            const bankMapped = mapBankCategoryToName(tx.bankCategoryRaw)
+            if (bankMapped) {
+              suggestionCategory = bankMapped
+              suggestionConfidence = bankMapped === 'Other' ? 'medium' : 'high'
+              suggestionSource = 'bank'
+            }
+          }
+          if (!suggestionCategory && engineSuggestion) {
+            suggestionCategory = engineSuggestion.category
+            suggestionConfidence = engineSuggestion.confidence
+            suggestionSource = 'engine'
+          }
+
+          return {
+            stagingUploadId: stagingUpload.id,
+            userId: payload.userId,
+            uploadId: upload.id,
+            date: tx.date,
+            vendorRaw,
+            vendorKey,
+            amountCents: cents,
+            description: tx.descriptionRaw || '',
+            bankCategoryRaw: tx.bankCategoryRaw || null,
+            status: 'uncategorized',
+            suggestionCategory,
+            suggestionConfidence,
+            suggestionSource,
+            isRecurring: recurringVendorKeys.has(vendorKey),
+          }
+        })
       })
     }
+
+    // ── Cross-account transfer pairing ───────────────────────────────────────
+    // Matches equal/opposite transactions across accounts within ±5 day window.
+    // Runs after staging creation so newly imported transactions are included.
+    await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
 
     return NextResponse.json(
       {

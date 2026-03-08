@@ -22,6 +22,12 @@ interface StagingTx {
   status: 'uncategorized' | 'categorized' | 'needs_review' | 'excluded' | 'transfer'
   /** Raw bank-provided category string from the CSV (e.g. "Gasoline/Fuel") */
   bankCategoryRaw?: string | null
+  /** Persisted suggestion fields — set at import time, used to avoid re-computing per view */
+  suggestionCategory?: string | null
+  suggestionConfidence?: string | null
+  suggestionSource?: string | null
+  /** Persisted recurring flag — set at import time */
+  isRecurring?: boolean | null
 }
 
 export type Confidence = 'high' | 'medium' | 'low'
@@ -351,7 +357,7 @@ const KEYWORDS: Array<[string, string, Confidence]> = [
   ['overdraft', 'Fees & Charges', 'high'], ['foreign transaction', 'Fees & Charges', 'high'],
 ]
 
-function suggestCategory(
+export function suggestCategory(
   vendorRaw: string,
   amountCents: number,
   expensesAreNegative: boolean,
@@ -437,44 +443,49 @@ export function scrubTransactions(transactions: StagingTx[]): ImportSummary {
     if (hasAggregator) reviewFlags.push('aggregator_prefix')
     if (merchantType === 'unknown') reviewFlags.push('unclear_merchant')
 
-    // ── Category resolution — bank first, engine fallback ─────────────────
-    // Run the engine always (needed for transfer-pattern detection + merchant signals)
-    const engineSuggestion = suggestCategory(tx.vendorRaw, tx.amountCents, expensesAreNegative)
-
-    // Transfer pattern detection (description-based) always takes precedence.
-    // It overrides bank category when the description clearly matches a transfer pattern
-    // (e.g. bank says "Transport" but desc says "PAYMENT THANK YOU").
-    const isDescriptionTransfer = engineSuggestion?.category === 'Transfer'
-
+    // ── Category resolution — use persisted suggestion when available ─────
+    // Persisted values are computed at import time (server-side) and stored on
+    // the StagingTransaction row, so we don't have to recompute on every view.
+    // Fall back to in-session computation for pre-migration rows that lack them.
     let cat: string
     let conf: Confidence
     let categorySource: 'bank' | 'engine'
 
-    if (isDescriptionTransfer) {
-      cat = 'Transfer'
-      conf = 'high'
-      categorySource = 'engine'
-    } else if (tx.bankCategoryRaw) {
-      const bankMapped = mapBankCategoryToName(tx.bankCategoryRaw)
-      if (bankMapped) {
-        cat = bankMapped
-        // "Other" is a vague bank category → medium confidence; all others → high
-        conf = bankMapped === 'Other' ? 'medium' : 'high'
-        categorySource = 'bank'
+    if (tx.suggestionCategory && tx.suggestionConfidence && tx.suggestionSource) {
+      // Use persisted suggestion
+      cat = tx.suggestionCategory
+      conf = tx.suggestionConfidence as Confidence
+      categorySource = tx.suggestionSource as 'bank' | 'engine'
+    } else {
+      // Compute inline (pre-migration rows or uploads without the new fields)
+      const engineSuggestion = suggestCategory(tx.vendorRaw, tx.amountCents, expensesAreNegative)
+      const isDescriptionTransfer = engineSuggestion?.category === 'Transfer'
+
+      if (isDescriptionTransfer) {
+        cat = 'Transfer'
+        conf = 'high'
+        categorySource = 'engine'
+      } else if (tx.bankCategoryRaw) {
+        const bankMapped = mapBankCategoryToName(tx.bankCategoryRaw)
+        if (bankMapped) {
+          cat = bankMapped
+          conf = bankMapped === 'Other' ? 'medium' : 'high'
+          categorySource = 'bank'
+        } else {
+          cat = engineSuggestion?.category ?? 'Uncategorized'
+          conf = engineSuggestion?.confidence ?? 'low'
+          categorySource = 'engine'
+        }
       } else {
-        // Bank category present but unmappable → fall back to engine
         cat = engineSuggestion?.category ?? 'Uncategorized'
         conf = engineSuggestion?.confidence ?? 'low'
         categorySource = 'engine'
       }
-    } else {
-      cat = engineSuggestion?.category ?? 'Uncategorized'
-      conf = engineSuggestion?.confidence ?? 'low'
-      categorySource = 'engine'
     }
 
     const isDuplicate = duplicateIds.has(tx.id)
-    const isRecurring = tx.vendorKey ? recurringVendors.has(tx.vendorKey) : false
+    // Prefer persisted recurring flag; fall back to in-session computation
+    const isRecurring = tx.isRecurring ?? (tx.vendorKey ? recurringVendors.has(tx.vendorKey) : false)
     const isTransfer = cat === 'Transfer' || merchantType === 'transfer'
     const isIncome = cat === 'Income' || merchantType === 'income'
 

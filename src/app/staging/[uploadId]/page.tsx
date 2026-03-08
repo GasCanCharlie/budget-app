@@ -65,6 +65,10 @@ interface StagingTransaction {
   amountCents: number
   description: string
   bankCategoryRaw: string | null
+  suggestionCategory: string | null
+  suggestionConfidence: string | null
+  suggestionSource: string | null
+  isRecurring: boolean
   categoryId: string | null
   categorySource: 'none' | 'manual' | 'rule' | 'bank'
   ruleId: string | null

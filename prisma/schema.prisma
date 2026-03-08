@@ -453,6 +453,14 @@ model StagingTransaction {
   // status: uncategorized | categorized | needs_review | excluded | transfer
   status          String    @default("uncategorized")
 
+  // Persisted suggestions — computed at import time, avoids re-scrubbing on every view
+  // Priority: transfer detection → bank category → engine keyword match
+  suggestionCategory   String?          // e.g. "Food & Dining"
+  suggestionConfidence String?          // 'high' | 'medium' | 'low'
+  suggestionSource     String?          // 'bank' | 'engine'
+  // Recurring flag — true when this vendor appears 2+ times in the upload with ±10% amounts
+  isRecurring          Boolean   @default(false)
+
   // Set when committed to ledger
   committedAt     DateTime?
   transactionId   String?   @unique  // FK to Transaction after commit
