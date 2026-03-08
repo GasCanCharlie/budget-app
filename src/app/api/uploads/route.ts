@@ -8,7 +8,6 @@ import { normalizeBankCategory, mapBankCategoryToName } from '@/lib/categorizati
 import { suggestCategory } from '@/lib/scrubbing'
 import { detectTransfers } from '@/lib/intelligence/transfers'
 import { computeMonthSummary, getAvailableMonths } from '@/lib/intelligence/summaries'
-import { applyRulesToUpload } from '@/lib/ingestion/auto-apply-rules'
 import { acceptFile } from '@/lib/ingestion/stage0-acceptance'
 import { parseCsvStage1, PARSER_VERSION } from '@/lib/ingestion/stage1-parse-csv'
 import { normalizeRow } from '@/lib/ingestion/stage2-normalize'
@@ -265,9 +264,6 @@ export async function POST(req: NextRequest) {
         await computeMonthSummary(payload.userId, year, month)
       }
 
-      // Auto-apply user rules to newly imported transactions
-      const ofxAutoApply = await applyRulesToUpload(ofxUpload.id, payload.userId, accountId)
-
       // Cross-account transfer pairing for OFX uploads
       await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
 
@@ -297,7 +293,6 @@ export async function POST(req: NextRequest) {
           bankDetected:         false,
           bankKey:              null,
           dateOrderNeedsConfirmation: false,
-          autoApply: ofxAutoApply,
         },
         { status: 201 },
       )
@@ -731,9 +726,6 @@ export async function POST(req: NextRequest) {
       await computeMonthSummary(payload.userId, year, month)
     }
 
-    // Auto-apply user rules to newly imported transactions
-    const autoApply = await applyRulesToUpload(upload.id, payload.userId, accountId)
-
     // ── Create Staging records ──────────────────────────────────────────────────
     // Fetch the transactions just created for this upload
     const createdTxs = await prisma.transaction.findMany({
@@ -870,7 +862,6 @@ export async function POST(req: NextRequest) {
         bankKey:           bankDetection.bankProfile?.bankKey ?? null,
         dateOrderNeedsConfirmation: dateOrderSelection.needsUserConfirmation,
         importReport,
-        autoApply,
         stagingUploadId: stagingUpload.id,
         stagingRowCount: stagingRows.length,
       },
