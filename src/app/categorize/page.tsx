@@ -183,11 +183,13 @@ function TxCard({
   isSelected,
   isDragSource,
   onClick,
+  onContextMenu,
 }: {
   tx: Transaction
   isSelected: boolean
   isDragSource: boolean
   onClick: (tx: Transaction, e: React.MouseEvent) => void
+  onContextMenu: (tx: Transaction, e: React.MouseEvent) => void
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `tx-${tx.id}`,
@@ -203,6 +205,7 @@ function TxCard({
       {...attributes}
       {...listeners}
       onClick={e => onClick(tx, e)}
+      onContextMenu={e => { e.preventDefault(); onContextMenu(tx, e) }}
       tabIndex={0}
       data-source={isSource ? 'true' : undefined}
       data-selected={isSelected ? 'true' : undefined}
@@ -912,6 +915,7 @@ export default function CategorizePage() {
   const [filterMode,    setFilterMode]    = useState<FilterMode>('needs-review')
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
   const [anchorId,      setAnchorId]      = useState<string | null>(null)
+  const [ctxMenu,       setCtxMenu]       = useState<{ tx: Transaction; x: number; y: number } | null>(null)
   const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
 
   // Active dnd-kit drag item (replaces dragging / hoveredCatId / reorderDragId / reorderOverId)
@@ -1058,7 +1062,7 @@ export default function CategorizePage() {
 
   // ── Mutation — sets appCategory (free text) ──
   const updateMutation = useMutation({
-    mutationFn: ({ id, appCategory, applyToAll }: { id: string; appCategory: string; applyToAll: boolean }) =>
+    mutationFn: ({ id, appCategory, applyToAll }: { id: string; appCategory: string | null; applyToAll: boolean }) =>
       apiFetch(`/api/transactions/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ appCategory, applyToAll }),
@@ -1162,6 +1166,20 @@ export default function CategorizePage() {
       setAnchorId(tx.id)
     }
   }, [anchorId, sortedQueueTxs])
+
+  // ── Context menu ──
+  const handleTxContextMenu = useCallback((tx: Transaction, e: React.MouseEvent) => {
+    setCtxMenu({ tx, x: e.clientX, y: e.clientY })
+  }, [])
+
+  useEffect(() => {
+    if (!ctxMenu) return
+    const close = () => setCtxMenu(null)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    window.addEventListener('mousedown', close)
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', onKey) }
+  }, [ctxMenu])
 
   // ── handleDrop (used by dnd-kit onDragEnd and click-assign) ──
   const handleDrop = useCallback((categoryId: string, txsToDrop: string[], primaryTx: Transaction | null) => {
@@ -1764,6 +1782,7 @@ export default function CategorizePage() {
                       isSelected={selectedIds.has(tx.id)}
                       isDragSource={draggingIds.includes(tx.id)}
                       onClick={handleTxClick}
+                      onContextMenu={handleTxContextMenu}
                     />
                   ))}
                   {sortedQueueTxs.length === 0 && vendorQuery && (
@@ -1780,6 +1799,72 @@ export default function CategorizePage() {
 
         {/* Touch ghost element */}
         <TouchGhost tx={touchTx} pos={touchPos} />
+
+        {/* Right-click context menu */}
+        {ctxMenu && (
+          <div
+            onMouseDown={e => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              top: Math.min(ctxMenu.y, window.innerHeight - 320),
+              left: Math.min(ctxMenu.x, window.innerWidth - 220),
+              zIndex: 9999,
+              width: 210,
+              background: '#111a2d',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 14,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              padding: '6px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7a99', letterSpacing: '0.07em', textTransform: 'uppercase', padding: '4px 10px 6px' }}>
+              Assign category
+            </div>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => { initiateAssign(ctxMenu.tx, cat.id); setCtxMenu(null) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '7px 10px', borderRadius: 9,
+                  background: ctxMenu.tx.appCategory === cat.name ? 'rgba(124,145,255,0.15)' : 'transparent',
+                  border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left',
+                  color: ctxMenu.tx.appCategory === cat.name ? '#c5d0ff' : '#d0d8f0',
+                  fontSize: 13, fontWeight: 600, transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => { if (ctxMenu.tx.appCategory !== cat.name) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)' }}
+                onMouseLeave={e => { if (ctxMenu.tx.appCategory !== cat.name) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+              >
+                <CategoryIcon name={cat.icon} color={cat.color} size={14} />
+                {cat.name}
+                {ctxMenu.tx.appCategory === cat.name && <span style={{ marginLeft: 'auto', color: '#7c91ff', fontSize: 11 }}>✓</span>}
+              </button>
+            ))}
+            {ctxMenu.tx.appCategory && (
+              <>
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0' }} />
+                <button
+                  onClick={() => { updateMutation.mutate({ id: ctxMenu.tx.id, appCategory: null, applyToAll: false }); setCtxMenu(null) }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '7px 10px', borderRadius: 9,
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    width: '100%', textAlign: 'left',
+                    color: '#ff7f90', fontSize: 13, fontWeight: 600,
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,127,144,0.1)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                >
+                  <X size={13} />
+                  Remove category
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Rule ask modal — prompt on first assignment of a vendor+price combo */}
         {ruleAsk && (
