@@ -213,17 +213,10 @@ function TxCard({
       style={undefined}
     >
       <div className="transaction-main">
-        <div className="transaction-top">
-          <span className="transaction-vendor">
-            {tx.merchantNormalized || tx.description}
-          </span>
-          <span className={clsx('transaction-amount', tx.amount < 0 ? 'expense' : 'income')}>
-            {fmtAmt(tx.amount)}
-          </span>
+        <div className="transaction-info">
+          <span className="transaction-vendor">{tx.merchantNormalized || tx.description}</span>
+          <span className="transaction-date">{fmtDate(tx.date)}</span>
         </div>
-
-        <p className="transaction-date">{fmtDate(tx.date)}</p>
-
         <div className="transaction-tags">
           {tx.appCategory ? (
             <span className="badge-success">
@@ -237,6 +230,9 @@ function TxCard({
             <span className="badge-tag">{tx.bankCategoryRaw}</span>
           )}
         </div>
+        <span className={clsx('transaction-amount', tx.amount < 0 ? 'expense' : 'income')}>
+          {fmtAmt(tx.amount)}
+        </span>
       </div>
     </div>
   )
