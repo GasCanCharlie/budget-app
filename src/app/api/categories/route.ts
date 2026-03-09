@@ -8,11 +8,24 @@ export async function GET(req: NextRequest) {
   const payload = getUserFromRequest(req)
   if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: { hiddenCategories: true },
+  })
+
+  let hiddenIds: string[] = []
+  try { hiddenIds = JSON.parse(user?.hiddenCategories || '[]') } catch { /* ignore */ }
+
   const categories = await prisma.category.findMany({
     where: {
-      OR: [
-        { isSystem: true, userId: null },
-        { userId: payload.userId },
+      AND: [
+        {
+          OR: [
+            { isSystem: true, userId: null },
+            { userId: payload.userId },
+          ]
+        },
+        { id: { notIn: hiddenIds.length > 0 ? hiddenIds : ['__none__'] } },
       ]
     },
     orderBy: [{ isSystem: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }],

@@ -10,12 +10,34 @@ export async function DELETE(
   const payload = getUserFromRequest(req)
   if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Only user-created (non-system) categories can be deleted
+  // Find the category — allow system or user-owned
   const category = await prisma.category.findFirst({
-    where: { id: params.id, userId: payload.userId, isSystem: false },
+    where: {
+      id: params.id,
+      OR: [
+        { userId: payload.userId, isSystem: false },
+        { isSystem: true, userId: null },
+      ],
+    },
   })
   if (!category) {
-    return NextResponse.json({ error: 'Category not found or cannot be deleted' }, { status: 404 })
+    return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+  }
+
+  // System categories: hide for this user instead of deleting globally
+  if (category.isSystem) {
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { hiddenCategories: true },
+    })
+    let hidden: string[] = []
+    try { hidden = JSON.parse(user?.hiddenCategories || '[]') } catch { /* ignore */ }
+    if (!hidden.includes(params.id)) hidden.push(params.id)
+    await prisma.user.update({
+      where: { id: payload.userId },
+      data: { hiddenCategories: JSON.stringify(hidden) },
+    })
+    return NextResponse.json({ deleted: true, hidden: true })
   }
 
   // Find the "Other" fallback category to reassign transactions

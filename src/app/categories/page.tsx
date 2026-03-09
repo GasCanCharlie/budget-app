@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
-import { PlusCircle, Trash2, Loader2, Lock } from 'lucide-react'
+import { PlusCircle, Trash2, Loader2, RotateCcw } from 'lucide-react'
 import clsx from 'clsx'
 import { CategoryIcon } from '@/components/CategoryIcon'
 
@@ -55,6 +55,22 @@ export default function CategoriesPage() {
     enabled: !!user,
   })
 
+  const { data: allCatsData } = useQuery({
+    queryKey: ['categories-all'],
+    queryFn: () => apiFetch('/api/categories/all'),
+    enabled: !!user,
+  })
+
+  const { data: hiddenData } = useQuery({
+    queryKey: ['hidden-categories'],
+    queryFn: () => apiFetch('/api/preferences/hidden-categories'),
+    enabled: !!user,
+  })
+
+  const hiddenIds: string[] = hiddenData?.hidden ?? []
+  const allSystemCats: Category[] = allCatsData?.categories ?? []
+  const hiddenCats = allSystemCats.filter(c => hiddenIds.includes(c.id))
+
   const categories: Category[] = data?.categories ?? []
   const systemCats = categories.filter(c => c.isSystem)
   const userCats   = categories.filter(c => !c.isSystem)
@@ -75,9 +91,24 @@ export default function CategoriesPage() {
     mutationFn: (id: string) => apiFetch(`/api/categories/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categories'] })
+      qc.invalidateQueries({ queryKey: ['hidden-categories'] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
       setDeleteConfirm(null)
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: (idToRestore: string) => {
+      const next = hiddenIds.filter(id => id !== idToRestore)
+      return apiFetch('/api/preferences/hidden-categories', {
+        method: 'PUT',
+        body: JSON.stringify({ hidden: next }),
+      })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] })
+      qc.invalidateQueries({ queryKey: ['hidden-categories'] })
     },
   })
 
@@ -249,13 +280,11 @@ export default function CategoriesPage() {
           )}
         </div>
 
-        {/* System categories (read-only) */}
+        {/* System categories */}
         <div className="card space-y-3" style={{ overflow: 'visible', padding: '18px' }}>
           <div className="flex items-center justify-between">
             <h2 className="font-bold" style={{ color: 'var(--text)' }}>System Categories</h2>
-            <span className="pill flex items-center gap-1">
-              <Lock size={10} /> {systemCats.length} built-in
-            </span>
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>{systemCats.length} active</span>
           </div>
 
           {isLoading ? (
@@ -267,24 +296,75 @@ export default function CategoriesPage() {
               {systemCats.map(cat => (
                 <div
                   key={cat.id}
-                  className="flex items-center gap-2 p-2.5 rounded-lg"
+                  className="flex items-center gap-2 p-2.5 rounded-lg group"
                   style={{ background: 'var(--tile)', border: '1px solid var(--border2)' }}
                 >
                   <CategoryIcon name={cat.icon} color={cat.color} size={16} />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs font-semibold truncate" style={{ color: 'var(--text)' }}>{cat.name}</p>
                     <p className="text-[10px]" style={{ color: 'var(--muted)' }}>
                       {cat.isIncome ? 'income' : cat.isTransfer ? 'transfer' : 'expense'}
                     </p>
                   </div>
+                  {deleteConfirm === cat.id ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => deleteMutation.mutate(cat.id)}
+                        disabled={deleteMutation.isPending}
+                        className="text-[10px] font-bold text-red-400 px-1.5 py-0.5 rounded"
+                        style={{ background: 'rgba(255,127,144,0.12)', border: '1px solid rgba(255,127,144,0.25)' }}
+                      >
+                        {deleteMutation.isPending ? '…' : 'Hide'}
+                      </button>
+                      <button onClick={() => setDeleteConfirm(null)} className="text-[10px] text-slate-400 px-1 py-0.5 rounded hover:text-slate-300">✕</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteConfirm(cat.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded transition text-slate-500 hover:text-red-400"
+                      title="Hide category"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Hidden categories — restore */}
+          {hiddenCats.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Hidden ({hiddenCats.length})</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {hiddenCats.map(cat => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center gap-2 p-2.5 rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', opacity: 0.65 }}
+                  >
+                    <CategoryIcon name={cat.icon} color={cat.color} size={16} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold truncate" style={{ color: 'var(--text)' }}>{cat.name}</p>
+                    </div>
+                    <button
+                      onClick={() => restoreMutation.mutate(cat.id)}
+                      disabled={restoreMutation.isPending}
+                      className="p-1 rounded transition text-slate-500 hover:text-green-400"
+                      title="Restore category"
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
         <p className="text-xs text-center text-slate-400">
           Deleting a custom category reassigns its transactions to &ldquo;Other&rdquo;.
+          System categories are hidden per-account and can be restored.
         </p>
       </main>
     </AppShell>
