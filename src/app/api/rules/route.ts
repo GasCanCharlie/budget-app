@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
           categoryId:     data.categoryId,
           matchType:      data.matchType,
           matchValue:     normalizedValue,
-          vendorKey:      isAmountRule ? normalizedValue : '',
+          vendorKey:      (isAmountRule || data.matchType === 'vendor_exact') ? normalizedValue : '',
           amountExact:    isAmountRule ? (data.amountExact ?? null) : null,
           mode:           data.mode,
           confidence:     data.confidence,

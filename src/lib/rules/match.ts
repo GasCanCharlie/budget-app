@@ -57,22 +57,32 @@ export async function matchRules(
   userId: string,
   accountId?: string,
 ): Promise<MatchResult> {
-  // Step 1: Fetch all enabled rules for this user that have a non-empty vendorKey,
-  // scoped to the transaction's account (or global rules with no scopeAccountId)
-  const allRules = await prisma.categoryRule.findMany({
-    where: {
-      userId,
-      isEnabled: true,
-      vendorKey: { not: '' },
-      OR: [
-        { scopeAccountId: null },
-        ...(accountId ? [{ scopeAccountId: accountId }] : []),
-      ],
-    },
-  })
+  // Step 1: Fetch all enabled rules for this user, scoped to the transaction's account.
+  // Matches either by vendorKey (vendor_exact_amount rules) or matchValue (vendor_exact rules
+  // created before vendorKey was populated for that type).
+  const baseWhere = {
+    userId,
+    isEnabled: true,
+    OR: [
+      { scopeAccountId: null },
+      ...(accountId ? [{ scopeAccountId: accountId }] : []),
+    ],
+  }
+  const [keyRules, valueRules] = await Promise.all([
+    prisma.categoryRule.findMany({ where: { ...baseWhere, vendorKey: vendorKey } }),
+    // Backward-compat: vendor_exact rules stored with vendorKey='' use matchValue instead
+    prisma.categoryRule.findMany({ where: { ...baseWhere, matchType: 'vendor_exact', matchValue: vendorKey, vendorKey: '' } }),
+  ])
+  const seen = new Set<string>()
+  const allRules: typeof keyRules = []
+  for (const r of [...keyRules, ...valueRules]) {
+    if (!seen.has(r.id)) { seen.add(r.id); allRules.push(r) }
+  }
 
-  // Step 2: Filter to rules whose vendorKey matches
-  let candidates = allRules.filter(rule => rule.vendorKey === vendorKey)
+  // Step 2: Filter to rules whose vendorKey (or matchValue for legacy) matches
+  let candidates = allRules.filter(rule =>
+    rule.vendorKey ? rule.vendorKey === vendorKey : rule.matchValue === vendorKey
+  )
 
   // Step 3: Filter by appliesTo direction
   candidates = candidates.filter(rule => {
