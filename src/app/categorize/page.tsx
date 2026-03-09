@@ -1620,14 +1620,12 @@ export default function CategorizePage() {
                   </span>
                   <button
                     onClick={handleSaveLayout}
-                    disabled={(!isDirty && !saveConfirmed) || savePrefMutation.isPending}
+                    disabled={savePrefMutation.isPending}
                     className={clsx(
                       'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition',
                       saveConfirmed
                         ? 'border-green-300 bg-green-50 text-green-700'
-                        : isDirty
-                          ? 'border-accent-500 bg-accent-500 text-white hover:bg-accent-600'
-                          : 'border-[var(--border-soft)] bg-[var(--surface2)] text-[var(--text-muted)] cursor-not-allowed'
+                        : 'border-accent-500 bg-accent-500 text-white hover:bg-accent-600'
                     )}
                   >
                     {savePrefMutation.isPending

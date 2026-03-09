@@ -764,8 +764,7 @@ h3 { letter-spacing: -0.01em; }
 .category-item:hover::before { opacity: 1; }
 .category-item:hover::after  { background: #8aa2ff; }
 
-/* drag mode — targets expand slightly */
-.categories-panel.drag-mode .category-item { min-height: 68px; }
+/* drag mode */
 .categories-panel.drag-mode .category-item:not(.drag-over) {
   background: var(--bg-hover);
   border-color: var(--border-soft);
