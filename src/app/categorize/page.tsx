@@ -527,11 +527,13 @@ function CategoryTransactionList({
   txs,
   categories,
   onMove,
+  onRemove,
 }: {
   catName: string
   txs: Transaction[]
   categories: Category[]
   onMove: (txId: string, newCatName: string, applyToAll: boolean) => void
+  onRemove: (txId: string) => void
 }) {
   const [movingId,  setMovingId]  = useState<string | null>(null)
   const [catSearch, setCatSearch] = useState('')
@@ -657,12 +659,22 @@ function CategoryTransactionList({
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setMovingId(tx.id)}
-                  className="mt-1.5 flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-medium hover:border-accent-400 hover:text-accent-600 transition" style={{ border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text-muted)' }}
-                >
-                  Move
-                </button>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <button
+                    onClick={() => setMovingId(tx.id)}
+                    className="flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-medium hover:border-accent-400 hover:text-accent-600 transition" style={{ border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text-muted)' }}
+                  >
+                    Move
+                  </button>
+                  <button
+                    onClick={() => onRemove(tx.id)}
+                    className="flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-medium transition" style={{ border: '1px solid rgba(255,127,144,0.25)', background: 'rgba(255,127,144,0.08)', color: '#ff7f90' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,127,144,0.16)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,127,144,0.08)' }}
+                  >
+                    Remove
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -1072,7 +1084,7 @@ export default function CategorizePage() {
 
   // ── Mutation — sets appCategory (free text) ──
   const updateMutation = useMutation({
-    mutationFn: ({ id, appCategory, applyToAll }: { id: string; appCategory: string; applyToAll: boolean }) =>
+    mutationFn: ({ id, appCategory, applyToAll }: { id: string; appCategory: string | null; applyToAll: boolean }) =>
       apiFetch(`/api/transactions/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ appCategory, applyToAll }),
@@ -1689,6 +1701,9 @@ export default function CategorizePage() {
                                 categories={categories}
                                 onMove={(txId, newCatName, applyToAll) => {
                                   updateMutation.mutate({ id: txId, appCategory: newCatName, applyToAll })
+                                }}
+                                onRemove={(txId) => {
+                                  updateMutation.mutate({ id: txId, appCategory: null, applyToAll: false })
                                 }}
                               />
                             </div>
