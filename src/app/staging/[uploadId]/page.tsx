@@ -763,6 +763,18 @@ export default function StagingInboxPage() {
   const counts = data?.counts
   const stagingUpload = data?.stagingUpload
 
+  // ── Auto-apply rules when staging data first loads ────────────────────────
+  const rulesAppliedRef = useRef(false)
+  useEffect(() => {
+    if (rulesAppliedRef.current) return
+    if (!stagingUpload) return
+    // Only auto-run if no rules have been applied yet (no categorized/needs_review rows)
+    if (stagingUpload.status === 'committed') return
+    if ((counts?.categorized ?? 0) > 0 || (counts?.needsReview ?? 0) > 0) return
+    rulesAppliedRef.current = true
+    applyRules.mutate()
+  }, [stagingUpload, counts]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Vendor repeat count (for rule prompt trigger) ─────────────────────────
   const vendorCountMap = useMemo(() => {
     const map = new Map<string, number>()
