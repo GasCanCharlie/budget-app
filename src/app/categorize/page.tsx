@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText, Equal, Lightbulb, Store } from 'lucide-react'
+import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText, Equal, Lightbulb, Store, Trash2, PlusCircle } from 'lucide-react'
 import clsx from 'clsx'
 import {
   DndContext,
@@ -245,6 +245,9 @@ function TxCard({
   )
 }
 
+const CAT_COLORS = ['#6366f1','#3b82f6','#0ea5e9','#14b8a6','#10b981','#22c55e','#f59e0b','#f97316','#ef4444','#ec4899','#a855f7','#64748b']
+const CAT_ICONS  = ['📦','💳','🏷️','⭐','💡','🎯','🛒','🏠','🚗','🍔','🐕','🎸','💊','🌿','🧴']
+
 // ─── Category Drop Target ────────────────────────────────────────────────────
 
 function CategoryBucket({
@@ -254,6 +257,7 @@ function CategoryBucket({
   isExpanded,
   onClickAssign,
   onToggleExpand,
+  onContextMenu,
   txCount,
   children,
 }: {
@@ -263,6 +267,7 @@ function CategoryBucket({
   isExpanded: boolean
   onClickAssign: (id: string) => void
   onToggleExpand: (id: string) => void
+  onContextMenu: (cat: Category, e: React.MouseEvent) => void
   txCount?: number
   children?: React.ReactNode
 }) {
@@ -305,6 +310,7 @@ function CategoryBucket({
       ref={setRef}
       style={{ ...style, opacity: isSortDragging ? 0.4 : 1 }}
       onClick={() => { if (!isDraggingTx) onToggleExpand(cat.id) }}
+      onContextMenu={e => { e.preventDefault(); onContextMenu(cat, e) }}
       className={clsx('category-item select-none', showOver && 'drag-over')}
     >
       {/* Reorder grip */}
@@ -914,6 +920,14 @@ export default function CategorizePage() {
   const [anchorId,      setAnchorId]      = useState<string | null>(null)
   const [expandedCatId, setExpandedCatId] = useState<string | null>(null)
 
+  // ── Category context menu ──
+  const [catCtxMenu,      setCatCtxMenu]      = useState<{ cat: Category; x: number; y: number } | null>(null)
+  const [catDeleteConfirm, setCatDeleteConfirm] = useState(false)
+  const [showAddCat,      setShowAddCat]      = useState(false)
+  const [addCatName,      setAddCatName]      = useState('')
+  const [addCatIcon,      setAddCatIcon]      = useState('📦')
+  const [addCatColor,     setAddCatColor]     = useState('#6366f1')
+
   // Active dnd-kit drag item (replaces dragging / hoveredCatId / reorderDragId / reorderOverId)
   const [activeDrag, setActiveDrag] = useState<ActiveDragItem | null>(null)
 
@@ -1100,6 +1114,27 @@ export default function CategorizePage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rules'] })
+    },
+  })
+
+  // ── Category CRUD mutations ──
+  const createCatMutation = useMutation({
+    mutationFn: () => apiFetch('/api/categories', {
+      method: 'POST',
+      body: JSON.stringify({ name: addCatName.trim(), icon: addCatIcon, color: addCatColor, isIncome: false }),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] })
+      setShowAddCat(false); setAddCatName(''); setAddCatIcon('📦'); setAddCatColor('#6366f1')
+    },
+  })
+
+  const deleteCatMutation = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/categories/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] })
+      qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+      setCatCtxMenu(null); setCatDeleteConfirm(false)
     },
   })
 
@@ -1333,6 +1368,16 @@ export default function CategorizePage() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [ruleAsk, anchorId, sortedQueueTxs])
+
+  // Close category context menu on outside click or Escape
+  useEffect(() => {
+    if (!catCtxMenu) return
+    const close = () => { setCatCtxMenu(null); setCatDeleteConfirm(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    window.addEventListener('mousedown', close)
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', onKey) }
+  }, [catCtxMenu])
 
   // Auto-select first visible item if none selected
   useEffect(() => {
@@ -1615,6 +1660,7 @@ export default function CategorizePage() {
                                 isExpanded={expandedCatId === cat.id}
                                 onClickAssign={handleClickAssign}
                                 onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
+                                onContextMenu={(c, e) => { setCatCtxMenu({ cat: c, x: e.clientX, y: e.clientY }); setCatDeleteConfirm(false) }}
                                 txCount={txCountByCat.get(cat.name) ?? 0}
                               />
                             ))}
@@ -1780,6 +1826,122 @@ export default function CategorizePage() {
 
         {/* Touch ghost element */}
         <TouchGhost tx={touchTx} pos={touchPos} />
+
+        {/* Category right-click context menu */}
+        {catCtxMenu && (
+          <div
+            onMouseDown={e => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              top: Math.min(catCtxMenu.y, window.innerHeight - 180),
+              left: Math.min(catCtxMenu.x, window.innerWidth - 220),
+              zIndex: 9999, width: 210,
+              background: '#111a2d', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              padding: 6, display: 'flex', flexDirection: 'column', gap: 2,
+            }}
+          >
+            <button
+              onClick={() => { setCatCtxMenu(null); setShowAddCat(true) }}
+              style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:9, background:'transparent', border:'none', cursor:'pointer', width:'100%', textAlign:'left', color:'#d0d8f0', fontSize:13, fontWeight:600 }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+            >
+              <PlusCircle size={14} style={{ color: '#7c91ff' }} />
+              Add category
+            </button>
+            {!catCtxMenu.cat.isSystem && (
+              <>
+                <div style={{ height:1, background:'rgba(255,255,255,0.07)', margin:'2px 0' }} />
+                {catDeleteConfirm ? (
+                  <div style={{ padding:'8px 10px' }}>
+                    <p style={{ fontSize:12, color:'#9aa6bf', marginBottom:8 }}>
+                      Delete <strong style={{ color:'#f2f5ff' }}>{catCtxMenu.cat.name}</strong>?
+                    </p>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button
+                        onClick={() => deleteCatMutation.mutate(catCtxMenu.cat.id)}
+                        disabled={deleteCatMutation.isPending}
+                        style={{ flex:1, padding:'6px 0', borderRadius:8, background:'rgba(255,127,144,0.15)', border:'1px solid rgba(255,127,144,0.3)', color:'#ff7f90', fontSize:12, fontWeight:700, cursor:'pointer' }}
+                      >
+                        {deleteCatMutation.isPending ? '…' : 'Delete'}
+                      </button>
+                      <button
+                        onClick={() => setCatDeleteConfirm(false)}
+                        style={{ flex:1, padding:'6px 0', borderRadius:8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'#9aa6bf', fontSize:12, fontWeight:600, cursor:'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setCatDeleteConfirm(true)}
+                    style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:9, background:'transparent', border:'none', cursor:'pointer', width:'100%', textAlign:'left', color:'#ff7f90', fontSize:13, fontWeight:600 }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,127,144,0.1)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                  >
+                    <Trash2 size={14} />
+                    Delete {catCtxMenu.cat.name}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Add category modal */}
+        {showAddCat && (
+          <div
+            onClick={() => setShowAddCat(false)}
+            style={{ position:'fixed', inset:0, zIndex:9998, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center' }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ width:320, background:'#111a2d', border:'1px solid rgba(255,255,255,0.1)', borderRadius:18, padding:24, boxShadow:'0 16px 48px rgba(0,0,0,0.6)' }}
+            >
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+                <span style={{ fontSize:15, fontWeight:700, color:'#f2f5ff' }}>New Category</span>
+                <button onClick={() => setShowAddCat(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#6b7a99', padding:4 }}><X size={16} /></button>
+              </div>
+
+              <input
+                autoFocus
+                placeholder="Category name…"
+                value={addCatName}
+                onChange={e => setAddCatName(e.target.value)}
+                maxLength={50}
+                style={{ width:'100%', padding:'8px 12px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'#f2f5ff', fontSize:14, outline:'none', marginBottom:16, boxSizing:'border-box' }}
+              />
+
+              <p style={{ fontSize:11, fontWeight:700, color:'#6b7a99', letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:8 }}>Icon</p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:16 }}>
+                {CAT_ICONS.map(ico => (
+                  <button key={ico} onClick={() => setAddCatIcon(ico)}
+                    style={{ width:34, height:34, borderRadius:8, fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', background: addCatIcon === ico ? 'rgba(124,145,255,0.2)' : 'rgba(255,255,255,0.06)', border: addCatIcon === ico ? '1px solid rgba(124,145,255,0.4)' : '1px solid rgba(255,255,255,0.08)' }}
+                  >{ico}</button>
+                ))}
+              </div>
+
+              <p style={{ fontSize:11, fontWeight:700, color:'#6b7a99', letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:8 }}>Color</p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:20 }}>
+                {CAT_COLORS.map(c => (
+                  <button key={c} onClick={() => setAddCatColor(c)}
+                    style={{ width:24, height:24, borderRadius:'50%', cursor:'pointer', backgroundColor:c, border: addCatColor === c ? '2px solid #fff' : '2px solid transparent', transform: addCatColor === c ? 'scale(1.15)' : 'scale(1)', transition:'transform 0.1s' }}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={() => createCatMutation.mutate()}
+                disabled={!addCatName.trim() || createCatMutation.isPending}
+                style={{ width:'100%', padding:'10px 0', borderRadius:10, background: addCatName.trim() ? 'rgba(124,145,255,0.2)' : 'rgba(255,255,255,0.05)', border:'1px solid rgba(124,145,255,0.3)', color: addCatName.trim() ? '#c5d0ff' : '#6b7a99', fontSize:14, fontWeight:700, cursor: addCatName.trim() ? 'pointer' : 'not-allowed' }}
+              >
+                {createCatMutation.isPending ? 'Creating…' : 'Create Category'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Rule ask modal — prompt on first assignment of a vendor+price combo */}
         {ruleAsk && (
