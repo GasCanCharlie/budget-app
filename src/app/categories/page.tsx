@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
-import { PlusCircle, Trash2, Loader2, RotateCcw } from 'lucide-react'
+import { PlusCircle, Trash2, Loader2, RotateCcw, Pencil, Check, X } from 'lucide-react'
 import clsx from 'clsx'
 import { CategoryIcon } from '@/components/CategoryIcon'
 
@@ -48,6 +48,20 @@ export default function CategoriesPage() {
   const [newIncome,  setNewIncome]  = useState(false)
   const [customIcon, setCustomIcon] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [editingId,   setEditingId]   = useState<string | null>(null)
+  const [editName,    setEditName]    = useState('')
+  const [editIcon,    setEditIcon]    = useState('📦')
+  const [editColor,   setEditColor]   = useState('#6366f1')
+  const [editCustomIcon, setEditCustomIcon] = useState('')
+
+  function startEdit(cat: Category) {
+    setEditingId(cat.id)
+    setEditName(cat.name)
+    setEditIcon(cat.icon)
+    setEditColor(cat.color)
+    setEditCustomIcon('')
+    setDeleteConfirm(null)
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ['categories'],
@@ -95,6 +109,17 @@ export default function CategoriesPage() {
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
       setDeleteConfirm(null)
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id }: { id: string }) => apiFetch(`/api/categories/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name: editName.trim(), icon: editCustomIcon || editIcon, color: editColor }),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] })
+      setEditingId(null)
     },
   })
 
@@ -238,41 +263,98 @@ export default function CategoriesPage() {
           ) : (
             <div className="space-y-2">
               {userCats.map(cat => (
-                <div key={cat.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ border: '1px solid var(--border2)', background: 'var(--tile)' }}>
-                  <CategoryIcon name={cat.icon} color={cat.color} size={20} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{cat.name}</p>
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                      {cat.isIncome ? 'Income' : 'Expense'} · Custom
-                    </p>
-                  </div>
-                  <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                <div key={cat.id} className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border2)', background: 'var(--tile)' }}>
 
-                  {deleteConfirm === cat.id ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Delete?</span>
-                      <button
-                        onClick={() => deleteMutation.mutate(cat.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-xs font-bold text-red-600 hover:text-red-700 px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100"
-                      >
-                        {deleteMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : 'Yes, delete'}
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(null)}
-                        className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-100"
-                      >
-                        Cancel
-                      </button>
+                  {/* Row */}
+                  <div className="flex items-center gap-3 p-3">
+                    <CategoryIcon name={editingId === cat.id ? (editCustomIcon || editIcon) : cat.icon} color={editingId === cat.id ? editColor : cat.color} size={20} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{cat.name}</p>
+                      <p className="text-xs" style={{ color: 'var(--muted)' }}>{cat.isIncome ? 'Income' : 'Expense'} · Custom</p>
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => setDeleteConfirm(cat.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition"
-                      title="Delete category"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+
+                    {deleteConfirm === cat.id ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: 'var(--muted)' }}>Delete?</span>
+                        <button onClick={() => deleteMutation.mutate(cat.id)} disabled={deleteMutation.isPending}
+                          className="text-xs font-bold px-2 py-1 rounded-lg transition" style={{ color: '#ff7f90', background: 'rgba(255,127,144,0.1)', border: '1px solid rgba(255,127,144,0.25)' }}>
+                          {deleteMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : 'Delete'}
+                        </button>
+                        <button onClick={() => setDeleteConfirm(null)} className="text-xs px-2 py-1 rounded-lg transition" style={{ color: 'var(--muted)' }}>Cancel</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => editingId === cat.id ? setEditingId(null) : startEdit(cat)}
+                          className="p-1.5 rounded-lg transition" style={{ color: editingId === cat.id ? 'var(--accent)' : 'var(--text-secondary)' }}
+                          title="Edit category">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => { setDeleteConfirm(cat.id); setEditingId(null) }}
+                          className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-secondary)' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = '#ff7f90')}
+                          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                          title="Delete category">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Inline edit panel */}
+                  {editingId === cat.id && (
+                    <div className="px-4 pb-4 space-y-4 border-t" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
+                      <div className="pt-3">
+                        <input
+                          autoFocus
+                          className="input"
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          maxLength={50}
+                          placeholder="Category name"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Icon</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {PRESET_ICONS.map(ico => (
+                            <button key={ico} onClick={() => { setEditIcon(ico); setEditCustomIcon('') }}
+                              className={clsx('w-9 h-9 rounded-lg text-lg flex items-center justify-center border-2 transition',
+                                (!editCustomIcon && editIcon === ico) ? 'border-accent-500 bg-accent-50' : 'border-slate-200 hover:border-slate-300')}>
+                              {ico}
+                            </button>
+                          ))}
+                        </div>
+                        <input className="input text-sm" placeholder="Or type any emoji…"
+                          value={editCustomIcon}
+                          onChange={e => setEditCustomIcon(e.target.value.slice(0, 4))}
+                          maxLength={4} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Color</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {PRESET_COLORS.map(c => (
+                            <button key={c} onClick={() => setEditColor(c)}
+                              className={clsx('w-7 h-7 rounded-full border-2 transition', editColor === c ? 'border-slate-800 scale-110' : 'border-transparent hover:scale-105')}
+                              style={{ backgroundColor: c }} />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        <button onClick={() => updateMutation.mutate({ id: cat.id })}
+                          disabled={!editName.trim() || updateMutation.isPending}
+                          className="btn-primary flex items-center gap-1.5 disabled:opacity-50">
+                          {updateMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                          Save
+                        </button>
+                        <button onClick={() => setEditingId(null)} className="btn-secondary flex items-center gap-1.5">
+                          <X size={13} /> Cancel
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}
