@@ -1133,6 +1133,21 @@ export default function CategorizePage() {
     },
   })
 
+  // ── Apply saved rules to all uncategorized committed transactions ──
+  const [applyRulesMsg, setApplyRulesMsg] = useState<string | null>(null)
+  const applyRulesMutation = useMutation({
+    mutationFn: () => apiFetch('/api/transactions/apply-rules', { method: 'POST' }),
+    onSuccess: (res: { applied: number; skipped: number }) => {
+      void qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+      setApplyRulesMsg(`${res.applied} transaction${res.applied !== 1 ? 's' : ''} categorized by rules`)
+      setTimeout(() => setApplyRulesMsg(null), 3000)
+    },
+    onError: (err: Error) => {
+      setApplyRulesMsg(`Error: ${err.message}`)
+      setTimeout(() => setApplyRulesMsg(null), 3000)
+    },
+  })
+
   // ── Helpers ──
   const countSimilar = useCallback((merchant: string, amount: number) =>
     allTxs.filter(t => t.merchantNormalized === merchant && t.amount === amount && !t.appCategory).length,
@@ -1605,20 +1620,19 @@ export default function CategorizePage() {
             </div>
           ) : (
             /* Two-column layout */
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-              {/* LEFT: Category drop targets */}
-              <div>
-                {/* Panel header: label + Save Layout button */}
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <>
+              {/* ── Shared toolbar row (categories label + sort controls on one line) ── */}
+              <div className="mb-2 flex items-center gap-3">
+                {/* Left half: category label + save + apply-rules */}
+                <div className="flex flex-1 items-center gap-2 min-w-0">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                     Categories
                   </span>
                   <button
                     onClick={handleSaveLayout}
                     disabled={savePrefMutation.isPending}
                     className={clsx(
-                      'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition',
+                      'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap',
                       saveConfirmed
                         ? 'border-green-300 bg-green-50 text-green-700'
                         : 'border-accent-500 bg-accent-500 text-white hover:bg-accent-600'
@@ -1631,10 +1645,90 @@ export default function CategorizePage() {
                         : <><Save size={12} /> Save Layout</>
                     }
                   </button>
+                  <button
+                    onClick={() => applyRulesMutation.mutate()}
+                    disabled={applyRulesMutation.isPending}
+                    title="Apply your saved rules to all uncategorized transactions"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)] hover:border-[var(--border-hover)] transition whitespace-nowrap"
+                  >
+                    {applyRulesMutation.isPending
+                      ? <><Loader2 size={12} className="animate-spin" /> Applying…</>
+                      : <><Zap size={12} /> Apply Rules</>
+                    }
+                  </button>
+                  {applyRulesMsg && (
+                    <span className="text-xs font-semibold text-green-400 whitespace-nowrap">{applyRulesMsg}</span>
+                  )}
                 </div>
+                {/* Right half: sort controls */}
+                <div className="flex flex-1 items-center gap-1.5 justify-end min-w-0">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">Sort:</span>
+                  {(['date', 'amount', 'vendor'] as CatSortKey[]).map(key => {
+                    const active = sortKey === key
+                    const Icon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+                    const label = key === 'date' ? 'Date' : key === 'amount' ? 'Amount' : 'Vendor'
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => handleCatSort(key)}
+                        className={clsx(
+                          'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition whitespace-nowrap',
+                          active
+                            ? 'border-accent-400 bg-accent-50 text-accent-700'
+                            : 'border-[var(--border-soft)] bg-[var(--surface2)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text)]'
+                        )}
+                      >
+                        {label}<Icon size={11} />
+                      </button>
+                    )
+                  })}
+                  {(sortKey !== 'date' || sortDir !== 'desc' || vendorQuery || samePriceOnly) && (
+                    <button
+                      onClick={resetSort}
+                      className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface2)] px-2 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text)] transition whitespace-nowrap"
+                      title="Reset to default sort"
+                    >
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (!samePriceOnly) {
+                        setSamePriceOnly(true)
+                        setSortKey('amount')
+                        setSortDir('desc')
+                        localStorage.setItem('budgetlens:cat-sort-key', 'amount')
+                        localStorage.setItem('budgetlens:cat-sort-dir', 'desc')
+                      } else {
+                        const next: CatSortDir = sortDir === 'desc' ? 'asc' : 'desc'
+                        setSortDir(next)
+                        localStorage.setItem('budgetlens:cat-sort-dir', next)
+                      }
+                    }}
+                    className={clsx(
+                      'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition whitespace-nowrap',
+                      samePriceOnly
+                        ? 'border-teal-400 bg-teal-500/20 text-teal-300'
+                        : 'border-[var(--border-soft)] bg-[var(--surface2)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text)]'
+                    )}
+                  >
+                    <Equal size={11} />
+                    Same Price{samePriceCount > 0 && ` (${samePriceCount})`}
+                    {samePriceOnly
+                      ? (sortDir === 'desc' ? <ArrowDown size={11} /> : <ArrowUp size={11} />)
+                      : <ArrowUpDown size={11} />
+                    }
+                  </button>
+                </div>
+              </div>
 
+              {/* ── Two-column grid ── */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+              {/* LEFT: Category drop targets */}
+              <div>
                 {/* Category rows — grouped into pairs so accordion expands inline */}
-                <div className={clsx('categories-panel max-h-[calc(100vh-270px)] overflow-x-hidden overflow-y-auto px-1 py-0.5', isDraggingTx && 'drag-mode')}>
+                <div className={clsx('categories-panel max-h-[calc(100vh-300px)] overflow-x-hidden overflow-y-auto px-1 py-0.5', isDraggingTx && 'drag-mode')}>
                   <SortableContext items={sortableCatIds} strategy={verticalListSortingStrategy}>
                     {Array.from({ length: Math.ceil(categories.length / 2) }, (_, rowIdx) => {
                       const row = categories.slice(rowIdx * 2, rowIdx * 2 + 2)
@@ -1697,90 +1791,25 @@ export default function CategorizePage() {
 
               {/* RIGHT: Transaction queue */}
               <div>
-                {/* Sort + filter controls */}
-                <div className="mb-2 space-y-2">
-                  {/* Sort buttons row */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-0.5">Sort:</span>
-                    {(['date', 'amount', 'vendor'] as CatSortKey[]).map(key => {
-                      const active = sortKey === key
-                      const Icon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
-                      const label = key === 'date' ? 'Date' : key === 'amount' ? 'Amount' : 'Vendor'
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => handleCatSort(key)}
-                          className={clsx(
-                            'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
-                            active
-                              ? 'border-accent-400 bg-accent-50 text-accent-700'
-                              : 'border-[var(--border-soft)] bg-[var(--surface2)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text)]'
-                          )}
-                        >
-                          {label}<Icon size={11} />
-                        </button>
-                      )
-                    })}
-                    {(sortKey !== 'date' || sortDir !== 'desc' || vendorQuery || samePriceOnly) && (
-                      <button
-                        onClick={resetSort}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface2)] px-2 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text)] transition"
-                        title="Reset to default sort"
-                      >
-                        Reset
-                      </button>
-                    )}
+                {/* Vendor filter */}
+                <div className="relative mb-2">
+                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Filter by vendor…"
+                    value={vendorQuery}
+                    onChange={e => setVendorQuery(e.target.value)}
+                    className="w-full rounded-lg py-1.5 pl-7 pr-7 text-xs outline-none transition"
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border-soft)', color: 'var(--text)', borderRadius: 10 }}
+                  />
+                  {vendorQuery && (
                     <button
-                      onClick={() => {
-                        if (!samePriceOnly) {
-                          setSamePriceOnly(true)
-                          setSortKey('amount')
-                          setSortDir('desc')
-                          localStorage.setItem('budgetlens:cat-sort-key', 'amount')
-                          localStorage.setItem('budgetlens:cat-sort-dir', 'desc')
-                        } else {
-                          // already on — toggle direction
-                          const next: CatSortDir = sortDir === 'desc' ? 'asc' : 'desc'
-                          setSortDir(next)
-                          localStorage.setItem('budgetlens:cat-sort-dir', next)
-                        }
-                      }}
-                      className={clsx(
-                        'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
-                        samePriceOnly
-                          ? 'border-teal-400 bg-teal-500/20 text-teal-300'
-                          : 'border-[var(--border-soft)] bg-[var(--surface2)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text)]'
-                      )}
+                      onClick={() => setVendorQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     >
-                      <Equal size={11} />
-                      Same Price{samePriceCount > 0 && ` (${samePriceCount})`}
-                      {samePriceOnly
-                        ? (sortDir === 'desc' ? <ArrowDown size={11} /> : <ArrowUp size={11} />)
-                        : <ArrowUpDown size={11} />
-                      }
+                      <X size={12} />
                     </button>
-                  </div>
-
-                  {/* Vendor filter */}
-                  <div className="relative">
-                    <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Filter by vendor…"
-                      value={vendorQuery}
-                      onChange={e => setVendorQuery(e.target.value)}
-                      className="w-full rounded-lg py-1.5 pl-7 pr-7 text-xs outline-none transition"
-                      style={{ background: 'var(--surface2)', border: '1px solid var(--border-soft)', color: 'var(--text)', borderRadius: 10 }}
-                    />
-                    {vendorQuery && (
-                      <button
-                        onClick={() => setVendorQuery('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
 
                 {/* Count label */}
@@ -1815,6 +1844,7 @@ export default function CategorizePage() {
                 </div>
               </div>
             </div>
+          </>
           )}
 
         </main>
