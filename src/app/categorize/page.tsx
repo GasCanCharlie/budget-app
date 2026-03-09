@@ -212,9 +212,6 @@ function TxCard({
       )}
       style={undefined}
     >
-      {/* Checkbox / drag handle */}
-      <div className="transaction-check" aria-hidden="true" />
-
       <div className="transaction-main">
         <div className="transaction-top">
           <span className="transaction-vendor">
@@ -308,23 +305,13 @@ function CategoryBucket({
   return (
     <div
       ref={setRef}
-      style={{ ...style, opacity: isSortDragging ? 0.4 : 1 }}
+      {...attributes}
+      {...listeners}
+      style={{ ...style, opacity: isSortDragging ? 0.4 : 1, cursor: isSortDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
       onClick={() => { if (!isDraggingTx) onToggleExpand(cat.id) }}
       onContextMenu={e => { e.preventDefault(); onContextMenu(cat, e) }}
       className={clsx('category-item select-none', showOver && 'drag-over')}
     >
-      {/* Reorder grip */}
-      <div
-        {...attributes}
-        {...listeners}
-        onClick={e => e.stopPropagation()}
-        aria-label="Reorder category"
-        className="cat-grip"
-        style={{ cursor: isSortDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
-      >
-        <GripVertical size={13} style={{ color: 'var(--text-muted)' }} />
-      </div>
-
       {/* Left: icon + name */}
       <div className="category-left">
         <CategoryIcon name={cat.icon} color={cat.color} size={22} />
