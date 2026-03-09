@@ -1865,43 +1865,44 @@ export default function CategorizePage() {
               <PlusCircle size={14} style={{ color: '#7c91ff' }} />
               Add category
             </button>
-            {!catCtxMenu.cat.isSystem && (
-              <>
-                <div style={{ height:1, background:'rgba(255,255,255,0.07)', margin:'2px 0' }} />
-                {catDeleteConfirm ? (
-                  <div style={{ padding:'8px 10px' }}>
-                    <p style={{ fontSize:12, color:'#9aa6bf', marginBottom:8 }}>
-                      Delete <strong style={{ color:'#f2f5ff' }}>{catCtxMenu.cat.name}</strong>?
-                    </p>
-                    <div style={{ display:'flex', gap:6 }}>
-                      <button
-                        onClick={() => deleteCatMutation.mutate(catCtxMenu.cat.id)}
-                        disabled={deleteCatMutation.isPending}
-                        style={{ flex:1, padding:'6px 0', borderRadius:8, background:'rgba(255,127,144,0.15)', border:'1px solid rgba(255,127,144,0.3)', color:'#ff7f90', fontSize:12, fontWeight:700, cursor:'pointer' }}
-                      >
-                        {deleteCatMutation.isPending ? '…' : 'Delete'}
-                      </button>
-                      <button
-                        onClick={() => setCatDeleteConfirm(false)}
-                        style={{ flex:1, padding:'6px 0', borderRadius:8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'#9aa6bf', fontSize:12, fontWeight:600, cursor:'pointer' }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
+            <>
+              <div style={{ height:1, background:'rgba(255,255,255,0.07)', margin:'2px 0' }} />
+              {catDeleteConfirm ? (
+                <div style={{ padding:'8px 10px' }}>
+                  <p style={{ fontSize:12, color:'#9aa6bf', marginBottom:8 }}>
+                    {catCtxMenu.cat.isSystem ? 'Hide' : 'Delete'} <strong style={{ color:'#f2f5ff' }}>{catCtxMenu.cat.name}</strong>?
+                  </p>
+                  {catCtxMenu.cat.isSystem && (
+                    <p style={{ fontSize:11, color:'#6b7a99', marginBottom:8 }}>It can be restored from the Categories page.</p>
+                  )}
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button
+                      onClick={() => deleteCatMutation.mutate(catCtxMenu.cat.id)}
+                      disabled={deleteCatMutation.isPending}
+                      style={{ flex:1, padding:'6px 0', borderRadius:8, background:'rgba(255,127,144,0.15)', border:'1px solid rgba(255,127,144,0.3)', color:'#ff7f90', fontSize:12, fontWeight:700, cursor:'pointer' }}
+                    >
+                      {deleteCatMutation.isPending ? '…' : catCtxMenu.cat.isSystem ? 'Hide' : 'Delete'}
+                    </button>
+                    <button
+                      onClick={() => setCatDeleteConfirm(false)}
+                      style={{ flex:1, padding:'6px 0', borderRadius:8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'#9aa6bf', fontSize:12, fontWeight:600, cursor:'pointer' }}
+                    >
+                      Cancel
+                    </button>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => setCatDeleteConfirm(true)}
-                    style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:9, background:'transparent', border:'none', cursor:'pointer', width:'100%', textAlign:'left', color:'#ff7f90', fontSize:13, fontWeight:600 }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,127,144,0.1)' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
-                  >
-                    <Trash2 size={14} />
-                    Delete {catCtxMenu.cat.name}
-                  </button>
-                )}
-              </>
-            )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCatDeleteConfirm(true)}
+                  style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:9, background:'transparent', border:'none', cursor:'pointer', width:'100%', textAlign:'left', color:'#ff7f90', fontSize:13, fontWeight:600 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,127,144,0.1)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                >
+                  <Trash2 size={14} />
+                  {catCtxMenu.cat.isSystem ? 'Hide' : 'Delete'} {catCtxMenu.cat.name}
+                </button>
+              )}
+            </>
           </div>
         )}
 
