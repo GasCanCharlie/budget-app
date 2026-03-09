@@ -321,12 +321,7 @@ function CategoryBucket({
 
       {/* Left: icon + name */}
       <div className="category-left">
-        <div
-          className="category-icon"
-          style={{ background: cat.color + '22', border: `1px solid ${cat.color}33` }}
-        >
-          <CategoryIcon name={cat.icon} color={cat.color} size={18} />
-        </div>
+        <CategoryIcon name={cat.icon} color={cat.color} size={22} />
         <span className="category-name">{cat.name}</span>
       </div>
 
