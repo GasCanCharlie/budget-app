@@ -54,6 +54,17 @@ export function CategoryIcon({
   size?: number
   className?: string
 }) {
+  // If the name isn't a known Lucide key and starts with a non-ASCII char, treat as emoji
+  if (!ICON_MAP[name] && name.length <= 4 && name.codePointAt(0)! > 127) {
+    return (
+      <span
+        className={className}
+        style={{ fontSize: size * 0.85, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+      >
+        {name}
+      </span>
+    )
+  }
   const Icon = ICON_MAP[name] ?? getCategoryIcon(name)
   return <Icon size={size} color={color ?? '#94a3b8'} className={className} />
 }
