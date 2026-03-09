@@ -17,6 +17,6 @@ export async function GET(req: NextRequest) {
     total,
     uncategorized,
     categorized: total - uncategorized,
-    unlocked: total > 0 && uncategorized === 0,
+    unlocked: total > 0 && uncategorized / total <= 0.05,
   })
 }
