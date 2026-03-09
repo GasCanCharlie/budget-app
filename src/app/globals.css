@@ -601,9 +601,9 @@ h3 { letter-spacing: -0.01em; }
     opacity var(--transition-fast);
 }
 .transaction-card:hover {
-  background: linear-gradient(180deg, #151f35 0%, #121c30 100%);
-  border-color: rgba(140,160,255,.18);
-  box-shadow: 0 8px 18px rgba(0,0,0,.22);
+  background: linear-gradient(180deg, #1a2540 0%, #16203a 100%);
+  border-color: rgba(124,145,255,.40);
+  box-shadow: 0 0 0 1px rgba(124,145,255,.12), 0 8px 24px rgba(0,0,0,.32);
   transform: translateY(-1px);
 }
 .transaction-card.selected {
@@ -649,7 +649,7 @@ h3 { letter-spacing: -0.01em; }
 .transaction-top   { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
 .transaction-vendor {
   font-size: 15px; font-weight: 700; color: #f2f5ff;
-  line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 .transaction-date   { font-size: 13px; font-weight: 500; color: #9aa6bf; margin-top: 2px; margin-bottom: 0; }
 .transaction-amount { font-size: 15px; font-weight: 700; white-space: nowrap; }
