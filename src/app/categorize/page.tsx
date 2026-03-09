@@ -1644,21 +1644,20 @@ export default function CategorizePage() {
                       return (
                         <div key={rowIdx}>
                           <div className="grid grid-cols-2 gap-3 mb-3">
-                            {row.map(cat => (
-                              <CategoryBucket
-                                key={cat.id}
-                                cat={cat}
-                                isDraggingTx={isDraggingTx}
-                                hasSelected={selectedIds.size > 0}
-                                isExpanded={expandedCatId === cat.id}
-                                onClickAssign={handleClickAssign}
-                                onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
-                                onContextMenu={(c, e) => { setCatCtxMenu({ cat: c, x: e.clientX, y: e.clientY }); setCatDeleteConfirm(false) }}
-                                txCount={txCountByCat.get(cat.name) ?? 0}
-                              />
+                            {row.map((cat, i) => (
+                              <div key={cat.id} className={row.length === 1 ? 'col-span-2' : ''}>
+                                <CategoryBucket
+                                  cat={cat}
+                                  isDraggingTx={isDraggingTx}
+                                  hasSelected={selectedIds.size > 0}
+                                  isExpanded={expandedCatId === cat.id}
+                                  onClickAssign={handleClickAssign}
+                                  onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
+                                  onContextMenu={(c, e) => { setCatCtxMenu({ cat: c, x: e.clientX, y: e.clientY }); setCatDeleteConfirm(false) }}
+                                  txCount={txCountByCat.get(cat.name) ?? 0}
+                                />
+                              </div>
                             ))}
-                            {/* Fill empty cell if odd number of categories */}
-                            {row.length === 1 && <div />}
                           </div>
 
                           {/* Inline accordion — spans full width, appears directly under this row */}
