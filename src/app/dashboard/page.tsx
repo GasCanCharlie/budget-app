@@ -16,6 +16,7 @@ import { FinancialControlPanel } from '@/components/dashboard/FinancialControlPa
 import { TopTransactions } from '@/components/dashboard/TopTransactions'
 import { CategorizationGate } from '@/components/dashboard/CategorizationGate'
 import { InsightPanel } from '@/components/dashboard/InsightPanel'
+import { SubscriptionPanel } from '@/components/dashboard/SubscriptionPanel'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
 const TrendChart = dynamic(
@@ -304,6 +305,9 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* ── Subscription Panel ────────────────────────────────────────────── */}
+        <SubscriptionPanel userId={user?.id} />
 
         {/* ── Row 2: 2-column split ─────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
