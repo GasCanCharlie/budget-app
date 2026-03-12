@@ -3,14 +3,16 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { Loader2, Trash2, AlertCircle, BookOpen, ToggleLeft, ToggleRight } from 'lucide-react'
-import clsx from 'clsx'
+import {
+  Loader2, Trash2, AlertCircle, Zap, ToggleLeft, ToggleRight,
+  ArrowRight, CheckCircle2, HelpCircle, Tag,
+} from 'lucide-react'
 import { AppShell } from '@/components/AppShell'
 import { CategoryIcon } from '@/components/CategoryIcon'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Rule {
   id:          string
@@ -28,26 +30,9 @@ interface Rule {
   }
 }
 
-// ─── Mode badge ───────────────────────────────────────────────────────────────
+// ─── Rule Card ────────────────────────────────────────────────────────────────
 
-function ModeBadge({ mode }: { mode: 'always' | 'ask' }) {
-  if (mode === 'always') {
-    return (
-      <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[11px] font-semibold text-green-700">
-        Auto-assign
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-      Ask me
-    </span>
-  )
-}
-
-// ─── Rule Row ─────────────────────────────────────────────────────────────────
-
-function RuleRow({
+function RuleCard({
   rule,
   onToggleEnabled,
   onToggleMode,
@@ -62,86 +47,136 @@ function RuleRow({
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
+  const matchLabel =
+    rule.matchType === 'vendor_exact_amount' ? 'Exact vendor + amount' :
+    rule.matchType === 'vendor_exact'        ? 'Vendor matches' :
+    'Vendor contains'
+
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 transition-colors"
-      style={!rule.isEnabled ? { opacity: 0.5, background: 'var(--surface2)' } : undefined}
+      style={{
+        background: rule.isEnabled ? 'var(--card2)' : 'var(--surface2)',
+        border: `1px solid ${rule.isEnabled ? 'var(--border-soft)' : 'var(--border)'}`,
+        borderRadius: 16,
+        padding: '16px 18px',
+        opacity: rule.isEnabled ? 1 : 0.55,
+        transition: 'opacity 0.2s, border-color 0.2s',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}
     >
-      {/* Toggle enabled */}
-      <button
-        onClick={() => onToggleEnabled(rule.id, !rule.isEnabled)}
-        disabled={isPending}
-        className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition disabled:opacity-50"
-        title={rule.isEnabled ? 'Disable rule' : 'Enable rule'}
-      >
-        {rule.isEnabled
-          ? <ToggleRight size={22} className="text-accent-500" />
-          : <ToggleLeft  size={22} />
-        }
-      </button>
-
-      {/* Vendor key → Category */}
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold px-1.5 py-0.5 rounded" style={{ color: 'var(--text)', background: 'var(--surface2)' }}>
-            {rule.matchValue}
+      {/* Top row: condition → result */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {/* IF condition pill */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(124,145,255,0.10)', border: '1px solid rgba(124,145,255,0.22)',
+          borderRadius: 8, padding: '5px 10px',
+        }}>
+          <Tag size={11} style={{ color: '#7c91ff', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: '#a8b4d8', fontWeight: 600 }}>IF</span>
+          <span style={{ fontSize: 13, color: '#e2e8f5', fontWeight: 700 }}>
+            &ldquo;{rule.matchValue}&rdquo;
           </span>
           {rule.amountExact != null && (
-            <span className="text-xs font-semibold tabular-nums px-1.5 py-0.5 rounded" style={{ color: 'var(--muted)', background: 'var(--surface2)' }}>
-              ${(rule.amountExact / 100).toFixed(2)}
+            <span style={{ fontSize: 12, color: '#6b7a99', fontWeight: 600 }}>
+              = ${(rule.amountExact / 100).toFixed(2)}
             </span>
           )}
-          <span className="text-xs" style={{ color: 'var(--muted)' }}>→</span>
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text)' }}>
-            <CategoryIcon name={rule.category.icon} color={rule.category.color} size={14} />
-            {rule.category.name}
-          </span>
         </div>
-        <div className="mt-1 flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-            {rule.matchType === 'vendor_exact_amount' ? 'Exact vendor + price' : rule.matchType === 'vendor_exact' ? 'Exact vendor' : 'Contains'}
+
+        {/* Arrow */}
+        <ArrowRight size={14} style={{ color: '#4b5568', flexShrink: 0 }} />
+
+        {/* THEN category pill */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: `${rule.category.color}18`,
+          border: `1px solid ${rule.category.color}35`,
+          borderRadius: 8, padding: '5px 10px',
+        }}>
+          <CategoryIcon name={rule.category.icon} color={rule.category.color} size={13} />
+          <span style={{ fontSize: 13, color: '#e2e8f5', fontWeight: 700 }}>
+            {rule.category.name}
           </span>
         </div>
       </div>
 
-      {/* Mode toggle button */}
-      <button
-        onClick={() => onToggleMode(rule.id, rule.mode === 'always' ? 'ask' : 'always')}
-        disabled={isPending || !rule.isEnabled}
-        className="flex-shrink-0 disabled:cursor-not-allowed"
-        title="Click to toggle between Auto-assign and Ask me"
-      >
-        <ModeBadge mode={rule.mode} />
-      </button>
+      {/* Bottom row: meta + actions */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        {/* Match type label */}
+        <span style={{ fontSize: 11, color: '#4b5568', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          {matchLabel}
+        </span>
 
-      {/* Delete */}
-      {confirmDelete ? (
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-xs font-medium" style={{ color: 'var(--danger)' }}>Delete?</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Mode toggle */}
           <button
-            onClick={() => { onDelete(rule.id); setConfirmDelete(false) }}
+            onClick={() => onToggleMode(rule.id, rule.mode === 'always' ? 'ask' : 'always')}
+            disabled={isPending || !rule.isEnabled}
+            title="Toggle between Auto and Ask"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '3px 10px', borderRadius: 20,
+              fontSize: 11, fontWeight: 700,
+              border: 'none', cursor: 'pointer',
+              background: rule.mode === 'always' ? 'rgba(57,208,127,0.15)' : 'rgba(245,158,11,0.15)',
+              color: rule.mode === 'always' ? '#39d07f' : '#f59e0b',
+              transition: 'background 0.15s',
+            }}
+          >
+            {rule.mode === 'always'
+              ? <><CheckCircle2 size={11} /> Auto-assign</>
+              : <><HelpCircle size={11} /> Ask me</>
+            }
+          </button>
+
+          {/* Enabled toggle */}
+          <button
+            onClick={() => onToggleEnabled(rule.id, !rule.isEnabled)}
             disabled={isPending}
-            className="rounded bg-red-500 px-2 py-0.5 text-xs font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+            title={rule.isEnabled ? 'Disable rule' : 'Enable rule'}
+            style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
-            Yes
+            {rule.isEnabled
+              ? <ToggleRight size={20} style={{ color: '#7c91ff' }} />
+              : <ToggleLeft  size={20} style={{ color: '#3a4460' }} />
+            }
           </button>
-          <button
-            onClick={() => setConfirmDelete(false)}
-            className="rounded border border-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-          >
-            No
-          </button>
+
+          {/* Delete */}
+          {confirmDelete ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}>Delete?</span>
+              <button
+                onClick={() => { onDelete(rule.id); setConfirmDelete(false) }}
+                disabled={isPending}
+                style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                style={{ background: 'rgba(255,255,255,0.06)', color: '#8b97c3', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={isPending}
+              title="Delete rule"
+              style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: '#3a4460', lineHeight: 1 }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = '#ef4444')}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = '#3a4460')}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
-      ) : (
-        <button
-          onClick={() => setConfirmDelete(true)}
-          disabled={isPending}
-          className="flex-shrink-0 text-slate-300 hover:text-red-500 transition disabled:opacity-50"
-          title="Delete rule"
-        >
-          <Trash2 size={15} />
-        </button>
-      )}
+      </div>
     </div>
   )
 }
@@ -185,8 +220,7 @@ export default function RulesPage() {
 
   const rules: Rule[] = data?.rules ?? []
   const isPending = updateMutation.isPending || deleteMutation.isPending
-
-  // ── Render ──────────────────────────────────────────────────────────────────
+  const enabledCount = rules.filter(r => r.isEnabled).length
 
   useEffect(() => { if (!user) router.replace('/login') }, [user, router])
   if (!user) return null
@@ -221,62 +255,69 @@ export default function RulesPage() {
       <main className="max-w-2xl mx-auto px-4 py-6 pb-24">
 
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Rules</h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
-            Auto-categorization rules are applied to every new import. Drag transactions to
-            a category on the Categorize page to create rules automatically.
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div style={{ background: 'rgba(124,145,255,0.15)', borderRadius: 10, padding: '6px 8px', display: 'inline-flex' }}>
+                <Zap size={18} style={{ color: '#7c91ff' }} />
+              </div>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Smart Automation</h1>
+            </div>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              Rules auto-categorize transactions on every new import.
+              Drag any transaction to a category to create a rule instantly.
+            </p>
+          </div>
+          {rules.length > 0 && (
+            <div style={{
+              background: 'rgba(57,208,127,0.10)', border: '1px solid rgba(57,208,127,0.22)',
+              borderRadius: 10, padding: '6px 12px', flexShrink: 0,
+              fontSize: 12, fontWeight: 700, color: '#39d07f', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 20, lineHeight: 1 }}>{enabledCount}</div>
+              <div style={{ fontSize: 10, opacity: 0.8, marginTop: 1 }}>active</div>
+            </div>
+          )}
         </div>
 
         {rules.length === 0 ? (
           /* Empty state */
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: 'var(--surface2)' }}>
-              <BookOpen size={28} style={{ color: 'var(--muted)' }} />
+          <div style={{
+            background: 'var(--card2)', border: '1px solid var(--border-soft)',
+            borderRadius: 20, padding: '48px 32px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 12,
+          }}>
+            <div style={{ background: 'rgba(124,145,255,0.12)', borderRadius: '50%', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Zap size={28} style={{ color: '#7c91ff' }} />
             </div>
-            <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>No rules yet</h2>
-            <p className="mt-2 max-w-sm text-sm" style={{ color: 'var(--muted)' }}>
-              Rules are created automatically when you categorize the same vendor twice.
-              Head to the Categorize page to get started.
-            </p>
-            <button onClick={() => router.push('/categorize')} className="btn-primary mt-6">
-              Go to Categorize
+            <div>
+              <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text)' }}>No automation rules yet</h2>
+              <p className="text-sm max-w-xs" style={{ color: 'var(--muted)' }}>
+                Rules are created automatically when you categorize vendors.
+                The more you categorize, the smarter your imports become.
+              </p>
+            </div>
+            <button onClick={() => router.push('/categorize')} className="btn-primary mt-2">
+              Start Categorizing →
             </button>
           </div>
         ) : (
-          <div className="overflow-hidden" style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--card)', boxShadow: 'var(--shadow-soft)' }}>
-            {/* Column headers */}
-            <div className="flex items-center gap-3 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--muted)' }}>
-              <span className="w-6 flex-shrink-0" />
-              <span className="flex-1">Vendor → Category</span>
-              <span className="flex-shrink-0 pr-1">Action</span>
-              <span className="w-6 flex-shrink-0" />
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {rules.map(rule => (
+              <RuleCard
+                key={rule.id}
+                rule={rule}
+                isPending={isPending}
+                onToggleEnabled={(id, isEnabled) => updateMutation.mutate({ id, patch: { isEnabled } })}
+                onToggleMode={(id, mode) => updateMutation.mutate({ id, patch: { mode } })}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
+            ))}
 
-            {/* Rules list */}
-            <div style={{ ['--tw-divide-border-color' as string]: 'var(--border)' }} className="[&>*+*]:border-t [&>*+*]:[border-color:var(--border)]">
-              {rules.map(rule => (
-                <RuleRow
-                  key={rule.id}
-                  rule={rule}
-                  isPending={isPending}
-                  onToggleEnabled={(id, isEnabled) => updateMutation.mutate({ id, patch: { isEnabled } })}
-                  onToggleMode={(id, mode) => updateMutation.mutate({ id, patch: { mode } })}
-                  onDelete={(id) => deleteMutation.mutate(id)}
-                />
-              ))}
-            </div>
-
-            {/* Footer */}
-            <div className="px-4 py-2.5 flex items-center justify-between" style={{ borderTop: '1px solid var(--border)', background: 'var(--surface2)' }}>
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                {rules.filter(r => r.isEnabled).length} of {rules.length} enabled
-              </span>
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                Rules apply on the next import
-              </span>
-            </div>
+            {/* Footer note */}
+            <p className="text-center text-xs mt-2" style={{ color: 'var(--muted)' }}>
+              {enabledCount} of {rules.length} rules active · Applied on every new import
+            </p>
           </div>
         )}
 

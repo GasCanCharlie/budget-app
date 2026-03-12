@@ -252,6 +252,7 @@ function CategoryBucket({
   onToggleExpand,
   onContextMenu,
   txCount,
+  catAmount,
   children,
 }: {
   cat: Category
@@ -262,6 +263,7 @@ function CategoryBucket({
   onToggleExpand: (id: string) => void
   onContextMenu: (cat: Category, e: React.MouseEvent) => void
   txCount?: number
+  catAmount?: number
   children?: React.ReactNode
 }) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({
@@ -316,6 +318,12 @@ function CategoryBucket({
 
       {/* Right: meta */}
       <div className="category-meta">
+        {/* Dollar total */}
+        {catAmount != null && catAmount > 0 && !showOver && (
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#7c91ff', whiteSpace: 'nowrap' }}>
+            ${catAmount >= 1000 ? `${(catAmount / 1000).toFixed(1)}k` : catAmount.toFixed(0)}
+          </span>
+        )}
         {/* Count badge */}
         {txCount != null && txCount > 0 && !showOver && (
           <span className="cat-count">{txCount}</span>
@@ -1065,6 +1073,16 @@ export default function CategorizePage() {
     return map
   }, [allTxs])
 
+  const amountByCat = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const tx of allTxs) {
+      if (tx.appCategory && tx.amount < 0) {
+        map.set(tx.appCategory, (map.get(tx.appCategory) ?? 0) + Math.abs(tx.amount))
+      }
+    }
+    return map
+  }, [allTxs])
+
   // ── Mutation — sets appCategory (free text) ──
   const updateMutation = useMutation({
     mutationFn: ({ id, appCategory, applyToAll }: { id: string; appCategory: string | null; applyToAll: boolean }) =>
@@ -1749,6 +1767,7 @@ export default function CategorizePage() {
                                   onToggleExpand={(id) => setExpandedCatId(prev => prev === id ? null : id)}
                                   onContextMenu={(c, e) => { setCatCtxMenu({ cat: c, x: e.clientX, y: e.clientY }); setCatDeleteConfirm(false) }}
                                   txCount={txCountByCat.get(cat.name) ?? 0}
+                                  catAmount={amountByCat.get(cat.name)}
                                 />
                               </div>
                             ))}
