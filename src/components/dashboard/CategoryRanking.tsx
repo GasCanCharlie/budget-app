@@ -19,12 +19,30 @@ interface Props {
   totalSpending: number
   year: number
   month: number
+  prevCategories?: CategoryItem[]
+}
+
+function MomBadge({ current, prev }: { current: number; prev: number }) {
+  if (prev === 0) return null
+  const pct = Math.round(((current - prev) / prev) * 100)
+  if (Math.abs(pct) < 3) return null
+  const up = pct > 0
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 5px',
+      background: up ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
+      color: up ? '#ef4444' : '#10b981',
+      whiteSpace: 'nowrap',
+    }}>
+      {up ? '↑' : '↓'}{Math.abs(pct)}%
+    </span>
+  )
 }
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
 
-export function CategoryRanking({ categories, totalSpending, year, month }: Props) {
+export function CategoryRanking({ categories, totalSpending, year, month, prevCategories = [] }: Props) {
   const [sort, setSort] = useState<'amount' | 'pct'>('amount')
 
   const top = [...categories.slice(0, 10)].sort((a, b) =>
@@ -75,6 +93,8 @@ export function CategoryRanking({ categories, totalSpending, year, month }: Prop
             const pct = Math.min(cat.pctOfSpending, 100)
             const barColor = cat.categoryColor || '#2563eb'
 
+            const prevCat = prevCategories.find(p => p.categoryName === cat.categoryName)
+
             return (
               <Link
                 key={cat.categoryId}
@@ -92,7 +112,7 @@ export function CategoryRanking({ categories, totalSpending, year, month }: Prop
                 </div>
 
                 {/* Category name */}
-                <span className="text-sm font-medium group-hover:text-blue-600 transition-colors w-32 flex-shrink-0 truncate" style={{ color: 'var(--text)' }}>
+                <span className="text-sm font-medium group-hover:text-blue-600 transition-colors w-28 flex-shrink-0 truncate" style={{ color: 'var(--text)' }}>
                   {cat.categoryName}
                 </span>
 
@@ -111,6 +131,11 @@ export function CategoryRanking({ categories, totalSpending, year, month }: Prop
                 <span className="text-xs w-9 text-right tabular-nums flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
                   {Math.round(cat.pctOfSpending)}%
                 </span>
+
+                {/* MoM delta */}
+                <div className="w-12 flex justify-end flex-shrink-0">
+                  {prevCat && <MomBadge current={cat.total} prev={prevCat.total} />}
+                </div>
 
                 {/* Amount */}
                 <span className="text-sm font-bold tabular-nums w-20 text-right flex-shrink-0" style={{ color: 'var(--text)' }}>

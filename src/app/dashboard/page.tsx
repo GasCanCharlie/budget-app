@@ -100,6 +100,16 @@ export default function DashboardPage() {
     refetchOnMount: 'always',
   })
 
+  // Previous month summary for per-category MoM deltas in CategoryRanking
+  const prevYearCalc  = month === 1 ? year - 1 : year
+  const prevMonthCalc = month === 1 ? 12 : month - 1
+  const { data: prevSummaryData } = useQuery<SummaryResponse>({
+    queryKey: ['summary', prevYearCalc, prevMonthCalc],
+    queryFn:  () => apiFetch(`/api/summaries/${prevYearCalc}/${prevMonthCalc}`),
+    enabled:  !!user,
+    staleTime: 5 * 60_000,
+  })
+
   const { data: uploadsData } = useQuery({
     queryKey: ['uploads'],
     queryFn:  () => apiFetch('/api/uploads'),
@@ -217,6 +227,7 @@ export default function DashboardPage() {
   // Strict: spending charts ONLY include expense categories (isIncome === false)
   const spendingCategories = summary.categoryTotals.filter(c => !c.isIncome)
   const topTransactions    = summary.topTransactions ?? []
+  const prevSpendingCategories = (prevSummaryData?.summary?.categoryTotals ?? []).filter(c => !c.isIncome)
 
   // Previous month data for MoM change
   const prevMonthYear  = month === 1 ? year - 1 : year
@@ -319,6 +330,7 @@ export default function DashboardPage() {
               totalSpending={summary.totalSpending as number}
               year={year}
               month={month}
+              prevCategories={prevSpendingCategories}
             />
           </div>
 
@@ -351,20 +363,23 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* New Subscriptions */}
+              {/* Unusual Purchases placeholder — anomaly alerts already shown above */}
               <div className="rounded-xl border border-slate-100 p-4">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                  New Subscriptions
+                  Largest Transaction
                 </p>
-                <p className="text-sm text-slate-400">Subscription tracking coming soon.</p>
-              </div>
-
-              {/* Unusual Purchases */}
-              <div className="rounded-xl border border-slate-100 p-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                  Unusual Purchases
-                </p>
-                <p className="text-sm text-slate-400">Anomaly detection coming soon.</p>
+                {topTransactions.length > 0 ? (
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                      {topTransactions[0].merchantNormalized || topTransactions[0].description}
+                    </p>
+                    <p className="text-lg font-bold text-red-500 mt-0.5">
+                      ${Math.abs(topTransactions[0].amount).toFixed(2)}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400">No transactions yet</p>
+                )}
               </div>
             </div>
           </div>
