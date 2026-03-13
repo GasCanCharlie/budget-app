@@ -18,6 +18,7 @@ import { CategorizationGate } from '@/components/dashboard/CategorizationGate'
 import { InsightPanel } from '@/components/dashboard/InsightPanel'
 import { SubscriptionPanel } from '@/components/dashboard/SubscriptionPanel'
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard'
+import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
 const TrendChart = dynamic(
@@ -192,18 +193,7 @@ export default function DashboardPage() {
   // ── Empty / error state ────────────────────────────────────────────────────
   if (isError || !data) return (
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
-      <div className="max-w-md mx-auto py-20 text-center space-y-4">
-        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
-          <span className="text-3xl">📭</span>
-        </div>
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 mb-1">No data yet</h2>
-          <p className="text-slate-500 text-sm">Upload a bank statement to see your financial dashboard.</p>
-        </div>
-        <Link href="/upload" className="btn-primary inline-flex">
-          Upload statement
-        </Link>
-      </div>
+      <OnboardingWelcome />
     </AppShell>
   )
 

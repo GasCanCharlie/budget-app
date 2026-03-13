@@ -619,8 +619,8 @@ export default function HomePage() {
             <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
               <a href="#how">How it works</a>
               <Link href="/privacy">Privacy</Link>
-              <a href="#pricing">Pricing</a>
               <Link href="/terms">Terms</Link>
+              <span style={{ color: 'rgba(255,255,255,.75)' }}>support@budgetlens.app</span>
               <a href="#lp-top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Back to top</a>
             </div>
           </div>

@@ -405,7 +405,7 @@ export default function PrivacyPage() {
             <ul>
               <li>
                 Email us at{' '}
-                <a href="mailto:privacy@budgetlens.app">privacy@budgetlens.app</a> with
+                support@budgetlens.app with
                 the subject line <em>&quot;Delete my account&quot;</em>.
               </li>
               <li>
@@ -457,7 +457,7 @@ export default function PrivacyPage() {
             <ul>
               <li>
                 <strong style={{ color: 'var(--text)' }}>Email:</strong>{' '}
-                <a href="mailto:privacy@budgetlens.app">privacy@budgetlens.app</a>
+                support@budgetlens.app
               </li>
             </ul>
             <p style={{ marginTop: '12px' }}>

@@ -309,7 +309,7 @@ export default function TermsPage() {
             </ul>
             <div className="warn-box">
               You are responsible for the security of your account. Notify us immediately
-              at <a href="mailto:support@budgetlens.app">support@budgetlens.app</a> if you
+              at support@budgetlens.app if you
               suspect unauthorized access.
             </div>
           </div>
@@ -458,7 +458,7 @@ export default function TermsPage() {
             </h2>
             <p>
               You may stop using the Service and request account deletion at any time by
-              contacting <a href="mailto:support@budgetlens.app">support@budgetlens.app</a>.
+              contacting support@budgetlens.app.
             </p>
             <p>
               We reserve the right to suspend or terminate your access to the Service at
@@ -484,7 +484,7 @@ export default function TermsPage() {
             <ul>
               <li>
                 <strong style={{ color: 'var(--text)' }}>General inquiries:</strong>{' '}
-                <a href="mailto:support@budgetlens.app">support@budgetlens.app</a>
+                support@budgetlens.app
               </li>
               <li>
                 <strong style={{ color: 'var(--text)' }}>Privacy &amp; data requests:</strong>{' '}
