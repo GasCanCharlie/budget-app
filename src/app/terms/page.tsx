@@ -117,12 +117,6 @@ const CSS = `
 .terms-card h2 {
   margin: 0 0 14px; font-size: 17px; font-weight: 800; letter-spacing: -.2px;
   color: var(--text); position: relative;
-  display: flex; align-items: center; gap: 10px;
-}
-.terms-card h2 .sec-icon {
-  width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
-  border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.07);
-  display: grid; place-items: center; font-size: 16px;
 }
 
 .terms-card p,
@@ -239,12 +233,9 @@ export default function TermsPage() {
 
           <p className="terms-updated">Last updated: March 2026</p>
 
-          {/* 1 — Acceptance */}
+          {/* 1 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">📄</span>
-              1. Acceptance of terms
-            </h2>
+            <h2>1. Acceptance of terms</h2>
             <p>
               By accessing or using BudgetLens (&quot;the Service&quot;, &quot;we&quot;,
               &quot;us&quot;), you agree to these Terms of Service and our{' '}
@@ -257,12 +248,9 @@ export default function TermsPage() {
             </p>
           </div>
 
-          {/* 2 — Service description */}
+          {/* 2 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">🔍</span>
-              2. Service description
-            </h2>
+            <h2>2. Service description</h2>
             <p>
               BudgetLens is a personal finance analysis tool that allows you to:
             </p>
@@ -279,47 +267,45 @@ export default function TermsPage() {
             </div>
           </div>
 
-          {/* 3 — User responsibilities */}
+          {/* 3 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">👤</span>
-              3. User responsibilities
-            </h2>
+            <h2>3. User responsibilities</h2>
             <p>You agree to:</p>
             <ul>
-              <li>
-                Provide a valid email address and a secure password when registering
-              </li>
-              <li>
-                Keep your account credentials confidential and not share access with others
-              </li>
-              <li>
-                Use the Service only for lawful personal finance management purposes
-              </li>
-              <li>
-                Upload only files that you own or have the right to process
-              </li>
-              <li>
-                Not attempt to reverse-engineer, scrape, or abuse the Service or its APIs
-              </li>
-              <li>
-                Not upload files containing data that belongs to other individuals without
-                their consent
-              </li>
+              <li>Provide a valid email address and a secure password when registering</li>
+              <li>Keep your account credentials confidential and not share access with others</li>
+              <li>Use the Service only for lawful personal finance management purposes</li>
+              <li>Upload only files that you own or have the right to process</li>
+              <li>Not attempt to reverse-engineer, scrape, or abuse the Service or its APIs</li>
+              <li>Not upload files containing data that belongs to other individuals without their consent</li>
             </ul>
             <div className="warn-box">
               You are responsible for the security of your account. Notify us immediately
-              at support@budgetlens.app if you
-              suspect unauthorized access.
+              at support@budgetlens.app if you suspect unauthorized access.
             </div>
           </div>
 
-          {/* 4 — Data */}
+          {/* 4 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">🔒</span>
-              4. Your data
-            </h2>
+            <h2>4. Responsibility for uploaded data</h2>
+            <p>
+              Users are solely responsible for any files or data uploaded to the Service.
+            </p>
+            <p>By uploading financial data, you represent and warrant that:</p>
+            <ul>
+              <li>you own the data, or</li>
+              <li>you have the legal right and permission to process the data through the Service.</li>
+            </ul>
+            <p>
+              You agree not to upload financial information belonging to other individuals
+              without their consent. BudgetLens is not responsible for disputes arising from
+              improperly uploaded data.
+            </p>
+          </div>
+
+          {/* 5 */}
+          <div className="terms-card">
+            <h2>5. Your data</h2>
             <p>
               You retain full ownership of all financial data you upload to BudgetLens.
               By uploading data, you grant us a limited, non-exclusive license to process
@@ -343,12 +329,27 @@ export default function TermsPage() {
             </div>
           </div>
 
-          {/* 5 — Disclaimers */}
+          {/* 6 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">⚠️</span>
-              5. Disclaimers
-            </h2>
+            <h2>6. AI processing</h2>
+            <p>
+              Certain features of BudgetLens use artificial intelligence services provided
+              by third-party providers.
+            </p>
+            <p>
+              When AI features are used, limited contextual data may be transmitted to these
+              providers solely to generate responses. BudgetLens does not use your financial
+              data to train external AI models.
+            </p>
+            <p>
+              Refer to our <Link href="/privacy">Privacy Policy</Link> for more information
+              about how data is handled when AI features are used.
+            </p>
+          </div>
+
+          {/* 7 */}
+          <div className="terms-card">
+            <h2>7. Disclaimers</h2>
             <p>
               BudgetLens is provided &quot;as is&quot; and &quot;as available&quot; without
               warranties of any kind, either express or implied.
@@ -377,12 +378,29 @@ export default function TermsPage() {
             </ul>
           </div>
 
-          {/* 6 — Limitation of liability */}
+          {/* 8 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">⚖️</span>
-              6. Limitation of liability
-            </h2>
+            <h2>8. AI-generated output</h2>
+            <p>
+              BudgetLens provides AI-powered tools that generate insights and responses based
+              on uploaded transaction data.
+            </p>
+            <p>AI-generated outputs:</p>
+            <ul>
+              <li>may contain inaccuracies or incomplete information</li>
+              <li>should be considered informational only</li>
+              <li>should not be relied upon as the sole basis for financial decisions</li>
+            </ul>
+            <p>
+              Users remain responsible for verifying financial information and making their
+              own financial decisions. BudgetLens does not guarantee the accuracy,
+              completeness, or reliability of AI-generated responses.
+            </p>
+          </div>
+
+          {/* 9 */}
+          <div className="terms-card">
+            <h2>9. Limitation of liability</h2>
             <p>
               To the fullest extent permitted by applicable law, BudgetLens and its operators
               shall not be liable for any indirect, incidental, special, consequential, or
@@ -391,49 +409,41 @@ export default function TermsPage() {
             <ul>
               <li>Loss of data or profits arising from your use or inability to use the Service</li>
               <li>Financial losses resulting from reliance on Service output or AI responses</li>
-              <li>Unauthorized access to your account due to your own failure to maintain
-                  credential security</li>
+              <li>Unauthorized access to your account due to your own failure to maintain credential security</li>
               <li>Any interruption or cessation of Service transmission</li>
             </ul>
-            <p style={{ marginTop: '12px' }}>
+            <p>
               In jurisdictions that do not allow exclusion of certain warranties or limitations
               of liability, our liability is limited to the maximum extent permitted by law.
             </p>
-            <p style={{ marginTop: '12px' }}>
+            <p>
               Our total aggregate liability for any claims arising from use of the Service
               shall not exceed the amount you paid us (if any) in the 12 months prior to
               the claim.
             </p>
           </div>
 
-          {/* 7 — Acceptable use */}
+          {/* 10 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">🛡️</span>
-              7. Acceptable use
-            </h2>
+            <h2>10. Acceptable use</h2>
             <p>You may not use the Service to:</p>
             <ul>
               <li>Violate any applicable local, national, or international law or regulation</li>
               <li>Upload malicious files or attempt to exploit the Service</li>
               <li>Interfere with or disrupt the integrity or performance of the Service</li>
-              <li>Attempt to gain unauthorized access to any portion of the Service or
-                  its related systems</li>
+              <li>Attempt to gain unauthorized access to any portion of the Service or its related systems</li>
               <li>Use automated tools to scrape or bulk-download data from the Service</li>
               <li>Impersonate any other user or person</li>
             </ul>
-            <p style={{ marginTop: '12px' }}>
+            <p>
               We reserve the right to suspend or terminate accounts that violate these terms,
               with or without notice.
             </p>
           </div>
 
-          {/* 8 — Changes to terms */}
+          {/* 11 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">📝</span>
-              8. Changes to these terms
-            </h2>
+            <h2>11. Changes to these terms</h2>
             <p>
               We may update these Terms of Service from time to time. When we make material
               changes, we will update the &quot;Last updated&quot; date at the top of this page.
@@ -450,12 +460,9 @@ export default function TermsPage() {
             </div>
           </div>
 
-          {/* 9 — Termination */}
+          {/* 12 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">🔚</span>
-              9. Termination
-            </h2>
+            <h2>12. Termination</h2>
             <p>
               You may stop using the Service and request account deletion at any time by
               contacting support@budgetlens.app.
@@ -472,12 +479,9 @@ export default function TermsPage() {
             </p>
           </div>
 
-          {/* 10 — Contact */}
+          {/* 13 */}
           <div className="terms-card">
-            <h2>
-              <span className="sec-icon" aria-hidden="true">✉️</span>
-              10. Contact
-            </h2>
+            <h2>13. Contact</h2>
             <p>
               If you have questions about these Terms of Service, please contact us:
             </p>
