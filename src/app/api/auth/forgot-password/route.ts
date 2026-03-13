@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       if (process.env.RESEND_API_KEY) {
         const resend = new Resend(process.env.RESEND_API_KEY)
         await resend.emails.send({
-          from:    'BudgetLens <noreply@budgetlens.app>',
+          from:    'BudgetLens <onboarding@resend.dev>',
           to:      email,
           subject: 'Reset your BudgetLens password',
           html: `
