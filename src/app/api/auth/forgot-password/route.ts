@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
         data: { passwordResetToken: tokenHash, passwordResetExpiry: expiry },
       })
 
-      const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? 'https://budgetapp-j00dr8m7n-gascancharlies-projects.vercel.app'
+      const appUrl  = process.env.NEXT_PUBLIC_APP_URL
+        ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
       const resetUrl = `${appUrl}/reset-password?token=${rawToken}`
 
       if (process.env.RESEND_API_KEY) {
