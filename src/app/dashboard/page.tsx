@@ -17,6 +17,7 @@ import { TopTransactions } from '@/components/dashboard/TopTransactions'
 import { CategorizationGate } from '@/components/dashboard/CategorizationGate'
 import { InsightPanel } from '@/components/dashboard/InsightPanel'
 import { SubscriptionPanel } from '@/components/dashboard/SubscriptionPanel'
+import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
 const TrendChart = dynamic(
@@ -106,6 +107,13 @@ export default function DashboardPage() {
   const { data: prevSummaryData } = useQuery<SummaryResponse>({
     queryKey: ['summary', prevYearCalc, prevMonthCalc],
     queryFn:  () => apiFetch(`/api/summaries/${prevYearCalc}/${prevMonthCalc}`),
+    enabled:  !!user,
+    staleTime: 5 * 60_000,
+  })
+
+  const { data: subsData } = useQuery<{ subscriptions: { estimatedMonthlyAmount: number; recurringConfidence: string; subscriptionScore: number }[] }>({
+    queryKey: ['subscriptions'],
+    queryFn:  () => apiFetch('/api/subscriptions'),
     enabled:  !!user,
     staleTime: 5 * 60_000,
   })
@@ -237,6 +245,10 @@ export default function DashboardPage() {
   const prevMonthNet      = prevMonthData?.net      ?? null
   const prevMonthSpending = prevMonthData?.totalSpending ?? null
 
+  const monthlySubscriptions = (subsData?.subscriptions ?? [])
+    .filter(s => s.recurringConfidence !== 'low' && s.subscriptionScore >= 40)
+    .reduce((sum, s) => sum + s.estimatedMonthlyAmount, 0)
+
   const largestCategory = spendingCategories.length > 0
     ? { name: spendingCategories[0].categoryName, pct: Math.round(spendingCategories[0].pctOfSpending) }
     : null
@@ -319,6 +331,16 @@ export default function DashboardPage() {
 
         {/* ── Subscription Panel ────────────────────────────────────────────── */}
         <SubscriptionPanel userId={user?.id} />
+
+        {/* ── Financial Health Score ────────────────────────────────────────── */}
+        <HealthScoreCard
+          totalIncome={summary.totalIncome as number}
+          totalSpending={summary.totalSpending as number}
+          net={summary.net as number}
+          trendMonths={(trendMonths as { net: number | null; hasData: boolean }[])}
+          categories={spendingCategories}
+          monthlySubscriptions={monthlySubscriptions}
+        />
 
         {/* ── Row 2: 2-column split ─────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

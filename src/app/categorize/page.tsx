@@ -353,6 +353,7 @@ function RuleAskModal({
   state,
   isPending,
   onAlways,
+  onAlwaysAll,
   onJustOne,
   onCancel,
   totalRemaining,
@@ -360,6 +361,7 @@ function RuleAskModal({
   state: RuleAskState
   isPending: boolean
   onAlways: () => void
+  onAlwaysAll?: () => void
   onJustOne: () => void
   onCancel: () => void
   totalRemaining?: number
@@ -392,29 +394,43 @@ function RuleAskModal({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <button
-            onClick={onCancel}
-            disabled={isPending}
-            className="rounded-lg border px-4 py-2 text-sm font-medium text-[#8b97c3] hover:bg-white/[.06] disabled:opacity-50"
-            style={{ borderColor: 'rgba(255,255,255,.12)' }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onJustOne}
-            disabled={isPending}
-            className="rounded-lg border border-accent-200 bg-accent-50 px-4 py-2 text-sm font-medium text-accent-700 hover:bg-accent-100 disabled:opacity-50"
-          >
-            {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Just this one'}
-          </button>
-          <button
-            onClick={onAlways}
-            disabled={isPending}
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Yes, always'}
-          </button>
+        <div className="flex flex-col gap-2">
+          {/* Apply All — full-width primary CTA when queue has multiple items */}
+          {onAlwaysAll && totalRemaining != null && totalRemaining > 0 && (
+            <button
+              onClick={onAlwaysAll}
+              disabled={isPending}
+              className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isPending
+                ? <Loader2 size={14} className="inline animate-spin" />
+                : `Apply all ${totalRemaining + 1} rules at once`}
+            </button>
+          )}
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={onCancel}
+              disabled={isPending}
+              className="rounded-lg border px-4 py-2 text-sm font-medium text-[#8b97c3] hover:bg-white/[.06] disabled:opacity-50"
+              style={{ borderColor: 'rgba(255,255,255,.12)' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onJustOne}
+              disabled={isPending}
+              className="rounded-lg border border-accent-200 bg-accent-50 px-4 py-2 text-sm font-medium text-accent-700 hover:bg-accent-100 disabled:opacity-50"
+            >
+              {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Just this one'}
+            </button>
+            <button
+              onClick={onAlways}
+              disabled={isPending}
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Yes, always'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1127,6 +1143,50 @@ export default function CategorizePage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rules'] })
+    },
+  })
+
+  // ── Bulk assign mutation (Apply All) ──
+  // Single round-trip: categorizes all transactions + creates all rules at once.
+  // Avoids the race conditions from firing N separate mutate() calls in a loop.
+  const bulkAssignMutation = useMutation({
+    mutationFn: (items: {
+      txId: string; appCategory: string; applyToAll: boolean
+      createRule: boolean; matchValue?: string; amountExact?: number
+      categoryId?: string; scopeAccountId?: string
+    }[]) =>
+      apiFetch('/api/transactions/bulk-assign', {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      }),
+    onMutate: async (items) => {
+      await qc.cancelQueries({ queryKey: ['categorize-transactions'] })
+      const prev = qc.getQueryData(['categorize-transactions'])
+      qc.setQueryData(['categorize-transactions'], (old: { transactions: Transaction[] } | undefined) => {
+        if (!old) return old
+        const removeIds = new Set<string>()
+        for (const item of items) {
+          const tx = old.transactions.find(t => t.id === item.txId)
+          removeIds.add(item.txId)
+          if (item.applyToAll && tx?.merchantNormalized) {
+            old.transactions
+              .filter(t => t.merchantNormalized === tx.merchantNormalized && t.amount === tx.amount && !t.appCategory)
+              .forEach(t => removeIds.add(t.id))
+          }
+        }
+        return { ...old, transactions: old.transactions.filter(t => !removeIds.has(t.id)) }
+      })
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['categorize-transactions'], ctx.prev)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['rules'] })
+      qc.invalidateQueries({ queryKey: ['insights-unlock-status'] })
+      invalidateDashboard()
     },
   })
 
@@ -1992,7 +2052,7 @@ export default function CategorizePage() {
         {ruleAsk && (
           <RuleAskModal
             state={ruleAsk}
-            isPending={updateMutation.isPending || createRuleMutation.isPending}
+            isPending={updateMutation.isPending || createRuleMutation.isPending || bulkAssignMutation.isPending}
             totalRemaining={ruleAskQueue.length}
             onAlways={() => {
               updateMutation.mutate({ id: ruleAsk.tx.id, appCategory: ruleAsk.category.name, applyToAll: ruleAsk.similarCount > 1 })
@@ -2004,6 +2064,22 @@ export default function CategorizePage() {
                 scopeAccountId: ruleAsk.tx.accountId,
               })
               popRuleAsk(); setSelectedIds(new Set()); setAnchorId(null)
+            }}
+            onAlwaysAll={() => {
+              const allItems = [ruleAsk, ...ruleAskQueue]
+              bulkAssignMutation.mutate(
+                allItems.map(item => ({
+                  txId:           item.tx.id,
+                  appCategory:    item.category.name,
+                  applyToAll:     item.similarCount > 1,
+                  createRule:     true,
+                  matchValue:     item.tx.merchantNormalized,
+                  amountExact:    Math.round(item.tx.amount * 100),
+                  categoryId:     item.category.id,
+                  scopeAccountId: item.tx.accountId,
+                }))
+              )
+              setRuleAskQueue([]); setRuleAsk(null); setSelectedIds(new Set()); setAnchorId(null)
             }}
             onJustOne={() => {
               updateMutation.mutate({ id: ruleAsk.tx.id, appCategory: ruleAsk.category.name, applyToAll: false })
