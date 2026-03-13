@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
+import { ArrowLeft, Calendar, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, FileText } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
@@ -609,6 +609,16 @@ export default function UploadDetailPage() {
             <StatChip label="Duplicates" value={upload.issueBreakdown.byType['POSSIBLE_DUPLICATE']} accent="text-purple-600"/>
           )}
         </div>
+
+        {/* ── Scan Report CTA ─────────────────────────────────────────────── */}
+        <button
+          onClick={() => router.push(`/reports/${id}`)}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition"
+          style={{ background: 'linear-gradient(135deg,#7c91ff,#a78bfa)', color: '#fff', border: 'none', cursor: 'pointer' }}
+        >
+          <FileText size={16} />
+          View Scan Report
+        </button>
 
         {/* ── Date range ─────────────────────────────────────────────────── */}
         {upload.dateRangeStart && upload.dateRangeEnd && (

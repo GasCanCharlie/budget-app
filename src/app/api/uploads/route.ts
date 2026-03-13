@@ -4,6 +4,7 @@ import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { isTransferDescription } from '@/lib/intelligence/transfers'
+import { detectSubscriptions } from '@/lib/intelligence/detect-subscriptions'
 import { normalizeMerchant } from '@/lib/categorization/engine'
 import { normalizeBankCategory, mapBankCategoryToName } from '@/lib/categorization/bank-category-map'
 import { suggestCategory } from '@/lib/scrubbing'
@@ -276,6 +277,9 @@ export async function POST(req: NextRequest) {
 
       // Cross-account transfer pairing for OFX uploads
       await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
+
+      // Subscription detection — runs after all transactions are committed
+      await detectSubscriptions(payload.userId).catch(() => { /* non-fatal */ })
 
       return NextResponse.json(
         {
@@ -846,6 +850,10 @@ export async function POST(req: NextRequest) {
     // Matches equal/opposite transactions across accounts within ±5 day window.
     // Runs after staging creation so newly imported transactions are included.
     await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
+
+    // ── Subscription detection ─────────────────────────────────────────────
+    // Runs after all transactions are committed; never fails the upload.
+    await detectSubscriptions(payload.userId).catch(() => { /* non-fatal */ })
 
     return NextResponse.json(
       {

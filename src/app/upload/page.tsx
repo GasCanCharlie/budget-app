@@ -812,6 +812,13 @@ function UploadHistoryCard() {
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <button
+                      onClick={e => { e.stopPropagation(); router.push(`/reports/${u.id}`) }}
+                      style={{ padding: '3px 8px', borderRadius: 6, background: 'var(--accent-muted)', border: '1px solid rgba(124,137,255,0.25)', cursor: 'pointer', color: 'var(--accent)', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', transition: 'background .15s' }}
+                      title="View scan report"
+                    >
+                      Scan Report
+                    </button>
+                    <button
                       onClick={e => { e.stopPropagation(); setConfirmDeleteId(u.id) }}
                       style={{ padding: 4, borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--subtle)', transition: 'color .15s' }}
                       className="hover:!text-[#ff8397]"
