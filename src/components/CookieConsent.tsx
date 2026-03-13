@@ -49,9 +49,9 @@ export function CookieConsent() {
         maxWidth: 640,
         flex: '1 1 280px',
       }}>
-        BudgetLens uses essential cookies to keep you signed in and remember your
-        preferences. We also analyze uploaded statement data to generate spending
-        insights — data is stored securely and never sold.{' '}
+        BudgetLens uses essential cookies to keep you signed in. Your uploaded
+        statements are processed privately on our servers — we never sell, share,
+        or train on your financial data.{' '}
         <Link href="/privacy" style={{ color: '#7c91ff', textDecoration: 'underline' }}>
           Privacy Policy
         </Link>
