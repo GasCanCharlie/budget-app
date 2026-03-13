@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import {
   LayoutDashboard, FileText, ArrowLeftRight, Tags, Layers,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, Lightbulb, Lock,
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, Lightbulb, Lock, Settings,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
@@ -33,6 +33,7 @@ const navItems = [
   { href: '/categorize',   label: 'Categorize',   icon: Tags },
   { href: '/categories',   label: 'Categories',   icon: Layers },
   { href: '/rules',        label: 'Rules',        icon: Gavel },
+  { href: '/settings',    label: 'Settings',     icon: Settings },
 ]
 
 const TOOLTIP_TEXT = 'Finish categorizing all transactions to unlock AI Insights.'
