@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import {
-  LayoutDashboard, Upload, ArrowLeftRight, Tags, Layers,
+  LayoutDashboard, FileText, ArrowLeftRight, Tags, Layers,
   LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, Lightbulb, Lock,
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -28,7 +28,7 @@ const navItems = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
   { href: '/insights',     label: 'Insights Q&A', icon: Lightbulb },
   { href: '/history',      label: 'History',      icon: History },
-  { href: '/upload',       label: 'Upload',       icon: Upload },
+  { href: '/upload',       label: 'Statements',   icon: FileText },
   { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/categorize',   label: 'Categorize',   icon: Tags },
   { href: '/categories',   label: 'Categories',   icon: Layers },
