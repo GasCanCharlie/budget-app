@@ -197,6 +197,13 @@ export default function DashboardPage() {
     </AppShell>
   )
 
+  // ── No uploads yet — show onboarding ──────────────────────────────────────
+  if (data.availableMonths.length === 0) return (
+    <AppShell year={year} month={month} availableMonths={[]} onMonthChange={handleMonthChange}>
+      <OnboardingWelcome />
+    </AppShell>
+  )
+
   // ── Categorization Required (Strict Mode Gate) ─────────────────────────────
   if (data.dashboardState === 'categorization_required') {
     return (
