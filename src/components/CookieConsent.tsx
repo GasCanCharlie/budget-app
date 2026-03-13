@@ -1,0 +1,84 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+
+const STORAGE_KEY = 'bl-consent-v1'
+
+export function CookieConsent() {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(STORAGE_KEY)) setVisible(true)
+    } catch {
+      // localStorage blocked (private mode etc.) — show banner
+      setVisible(true)
+    }
+  }, [])
+
+  function accept() {
+    try { localStorage.setItem(STORAGE_KEY, 'accepted') } catch { /* ignore */ }
+    setVisible(false)
+  }
+
+  if (!visible) return null
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 9999,
+      padding: '16px 20px',
+      background: 'rgba(11,16,32,0.97)',
+      backdropFilter: 'blur(16px)',
+      borderTop: '1px solid rgba(255,255,255,0.10)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      gap: '12px 24px',
+    }}>
+      <p style={{
+        margin: 0,
+        fontSize: 13,
+        color: '#a8b3d6',
+        lineHeight: 1.5,
+        maxWidth: 640,
+        flex: '1 1 280px',
+      }}>
+        BudgetLens uses essential cookies to keep you signed in and remember your
+        preferences. We also analyze uploaded statement data to generate spending
+        insights — data is stored securely and never sold.{' '}
+        <Link href="/privacy" style={{ color: '#7c91ff', textDecoration: 'underline' }}>
+          Privacy Policy
+        </Link>
+        {' '}·{' '}
+        <Link href="/terms" style={{ color: '#7c91ff', textDecoration: 'underline' }}>
+          Terms
+        </Link>
+      </p>
+
+      <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+        <button
+          onClick={accept}
+          style={{
+            padding: '8px 22px',
+            borderRadius: 999,
+            background: 'linear-gradient(135deg,#7c91ff,#a78bfa)',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+  )
+}
