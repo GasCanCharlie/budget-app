@@ -347,10 +347,9 @@ export default function HomePage() {
           </div>
 
           <nav className="nav-links" aria-label="Primary">
+            <a href="#scan">What it finds</a>
             <a href="#how">How it works</a>
-            <a href="#features">Features</a>
             <a href="#privacy">Privacy</a>
-            <a href="#pricing">Pricing</a>
           </nav>
 
           <div className="nav-cta">
@@ -367,25 +366,25 @@ export default function HomePage() {
             <div>
               <div className="kicker">
                 <span className="dot" aria-hidden="true" />
-                Privacy-first • No bank login • Local-first
+                Privacy-first • No bank login • Instant AI analysis
               </div>
 
-              <h1>Drop in your bank statement.<br />Organize once. It gets easier every month.</h1>
+              <h1>Upload your bank statement.<br />Get an instant scan in seconds.</h1>
 
               <p className="sub">
-                Upload transactions, drag-and-drop to your categories, and get clear explanations of where your money went.
-                The system remembers what you confirm so each new statement takes less time.
+                Drop in a CSV or OFX file and BudgetLens runs a full AI-powered scan — flagging hidden subscriptions,
+                duplicate charges, spending patterns, and anomalies. No bank login. No guesswork.
               </p>
 
               <div className="hero-actions">
-                <Link href="/login?mode=register" className="btn btn-primary">Upload a statement</Link>
-                <a href="#demo" className="btn">See the organizer</a>
+                <Link href="/login?mode=register" className="btn btn-primary">Scan my statement</Link>
+                <a href="#scan" className="btn">See what it finds</a>
               </div>
 
               <div className="mini">
-                <span className="pill"><span className="icon">✓</span>Rule-based memory (only what you confirm)</span>
-                <span className="pill"><span className="icon">⚡</span>Fast drag + multi-select</span>
-                <span className="pill"><span className="icon">🛡</span>Unusual transaction callouts</span>
+                <span className="pill"><span className="icon">✓</span>Finds subscriptions you forgot about</span>
+                <span className="pill"><span className="icon">⚡</span>Catches duplicate charges</span>
+                <span className="pill"><span className="icon">🛡</span>Downloadable PDF report</span>
               </div>
             </div>
 
@@ -520,6 +519,42 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── Scan Report ──────────────────────────────────────────────────── */}
+        <section className="section" id="scan">
+          <div className="wrap">
+            <h2>What the scan finds</h2>
+            <p className="lead">
+              Upload any bank statement and get a full breakdown in seconds — no manual work required.
+            </p>
+            <div className="grid3">
+              <div className="card">
+                <div className="top"><div className="ic">⟲</div><h3>Hidden subscriptions</h3></div>
+                <p>Detects recurring charges you may have forgotten — Netflix, gym memberships, annual renewals, SaaS tools. Shows the monthly and yearly cost.</p>
+              </div>
+              <div className="card">
+                <div className="top"><div className="ic">⊘</div><h3>Duplicate charges</h3></div>
+                <p>Automatically flags transactions that appear twice. Common with online orders, failed payments retried, or overlapping statement periods.</p>
+              </div>
+              <div className="card">
+                <div className="top"><div className="ic">✦</div><h3>AI summary</h3></div>
+                <p>A plain-English paragraph that explains your income, spending, net position, and any notable patterns — written by AI, grounded in your actual numbers.</p>
+              </div>
+              <div className="card">
+                <div className="top"><div className="ic">!</div><h3>Anomaly alerts</h3></div>
+                <p>Spots unusual spikes, new merchants, and transactions that deviate from your normal patterns so nothing slips through unnoticed.</p>
+              </div>
+              <div className="card">
+                <div className="top"><div className="ic">▤</div><h3>Spending breakdown</h3></div>
+                <p>Top merchants by spend, category breakdown with percentages, and a full income vs. spending summary — all in one view.</p>
+              </div>
+              <div className="card">
+                <div className="top"><div className="ic">↓</div><h3>Downloadable PDF</h3></div>
+                <p>Export the full scan report as a formatted PDF. Save it, share it with an accountant, or keep it for your records.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── How it works ─────────────────────────────────────────────────── */}
         <section className="section" id="how">
           <div className="wrap">
@@ -593,12 +628,12 @@ export default function HomePage() {
           <div className="wrap">
             <div className="cta">
               <div>
-                <h3>Want the clean "upload → organize" experience?</h3>
-                <p>Start with the organizer. Once your statement is fully categorized, unlock insights and unusual-transaction callouts.</p>
+                <h3>Ready to see what&apos;s really in your statement?</h3>
+                <p>Upload a CSV or OFX file and get your scan report in seconds. Free to try — no bank login required.</p>
               </div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <Link href="/login?mode=register" className="btn btn-primary">Upload a statement</Link>
-                <a href="#lp-demo" className="btn">See the organizer</a>
+                <Link href="/login?mode=register" className="btn btn-primary">Scan my statement</Link>
+                <a href="#scan" className="btn">See what it finds</a>
               </div>
             </div>
           </div>
