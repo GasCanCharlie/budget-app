@@ -329,9 +329,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Subscription Panel ────────────────────────────────────────────── */}
-        <SubscriptionPanel userId={user?.id} />
-
         {/* ── Financial Health Score ────────────────────────────────────────── */}
         <HealthScoreCard
           totalIncome={summary.totalIncome as number}
@@ -454,6 +451,9 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* ── Subscription Panel ────────────────────────────────────────────── */}
+        <SubscriptionPanel userId={user?.id} />
 
       </div>
 
