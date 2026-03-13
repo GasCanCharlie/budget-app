@@ -17,7 +17,11 @@ export async function detectSubscriptions(userId: string): Promise<number> {
     orderBy: { date: 'asc' },
   })
 
-  // Group by normalized merchant
+  // Clear stale candidates — we rebuild from scratch every run to avoid
+  // duplicate entries from earlier case-inconsistent upserts
+  await prisma.subscriptionCandidate.deleteMany({ where: { userId } })
+
+  // Group by normalized merchant (lowercase)
   const byMerchant = new Map<string, { amount: number; date: Date; category: string | null }[]>()
   for (const tx of transactions) {
     const key = (tx.merchantNormalized || '').toLowerCase().trim()
@@ -69,18 +73,8 @@ export async function detectSubscriptions(userId: string): Promise<number> {
     // Use the most recent appCategory as serviceCategory
     const serviceCategory = sorted[sorted.length - 1].category ?? null
 
-    await prisma.subscriptionCandidate.upsert({
-      where: { userId_merchantNormalized: { userId, merchantNormalized: merchant } },
-      update: {
-        estimatedMonthlyAmount: mean,
-        recurringConfidence: confidence,
-        subscriptionScore: score,
-        consecutiveMonths,
-        serviceCategory,
-        estimatedNextCharge: estimatedNext,
-        lastSeenAt: new Date(),
-      },
-      create: {
+    await prisma.subscriptionCandidate.create({
+      data: {
         userId,
         merchantNormalized: merchant,
         estimatedMonthlyAmount: mean,
