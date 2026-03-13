@@ -17,6 +17,9 @@ model User {
   categoryOrder      String    @default("[]")
   hiddenCategories   String    @default("[]")
 
+  passwordResetToken  String?   @unique
+  passwordResetExpiry DateTime?
+
   accounts               Account[]
   categories             Category[]
   categoryRules          CategoryRule[]

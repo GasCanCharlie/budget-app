@@ -119,7 +119,9 @@ function LoginForm() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '7px' }}>
               <label className="auth-label" htmlFor="au-password" style={{ margin: 0 }}>Password</label>
               {mode === 'login' && (
-                <span style={{ fontSize: '12px', color: '#8b97c3', letterSpacing: '.1px' }}>Forgot password?</span>
+                <Link href="/forgot-password" style={{ fontSize: '12px', color: '#7c91ff', letterSpacing: '.1px', textDecoration: 'none' }}>
+                  Forgot password?
+                </Link>
               )}
             </div>
             <input

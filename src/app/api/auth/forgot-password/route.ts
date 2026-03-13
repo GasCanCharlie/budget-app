@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import crypto from 'crypto'
+import { Resend } from 'resend'
+import prisma from '@/lib/db'
+
+const schema = z.object({ email: z.string().email() })
+
+export async function POST(req: NextRequest) {
+  try {
+    const { email } = schema.parse(await req.json())
+
+    const user = await prisma.user.findUnique({ where: { email } })
+
+    // Always return success — never reveal whether the email exists
+    if (user) {
+      const rawToken   = crypto.randomBytes(32).toString('hex')
+      const tokenHash  = crypto.createHash('sha256').update(rawToken).digest('hex')
+      const expiry     = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordResetToken: tokenHash, passwordResetExpiry: expiry },
+      })
+
+      const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? 'https://budgetapp-j00dr8m7n-gascancharlies-projects.vercel.app'
+      const resetUrl = `${appUrl}/reset-password?token=${rawToken}`
+
+      if (process.env.RESEND_API_KEY) {
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        await resend.emails.send({
+          from:    'BudgetLens <noreply@budgetlens.app>',
+          to:      email,
+          subject: 'Reset your BudgetLens password',
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#eaf0ff;border-radius:12px">
+              <h2 style="margin:0 0 16px;font-size:20px;font-weight:700">Reset your password</h2>
+              <p style="margin:0 0 24px;color:#a8b3d6;font-size:14px;line-height:1.6">
+                We received a request to reset the password for your BudgetLens account.
+                Click the button below to choose a new password. This link expires in <strong style="color:#eaf0ff">1 hour</strong>.
+              </p>
+              <a href="${resetUrl}"
+                style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#fff;font-weight:700;font-size:14px;border-radius:8px;text-decoration:none">
+                Reset password
+              </a>
+              <p style="margin:24px 0 0;color:#8b97c3;font-size:12px;line-height:1.6">
+                If you didn't request this, you can safely ignore this email.<br>
+                This link will expire in 1 hour.
+              </p>
+            </div>
+          `,
+        })
+      } else {
+        // Dev fallback — log reset URL if no email service configured
+        console.log(`[forgot-password] Reset URL for ${email}: ${resetUrl}`)
+      }
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    if (e instanceof z.ZodError) return NextResponse.json({ error: e.errors[0].message }, { status: 400 })
+    console.error('[forgot-password]', e)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
