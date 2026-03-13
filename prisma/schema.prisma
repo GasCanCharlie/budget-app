@@ -626,3 +626,14 @@ model SubscriptionCandidate {
   @@unique([userId, merchantNormalized])
   @@map("subscription_candidates")
 }
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   // e.g. "login:1.2.3.4" or "upload:1.2.3.4"
+  count     Int      @default(1)
+  windowEnd DateTime // when the current window expires
+
+  @@unique([key])
+  @@index([windowEnd])
+  @@map("rate_limits")
+}

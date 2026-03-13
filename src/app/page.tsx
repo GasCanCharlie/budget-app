@@ -618,8 +618,9 @@ export default function HomePage() {
             </div>
             <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
               <a href="#how">How it works</a>
-              <a href="#privacy">Privacy</a>
+              <Link href="/privacy">Privacy</Link>
               <a href="#pricing">Pricing</a>
+              <Link href="/terms">Terms</Link>
               <a href="#lp-top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Back to top</a>
             </div>
           </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import prisma from '@/lib/db'
 import { hashPassword, signToken } from '@/lib/auth'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 const schema = z.object({
   email:    z.string().email(),
@@ -12,6 +13,15 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { email, password } = schema.parse(body)
+
+    const ip = getClientIp(req)
+    const rl = await checkRateLimit(ip, 'register')
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt.getTime() - Date.now()) / 1000)) } }
+      )
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } })
     // Constant-time response to prevent email enumeration

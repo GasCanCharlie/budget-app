@@ -3,12 +3,22 @@ import { z } from 'zod'
 import crypto from 'crypto'
 import { Resend } from 'resend'
 import prisma from '@/lib/db'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 const schema = z.object({ email: z.string().email() })
 
 export async function POST(req: NextRequest) {
   try {
     const { email } = schema.parse(await req.json())
+
+    const ip = getClientIp(req)
+    const rl = await checkRateLimit(ip, 'forgotPassword')
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many password reset requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt.getTime() - Date.now()) / 1000)) } }
+      )
+    }
 
     const user = await prisma.user.findUnique({ where: { email } })
 

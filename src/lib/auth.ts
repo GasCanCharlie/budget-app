@@ -2,7 +2,9 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { NextRequest } from 'next/server'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-not-for-production'
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) throw new Error('JWT_SECRET environment variable is not set')
+const SECRET = JWT_SECRET
 const SALT_ROUNDS = 12
 
 export async function hashPassword(password: string): Promise<string> {
@@ -21,12 +23,12 @@ export interface JwtPayload {
 }
 
 export function signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+  return jwt.sign(payload, SECRET, { expiresIn: '7d' })
 }
 
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload
+    return jwt.verify(token, SECRET) as JwtPayload
   } catch {
     return null
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { isTransferDescription } from '@/lib/intelligence/transfers'
 import { normalizeMerchant } from '@/lib/categorization/engine'
 import { normalizeBankCategory, mapBankCategoryToName } from '@/lib/categorization/bank-category-map'
@@ -57,6 +58,15 @@ function computeSourceRowHash(accountId: string, rawLine: string): string {
 export async function POST(req: NextRequest) {
   const payload = getUserFromRequest(req)
   if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const ip = getClientIp(req)
+  const rl = await checkRateLimit(ip, 'upload')
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many upload requests. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt.getTime() - Date.now()) / 1000)) } }
+    )
+  }
 
   try {
     const formData  = await req.formData()
