@@ -1321,9 +1321,16 @@ export default function CategorizePage() {
   }, [categories, initiateAssign, updateMutation, allTxs, ruleExistsFor])
 
   const handleClickAssign = useCallback((categoryId: string) => {
-    const anchored = sortedQueueTxs.find(t => t.id === anchorId)
-    if (anchored) initiateAssign(anchored, categoryId)
-  }, [anchorId, sortedQueueTxs, initiateAssign])
+    if (selectedIds.size > 1) {
+      // Multi-select: route through handleDrop so the full batch gets the
+      // "Apply all rules at once" prompt rather than ignoring the selection.
+      const primaryTx = sortedQueueTxs.find(t => t.id === anchorId) ?? null
+      handleDrop(categoryId, [...selectedIds], primaryTx)
+    } else {
+      const anchored = sortedQueueTxs.find(t => t.id === anchorId)
+      if (anchored) initiateAssign(anchored, categoryId)
+    }
+  }, [anchorId, selectedIds, sortedQueueTxs, initiateAssign, handleDrop])
 
   // ── Sort handlers ──
   function handleCatSort(key: CatSortKey) {
