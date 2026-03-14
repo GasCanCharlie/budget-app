@@ -6,8 +6,9 @@ import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { FileText, Upload, Trash2, Loader2, AlertCircle, ChevronRight } from 'lucide-react'
+import { FileText, Upload, Trash2, Loader2, AlertCircle, ChevronRight, Tags, ArrowRight } from 'lucide-react'
 import { ReconciliationShield } from '@/components/ReconciliationShield'
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface Account  { id: string; name: string; institution: string; accountType: string }
 interface UploadRow { id: string; filename: string; createdAt: string; status: string; rowCountAccepted: number; reconciliationStatus: string; account: { name: string } }
@@ -28,6 +29,10 @@ export default function StatementsPage() {
   const { apiFetch, apiUpload } = useApi()
   const qc = useQueryClient()
 
+  const now   = new Date()
+  const year  = now.getFullYear()
+  const month = now.getMonth() + 1
+
   const [showForm,     setShowForm]     = useState(false)
   const [accountId,    setAccountId]    = useState('')
   const [showNewAcct,  setShowNewAcct]  = useState(false)
@@ -41,9 +46,15 @@ export default function StatementsPage() {
 
   const { data: accountsData } = useQuery({ queryKey: ['accounts'], queryFn: () => apiFetch('/api/accounts'), enabled: !!token })
   const { data: uploadsData, isLoading: uploadsLoading } = useQuery({ queryKey: ['uploads'], queryFn: () => apiFetch('/api/uploads'), enabled: !!token })
+  const { data: summaryData } = useQuery({ queryKey: ['summary', year, month], queryFn: () => apiFetch(`/api/summaries/${year}/${month}`), enabled: !!token, staleTime: 60_000 })
 
   const accounts: Account[]   = accountsData?.accounts ?? []
   const uploads:  UploadRow[] = uploadsData?.uploads   ?? []
+
+  const uncategorizedCount: number = summaryData?.uncategorizedCount ?? 0
+  const categoryTotals: { categoryName: string; categoryColor: string; total: number; isIncome: boolean }[] =
+    (summaryData?.summary?.categoryTotals ?? []).filter((c: { isIncome: boolean }) => !c.isIncome)
+  const hasData = categoryTotals.length > 0
 
   useEffect(() => { if (accounts.length > 0 && !accountId) setAccountId(accounts[0].id) }, [accounts, accountId])
   useEffect(() => { if (accountsData && accounts.length === 0) { setShowForm(true); setShowNewAcct(true) } }, [accountsData, accounts.length])
@@ -182,6 +193,51 @@ export default function StatementsPage() {
             </div>
           )}
         </div>
+
+        {/* What's next hint */}
+        {uploads.length > 0 && (
+          <div style={{ ...S.card, padding: '16px 20px', ...S.flex(14), flexWrap: 'wrap' as const }}>
+            <div style={{ flex: 1, minWidth: 200, ...S.col(4) }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', ...S.flex(6) }}>
+                <Tags size={15} style={{ color: 'var(--accent)' }} />
+                {uncategorizedCount > 0 ? `Next step — categorize your transactions` : `All transactions categorized`}
+              </span>
+              <span style={S.muted(13)}>
+                {uncategorizedCount > 0
+                  ? `${uncategorizedCount} transaction${uncategorizedCount === 1 ? '' : 's'} need a category before insights unlock.`
+                  : `Head to the dashboard to see your spending insights.`}
+              </span>
+            </div>
+            <button
+              onClick={() => router.push(uncategorizedCount > 0 ? '/categorize' : '/dashboard')}
+              style={{ flexShrink: 0, ...S.flex(6), padding: '9px 16px', borderRadius: 8, border: '1px solid rgba(124,137,255,0.35)', background: 'rgba(124,137,255,0.15)', color: 'var(--accent)', fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' as const }}
+            >
+              {uncategorizedCount > 0 ? 'Categorize' : 'Dashboard'}
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* Spending pie chart */}
+        {hasData && (
+          <div style={S.card}>
+            <div style={S.hdr}>
+              <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)' }}>Spending This Month</span>
+            </div>
+            <div style={{ padding: '8px 16px 16px' }}>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={categoryTotals.map(c => ({ name: c.categoryName, value: c.total, color: c.categoryColor }))}
+                    dataKey="value" nameKey="name" innerRadius={60} outerRadius={95} paddingAngle={2}>
+                    {categoryTotals.map((c, i) => <Cell key={i} fill={c.categoryColor} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => [`$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Spent']} />
+                  <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {/* Statements list */}
         <div style={S.card}>
