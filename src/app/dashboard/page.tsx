@@ -21,8 +21,8 @@ import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard'
 import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
-const TrendChart = dynamic(
-  () => import('@/components/dashboard/TrendChart').then(m => m.TrendChart),
+const SpendingCharts = dynamic(
+  () => import('@/components/dashboard/SpendingCharts').then(m => m.SpendingCharts),
   { ssr: false }
 )
 
@@ -127,6 +127,13 @@ export default function DashboardPage() {
     staleTime: 0,
   })
 
+  const { data: budgetsData } = useQuery({
+    queryKey: ['budgets'],
+    queryFn:  () => apiFetch('/api/budgets'),
+    enabled:  !!user,
+    staleTime: 5 * 60_000,
+  })
+
   const latestUpload = uploadsData?.uploads?.[0] as {
     id: string; filename: string; account: { name: string }
     rowCountAccepted: number; createdAt: string
@@ -200,7 +207,10 @@ export default function DashboardPage() {
   // ── No uploads yet — show onboarding ──────────────────────────────────────
   if (data.availableMonths.length === 0) return (
     <AppShell year={year} month={month} availableMonths={[]} onMonthChange={handleMonthChange}>
-      <OnboardingWelcome />
+      <OnboardingWelcome
+        uploadsDone={data.availableMonths.length > 0 || data.dashboardState === 'categorization_required'}
+        uncategorizedCount={data.uncategorizedCount ?? 0}
+      />
     </AppShell>
   )
 
@@ -347,6 +357,7 @@ export default function DashboardPage() {
               year={year}
               month={month}
               prevCategories={prevSpendingCategories}
+              budgets={budgetsData?.budgets ?? []}
             />
           </div>
 
@@ -411,8 +422,8 @@ export default function DashboardPage() {
           topTransactions={topTransactions}
         />
 
-        {/* ── 12-month cash flow trend ──────────────────────────────────────── */}
-        <TrendChart months={trendMonths} />
+        {/* ── Spending breakdown: bar + donut ───────────────────────────────── */}
+        <SpendingCharts categories={spendingCategories} totalSpending={summary.totalSpending as number} />
 
         {/* ── Row 3: Full-width tabbed panel ────────────────────────────────── */}
         <div style={cardStyle} className="overflow-hidden">

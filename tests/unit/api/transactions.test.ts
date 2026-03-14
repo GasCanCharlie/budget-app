@@ -16,6 +16,7 @@ const {
     count:      vi.fn(),
     update:     vi.fn(),
     updateMany: vi.fn(),
+    groupBy:    vi.fn(),
   },
   mockCategoryHistory: {
     create: vi.fn(),
@@ -97,6 +98,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockGetUser.mockReturnValue({ userId: 'user_1', email: 'test@example.com' })
   mockComputeMonthSummary.mockResolvedValue(undefined)
+  mockTransaction.groupBy.mockResolvedValue([])
 })
 
 // =============================================================================

@@ -6,6 +6,9 @@ export default defineConfig({
     environment: 'node',
     globals: false,
     include: ['tests/**/*.test.ts'],
+    env: {
+      JWT_SECRET: 'test-jwt-secret-for-unit-tests',
+    },
     coverage: {
       provider: 'v8',
       include: ['src/lib/**'],

@@ -35,6 +35,15 @@ const { mockFindUnique, mockCreate, mockUpdate, mockGetUserFromRequest } = vi.ho
 }))
 
 // ---------------------------------------------------------------------------
+// Rate-limit mock — always allow (not under test here)
+// ---------------------------------------------------------------------------
+
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
+  getClientIp:    vi.fn().mockReturnValue('127.0.0.1'),
+}))
+
+// ---------------------------------------------------------------------------
 // Prisma mock
 // ---------------------------------------------------------------------------
 

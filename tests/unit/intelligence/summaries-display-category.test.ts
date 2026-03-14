@@ -92,7 +92,7 @@ describe('computeMonthSummary — display category grouping', () => {
       const cat = result.categoryTotals[0]
       // Gasoline/Fuel is in CATEGORY_STYLES
       expect(cat.categoryColor).toBe('#3b82f6')
-      expect(cat.categoryIcon).toBe('⛽')
+      expect(cat.categoryIcon).toBe('Zap')
     })
 
     it('uses default style (#94a3b8 / 📦) for unknown bankCategoryRaw values', async () => {
@@ -164,9 +164,9 @@ describe('computeMonthSummary — display category grouping', () => {
       const result = await computeMonthSummary('user-1', 2024, 3)
 
       const cat = result.categoryTotals[0]
-      // Entertainment is in CATEGORY_STYLES: { color: '#ec4899', icon: '🎬' }
+      // Entertainment is in CATEGORY_STYLES: { color: '#ec4899', icon: 'Film' }
       expect(cat.categoryColor).toBe('#ec4899')
-      expect(cat.categoryIcon).toBe('🎬')
+      expect(cat.categoryIcon).toBe('Film')
     })
 
     it('topTransactions also use appCategory for categoryName', async () => {
@@ -228,7 +228,7 @@ describe('computeMonthSummary — display category grouping', () => {
 
       const result = await computeMonthSummary('user-1', 2024, 3)
 
-      expect(result.categoryTotals[0].categoryIcon).toBe('❓')
+      expect(result.categoryTotals[0].categoryIcon).toBe('Package')
       expect(result.categoryTotals[0].categoryColor).toBe('#94a3b8')
     })
 

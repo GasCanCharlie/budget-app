@@ -21,7 +21,7 @@ export async function DELETE(
     },
   })
   if (!category) {
-    return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Category not found or cannot be deleted' }, { status: 404 })
   }
 
   // System categories: hide for this user instead of deleting globally

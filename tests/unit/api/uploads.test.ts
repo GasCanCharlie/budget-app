@@ -17,14 +17,17 @@ vi.mock('@/lib/db', () => {
   // txMock shares the same upload fns so prisma.upload.delete assertions still pass
   const txMock = {
     upload,
-    transaction:      { findMany: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
-    categoryHistory:  { deleteMany: vi.fn() },
-    transactionLink:  { deleteMany: vi.fn() },
-    ingestionIssue:   { deleteMany: vi.fn() },
-    auditLogEntry:    { deleteMany: vi.fn() },
-    transactionRaw:   { deleteMany: vi.fn() },
+    transaction:        { findMany: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
+    categoryHistory:    { deleteMany: vi.fn() },
+    transactionLink:    { deleteMany: vi.fn() },
+    ingestionIssue:     { deleteMany: vi.fn() },
+    auditLogEntry:      { deleteMany: vi.fn() },
+    transactionRaw:     { deleteMany: vi.fn() },
+    stagingTransaction: { findMany: vi.fn(), deleteMany: vi.fn() },
+    stagingUpload:      { deleteMany: vi.fn() },
+    ruleHit:            { deleteMany: vi.fn() },
     monthCategoryTotal: { deleteMany: vi.fn() },
-    monthSummary:     { deleteMany: vi.fn() },
+    monthSummary:       { deleteMany: vi.fn(), updateMany: vi.fn() },
   }
 
   const $transaction = vi.fn(async (cb: (tx: typeof txMock) => unknown) => cb(txMock))
@@ -353,8 +356,13 @@ describe('DELETE /api/uploads/[id]', () => {
     txMock.ingestionIssue.deleteMany.mockResolvedValue({ count: 0 })
     txMock.auditLogEntry.deleteMany.mockResolvedValue({ count: 0 })
     txMock.transactionRaw.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.stagingTransaction.findMany.mockResolvedValue([])
+    txMock.stagingTransaction.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.stagingUpload.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.ruleHit.deleteMany.mockResolvedValue({ count: 0 })
     txMock.monthCategoryTotal.deleteMany.mockResolvedValue({ count: 0 })
     txMock.monthSummary.deleteMany.mockResolvedValue({ count: 0 })
+    txMock.monthSummary.updateMany.mockResolvedValue({ count: 0 })
 
     // Dynamically load the DELETE export on each test so changes to the module
     // are picked up without re-running the full test file.

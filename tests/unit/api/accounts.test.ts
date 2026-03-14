@@ -50,11 +50,13 @@ vi.mock('@/lib/db', () => {
     auditLogEntry: { deleteMany: vi.fn() },
     transactionRaw: { deleteMany: vi.fn() },
     upload: { findMany: vi.fn(), deleteMany: vi.fn() },
+    stagingTransaction: { findMany: vi.fn(), deleteMany: vi.fn() },
+    stagingUpload: { deleteMany: vi.fn() },
+    ruleHit: { deleteMany: vi.fn() },
     monthCategoryTotal: { deleteMany: vi.fn() },
     monthSummary: { deleteMany: vi.fn() },
-    account: {
-      delete: vi.fn(),
-    },
+    account: { delete: vi.fn() },
+    user: { update: vi.fn() },
   }
 
   const $transaction = vi.fn(async (cb: (tx: typeof txMock) => unknown) => cb(txMock))
@@ -130,9 +132,14 @@ beforeEach(() => {
   txMock.transactionRaw.deleteMany.mockResolvedValue({ count: 0 })
   txMock.upload.findMany.mockResolvedValue([])
   txMock.upload.deleteMany.mockResolvedValue({ count: 0 })
+  txMock.stagingTransaction.findMany.mockResolvedValue([])
+  txMock.stagingTransaction.deleteMany.mockResolvedValue({ count: 0 })
+  txMock.stagingUpload.deleteMany.mockResolvedValue({ count: 0 })
+  txMock.ruleHit.deleteMany.mockResolvedValue({ count: 0 })
   txMock.monthCategoryTotal.deleteMany.mockResolvedValue({ count: 0 })
   txMock.monthSummary.deleteMany.mockResolvedValue({ count: 0 })
   txMock.account.delete.mockResolvedValue(ACCOUNT_FIXTURE)
+  txMock.user.update.mockResolvedValue({})
 })
 
 // ===========================================================================

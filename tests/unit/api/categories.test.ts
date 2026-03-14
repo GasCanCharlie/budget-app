@@ -48,6 +48,7 @@ vi.mock('@/lib/db', () => ({
     categoryRule:       mockCategoryRule,
     monthCategoryTotal: mockMonthCategoryTotal,
     monthSummary:       mockMonthSummary,
+    user:               { findUnique: vi.fn(), update: vi.fn() },
   },
 }))
 
