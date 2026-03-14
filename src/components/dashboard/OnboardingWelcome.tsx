@@ -1,16 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { UploadCloud, Tags, BarChart2 } from 'lucide-react'
+import { UploadCloud, Tags, BarChart2, Check } from 'lucide-react'
 
-const steps = [
+interface Props {
+  uploadsDone?: boolean
+  uncategorizedCount?: number
+}
+
+const stepDefs = [
   {
     number: 1,
     icon: UploadCloud,
     title: 'Upload your statement',
     description:
       'Export a CSV or OFX file from your bank\'s website and upload it here.',
-    active: true,
     href: '/upload',
   },
   {
@@ -19,8 +23,7 @@ const steps = [
     title: 'Categorize transactions',
     description:
       'Drag transactions into categories. Create rules to auto-categorize future imports.',
-    active: false,
-    href: null,
+    href: '/categorize',
   },
   {
     number: 3,
@@ -28,12 +31,29 @@ const steps = [
     title: 'See your dashboard',
     description:
       'Get a full breakdown of spending, income, trends, and financial health score.',
-    active: false,
-    href: null,
+    href: '/dashboard',
   },
 ]
 
-export function OnboardingWelcome() {
+export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
+  // Determine which step is active (1-indexed)
+  let activeStep: 1 | 2 | 3 = 1
+  if (uploadsDone && (uncategorizedCount ?? 0) > 0) activeStep = 2
+  if (uploadsDone && (uncategorizedCount ?? 0) === 0) activeStep = 3
+
+  // CTA config
+  let ctaHref = '/upload'
+  let ctaLabel: React.ReactNode = (
+    <><UploadCloud size={18} />Upload your first statement &rarr;</>
+  )
+  if (activeStep === 2) {
+    ctaHref = '/categorize'
+    ctaLabel = <><Tags size={18} />Categorize {uncategorizedCount} transaction{uncategorizedCount === 1 ? '' : 's'} &rarr;</>
+  } else if (activeStep === 3) {
+    ctaHref = '/dashboard'
+    ctaLabel = <><BarChart2 size={18} />Go to Dashboard &rarr;</>
+  }
+
   return (
     <div
       style={{
@@ -102,26 +122,35 @@ export function OnboardingWelcome() {
           maxWidth: 860,
         }}
       >
-        {steps.map((step) => {
+        {stepDefs.map((step) => {
           const Icon = step.icon
+          const isActive = step.number === activeStep
+          const isDone   = step.number < activeStep
+
           return (
             <div
               key={step.number}
               style={{
-                background: step.active
+                background: isActive
                   ? 'linear-gradient(135deg, rgba(124,137,255,0.12) 0%, rgba(139,111,255,0.08) 100%)'
+                  : isDone
+                  ? 'rgba(22,163,74,0.06)'
                   : 'var(--card)',
-                border: step.active
+                border: isActive
                   ? '1px solid rgba(124,137,255,0.38)'
+                  : isDone
+                  ? '1px solid rgba(22,163,74,0.30)'
                   : '1px solid var(--border)',
                 borderRadius: 16,
                 padding: '24px 22px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 14,
-                opacity: step.active ? 1 : 0.55,
-                boxShadow: step.active
+                opacity: isActive || isDone ? 1 : 0.55,
+                boxShadow: isActive
                   ? '0 0 0 1px rgba(124,137,255,0.12), 0 8px 32px rgba(124,137,255,0.10)'
+                  : isDone
+                  ? '0 0 0 1px rgba(22,163,74,0.08)'
                   : 'none',
                 transition: 'box-shadow 200ms ease',
               }}
@@ -139,10 +168,14 @@ export function OnboardingWelcome() {
                     width: 36,
                     height: 36,
                     borderRadius: 10,
-                    background: step.active
+                    background: isDone
+                      ? 'rgba(22,163,74,0.18)'
+                      : isActive
                       ? 'rgba(124,137,255,0.22)'
                       : 'var(--surface2)',
-                    border: step.active
+                    border: isDone
+                      ? '1px solid rgba(22,163,74,0.32)'
+                      : isActive
                       ? '1px solid rgba(124,137,255,0.32)'
                       : '1px solid var(--border)',
                     display: 'flex',
@@ -151,12 +184,16 @@ export function OnboardingWelcome() {
                     flexShrink: 0,
                   }}
                 >
-                  <Icon
-                    size={18}
-                    style={{
-                      color: step.active ? 'var(--accent)' : 'var(--muted)',
-                    }}
-                  />
+                  {isDone ? (
+                    <Check size={18} style={{ color: 'rgb(22,163,74)' }} />
+                  ) : (
+                    <Icon
+                      size={18}
+                      style={{
+                        color: isActive ? 'var(--accent)' : 'var(--muted)',
+                      }}
+                    />
+                  )}
                 </div>
                 <span
                   style={{
@@ -164,7 +201,11 @@ export function OnboardingWelcome() {
                     fontWeight: 700,
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase',
-                    color: step.active ? 'var(--accent)' : 'var(--muted)',
+                    color: isDone
+                      ? 'rgb(22,163,74)'
+                      : isActive
+                      ? 'var(--accent)'
+                      : 'var(--muted)',
                   }}
                 >
                   Step {step.number}
@@ -210,7 +251,7 @@ export function OnboardingWelcome() {
         }}
       >
         <Link
-          href="/upload"
+          href={ctaHref}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -227,8 +268,7 @@ export function OnboardingWelcome() {
             transition: 'transform 150ms ease, box-shadow 150ms ease',
           }}
         >
-          <UploadCloud size={18} />
-          Upload your first statement &rarr;
+          {ctaLabel}
         </Link>
 
         <p
