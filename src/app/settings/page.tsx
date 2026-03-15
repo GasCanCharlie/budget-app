@@ -6,7 +6,7 @@ import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import {
-  Lock, Trash2, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff,
+  Lock, Trash2, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, RotateCcw,
 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -25,6 +25,14 @@ export default function SettingsPage() {
   const [pwPending, setPwPending] = useState(false)
   const [pwSuccess, setPwSuccess] = useState('')
   const [pwError, setPwError] = useState('')
+
+  // Reset data state
+  const [showResetForm, setShowResetForm] = useState(false)
+  const [resetPassword, setResetPassword] = useState('')
+  const [showResetPw, setShowResetPw] = useState(false)
+  const [resetPending, setResetPending] = useState(false)
+  const [resetError, setResetError] = useState('')
+  const [resetSuccess, setResetSuccess] = useState(false)
 
   // Delete account state
   const [showDeleteForm, setShowDeleteForm] = useState(false)
@@ -67,6 +75,25 @@ export default function SettingsPage() {
       setPwError(err instanceof Error ? err.message : 'Failed to update password.')
     } finally {
       setPwPending(false)
+    }
+  }
+
+  async function handleResetData(e: React.FormEvent) {
+    e.preventDefault()
+    setResetError('')
+    setResetPending(true)
+    try {
+      await apiFetch('/api/auth/reset-data', {
+        method: 'POST',
+        body: JSON.stringify({ password: resetPassword }),
+      })
+      setResetSuccess(true)
+      setShowResetForm(false)
+      setResetPassword('')
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : 'Failed to reset account data.')
+    } finally {
+      setResetPending(false)
     }
   }
 
@@ -254,6 +281,114 @@ export default function SettingsPage() {
               Update Password
             </button>
           </form>
+        </div>
+
+        {/* ── Reset Account Data ──────────────────────────────────────────── */}
+        <div
+          style={{
+            ...cardStyle,
+            border: '1px solid rgba(251,191,36,0.25)',
+            background: 'rgba(251,191,36,0.02)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <RotateCcw size={14} style={{ color: '#FBBF24' }} />
+            <span style={{
+              fontSize: 13, fontWeight: 600, color: '#FBBF24',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}>
+              Reset Account Data
+            </span>
+          </div>
+
+          <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.6 }}>
+            Erase all uploads, transactions, rules, categories, and insights — but keep your account and login. Use this to start fresh with new data.
+          </p>
+
+          {resetSuccess && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--success)', fontSize: 13, marginBottom: 12 }}>
+              <CheckCircle2 size={14} />
+              Account data has been reset. Your account is ready for a fresh start.
+            </div>
+          )}
+
+          {!showResetForm ? (
+            <button
+              onClick={() => { setShowResetForm(true); setResetSuccess(false) }}
+              style={{
+                padding: '9px 18px', borderRadius: 10,
+                border: '1px solid rgba(251,191,36,0.5)',
+                color: '#FBBF24', background: 'transparent',
+                fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Reset All Data
+            </button>
+          ) : (
+            <form onSubmit={handleResetData}>
+              <p style={{ fontSize: 13, color: '#FBBF24', marginBottom: 14, lineHeight: 1.6 }}>
+                This will permanently delete all uploads, transactions, rules, and categories. Your account login is preserved. This cannot be undone.
+              </p>
+
+              <div style={{ ...fieldWrapStyle, marginBottom: 16 }}>
+                <label style={labelStyle}>Confirm your password</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showResetPw ? 'text' : 'password'}
+                    value={resetPassword}
+                    onChange={e => setResetPassword(e.target.value)}
+                    style={inputStyle}
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    style={toggleBtnStyle}
+                    onClick={() => setShowResetPw(v => !v)}
+                    tabIndex={-1}
+                  >
+                    {showResetPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              {resetError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>
+                  <AlertCircle size={14} />
+                  {resetError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowResetForm(false); setResetPassword(''); setResetError('') }}
+                  style={{
+                    padding: '9px 18px', borderRadius: 10,
+                    border: '1px solid var(--border)', color: 'var(--muted)',
+                    background: 'transparent', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetPending}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '9px 18px', borderRadius: 10,
+                    background: '#B45309', color: '#fff', border: 'none',
+                    fontSize: 14, fontWeight: 600,
+                    cursor: resetPending ? 'not-allowed' : 'pointer',
+                    opacity: resetPending ? 0.7 : 1,
+                  }}
+                >
+                  {resetPending && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+                  Reset all data
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* ── Danger Zone ─────────────────────────────────────────────────── */}
