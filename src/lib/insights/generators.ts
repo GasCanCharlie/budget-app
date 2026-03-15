@@ -14,6 +14,7 @@
 import { randomUUID } from 'crypto'
 
 import { runAutopsyGenerators } from './autopsy-generator'
+import { generateMonthlyStoryline } from './storyline-generator'
 
 import type {
   InsightCard,
@@ -64,6 +65,7 @@ const WISDOM_BY_TYPE: Record<InsightCard['card_type'], string> = {
   autopsy_subscription_creep: 'What we barely notice, we rarely stop — until we name it.',
   autopsy_category_spike: 'An outlier is not the enemy; ignoring it is.',
   autopsy_velocity: 'Speed without direction is the fastest path to the wrong destination.',
+  monthly_storyline: 'Every number tells a story. Every story tells you something you can act on.',
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -1285,6 +1287,7 @@ export function runAllGenerators(metrics: ComputedInsightMetrics): {
     ...generateMomIncomeChange(metrics),
     ...generateMonthlySummary(metrics),
     ...runAutopsyGenerators(metrics),
+    ...generateMonthlyStoryline(metrics),
   ]
 
   const display = rankAndCap(all)

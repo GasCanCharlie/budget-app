@@ -32,6 +32,7 @@ export type CardType =
   | 'autopsy_subscription_creep'
   | 'autopsy_category_spike'
   | 'autopsy_velocity'
+  | 'monthly_storyline'
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 
