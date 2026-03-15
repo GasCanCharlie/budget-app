@@ -59,7 +59,16 @@ export function normalizeKey(raw: string): string {
 
 // Category names (case-insensitive) that indicate recurring charges.
 // Only transactions in these categories are considered for subscription detection.
-const RECURRING_CATEGORY_NAMES = ['subscriptions', 'utilities', 'loans', 'insurance', 'memberships']
+// Note: the categorization engine sends Netflix/Hulu/HBO to "Entertainment" and
+// Spotify/Adobe/iCloud to "Subscriptions" — both must be included here.
+const RECURRING_CATEGORY_NAMES = [
+  'subscriptions',
+  'entertainment',  // Netflix, Hulu, Disney+, HBO, YouTube Premium, etc.
+  'utilities',      // Xfinity, Verizon, electric, phone bills
+  'health',         // Planet Fitness, gym memberships
+  'insurance',
+  'memberships',
+]
 
 export async function detectSubscriptions(userId: string): Promise<number> {
   const transactions = await prisma.transaction.findMany({
