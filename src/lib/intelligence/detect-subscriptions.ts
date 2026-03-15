@@ -27,6 +27,36 @@ function detectPattern(avgDays: number): RecurrencePattern | null {
   return null
 }
 
+/**
+ * Aggressively normalizes a merchant string into a stable deduplication key.
+ *
+ * Banks often decorate the same merchant with varying prefixes ("Payment To",
+ * "ACH Payment", "Online PMT") and capitalization differences. Without this,
+ * "Payment To Verizon Wireless" and "verizon wireless" become separate groups
+ * and show as duplicates in the UI.
+ */
+export function normalizeKey(raw: string): string {
+  let s = (raw || '').toLowerCase().trim()
+
+  // Strip leading bill-pay boilerplate that banks prepend
+  s = s.replace(
+    /^(payment to|payments to|transfer to|ach payment to?|ach pmt|online pmt|online payment|pymt to|pmt to|bill pmt|bill payment|web pmnt|autopay|recurring pmt|scheduled pmt|checkcard|pos purchase|pos debit)\s+/,
+    ''
+  )
+
+  // Strip trailing payment noise
+  s = s.replace(/\s+(payment|pymt|pmt|autopay|billpay)$/, '')
+
+  // Remove punctuation that varies across bank description styles
+  // (colons, periods, asterisks, slashes — but keep hyphens between words)
+  s = s.replace(/[^\w\s-]/g, ' ')
+
+  // Collapse whitespace
+  s = s.replace(/\s+/g, ' ').trim()
+
+  return s
+}
+
 export async function detectSubscriptions(userId: string): Promise<number> {
   const transactions = await prisma.transaction.findMany({
     where: { account: { userId }, isExcluded: false, amount: { lt: 0 } },
@@ -36,10 +66,11 @@ export async function detectSubscriptions(userId: string): Promise<number> {
 
   await prisma.subscriptionCandidate.deleteMany({ where: { userId } })
 
-  // Group by normalized merchant (lowercase)
+  // Group by normalized key — strips bill-pay prefixes so "Payment To Verizon"
+  // and "Verizon Wireless" both collapse into "verizon wireless"
   const byMerchant = new Map<string, { amount: number; date: Date; category: string | null }[]>()
   for (const tx of transactions) {
-    const key = (tx.merchantNormalized || '').toLowerCase().trim()
+    const key = normalizeKey(tx.merchantNormalized || '')
     if (!key || key.length < 2) continue
     if (!byMerchant.has(key)) byMerchant.set(key, [])
     byMerchant.get(key)!.push({ amount: Math.abs(tx.amount), date: tx.date, category: tx.appCategory })
@@ -57,8 +88,8 @@ export async function detectSubscriptions(userId: string): Promise<number> {
     const stdDev = Math.sqrt(amounts.reduce((s, a) => s + (a - mean) ** 2, 0) / amounts.length)
     const cvPercent = (stdDev / mean) * 100
 
-    // Tier 1: high consistency (CV < 15%) — classic subscription
-    // Tier 2: variable subscription (CV < 40%) — utilities, SaaS with usage
+    // Tier 1: high consistency (CV < 15%) — fixed-amount recurring (loans, subscriptions)
+    // Tier 2: variable recurring (CV < 40%) — utilities, usage-based SaaS
     const isHighConsistency = cvPercent <= 15
     const isVariableConsistency = cvPercent <= 40
     if (!isVariableConsistency) continue
@@ -72,7 +103,6 @@ export async function detectSubscriptions(userId: string): Promise<number> {
     }
     const avgInterval = intervals.reduce((s, d) => s + d, 0) / intervals.length
 
-    // Detect recurrence pattern from avg interval
     const pattern = detectPattern(avgInterval)
     if (!pattern) continue
 
@@ -82,16 +112,16 @@ export async function detectSubscriptions(userId: string): Promise<number> {
     )
     const intervalCv = avgInterval > 0 ? (intervalStdDev / avgInterval) * 100 : 100
 
-    // For variable-amount subscriptions, require tighter interval consistency
+    // Variable-amount patterns require tighter interval consistency
     if (!isHighConsistency && intervalCv > 25) continue
 
-    // For monthly patterns, require at least 2 consecutive calendar months
+    // Monthly patterns require at least 2 consecutive calendar months
     if (pattern === 'monthly') {
       const dates = sorted.map(t => t.date)
       if (!hasConsecutiveMonths(dates, 2)) continue
     }
 
-    // For weekly/biweekly, require at least 3 occurrences
+    // Weekly/biweekly require at least 3 occurrences
     if ((pattern === 'weekly' || pattern === 'biweekly') && txs.length < 3) continue
 
     // Determine confidence
@@ -122,10 +152,11 @@ export async function detectSubscriptions(userId: string): Promise<number> {
     const estimatedNext = new Date(lastDate.getTime() + avgInterval * 86_400_000)
     const serviceCategory = sorted[sorted.length - 1].category ?? null
 
+    // Store the normalized key (not raw merchant) so the UI gets clean names
     await prisma.subscriptionCandidate.create({
       data: {
         userId,
-        merchantNormalized: merchant,
+        merchantNormalized: merchant,      // normalized key — no bill-pay prefixes
         estimatedMonthlyAmount: mean,
         recurringConfidence: confidence,
         subscriptionScore: score,
