@@ -15,13 +15,14 @@ import {
 
 // Tonal accent palette — indigo-based, calibrated for dark backgrounds
 const DONUT_PALETTE = [
-  '#6C7CFF',
-  '#7F8BFF',
-  '#939AFF',
-  '#A7A9FF',
-  '#BCC0FF',
-  '#D1D7FF',
-  '#E6E9FF',
+  '#818cf8',
+  '#fb923c',
+  '#34d399',
+  '#f472b6',
+  '#fbbf24',
+  '#22d3ee',
+  '#c084fc',
+  '#4ade80',
 ]
 
 interface CategoryItem {

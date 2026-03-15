@@ -25,7 +25,7 @@ const CAT_COLORS: Record<string, string> = {
   'Gas/Fuel': '#7aa2ff', 'Gasoline/Fuel': '#7aa2ff', 'Pets': '#a3e635',
   'Other': '#94a3b8', 'Uncategorized': '#94a3b8',
 }
-const FALLBACK_COLORS = ['#6c7cff','#34d399','#fb923c','#8794ff','#60a5fa','#f472b6']
+const FALLBACK_COLORS = ['#818cf8','#fb923c','#34d399','#f472b6','#fbbf24','#22d3ee','#c084fc','#4ade80']
 function getCatColor(name: string, i: number) {
   return CAT_COLORS[name] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]
 }
