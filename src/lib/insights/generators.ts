@@ -13,6 +13,8 @@
 
 import { randomUUID } from 'crypto'
 
+import { runAutopsyGenerators } from './autopsy-generator'
+
 import type {
   InsightCard,
   InsightCardAction,
@@ -57,6 +59,11 @@ const WISDOM_BY_TYPE: Record<InsightCard['card_type'], string> = {
   ai_insight_2: '',
   ai_insight_3: '',
   ai_insight_4: '',
+  autopsy_small_drain: 'Small is not harmless — a river of pennies carves the deepest canyon.',
+  autopsy_merchant_concentration: 'Dependence on one source is the quiet vulnerability of every plan.',
+  autopsy_subscription_creep: 'What we barely notice, we rarely stop — until we name it.',
+  autopsy_category_spike: 'An outlier is not the enemy; ignoring it is.',
+  autopsy_velocity: 'Speed without direction is the fastest path to the wrong destination.',
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -1277,6 +1284,7 @@ export function runAllGenerators(metrics: ComputedInsightMetrics): {
     ...generateMerchantFrequency(metrics),
     ...generateMomIncomeChange(metrics),
     ...generateMonthlySummary(metrics),
+    ...runAutopsyGenerators(metrics),
   ]
 
   const display = rankAndCap(all)

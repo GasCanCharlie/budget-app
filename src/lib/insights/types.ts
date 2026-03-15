@@ -26,6 +26,12 @@ export type CardType =
   | 'ai_insight_2'
   | 'ai_insight_3'
   | 'ai_insight_4'
+  // ── Financial Autopsy card types ──────────────────────────────────────────
+  | 'autopsy_small_drain'
+  | 'autopsy_merchant_concentration'
+  | 'autopsy_subscription_creep'
+  | 'autopsy_category_spike'
+  | 'autopsy_velocity'
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 

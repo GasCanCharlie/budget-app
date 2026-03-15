@@ -20,6 +20,8 @@ import { SubscriptionPanel } from '@/components/dashboard/SubscriptionPanel'
 import { UpcomingChargesPanel } from '@/components/dashboard/UpcomingChargesPanel'
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard'
 import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome'
+import { FinancialAutopsyPanel } from '@/components/dashboard/FinancialAutopsyPanel'
+import type { InsightCard } from '@/lib/insights/types'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
 const SpendingCharts = dynamic(
@@ -132,6 +134,13 @@ export default function DashboardPage() {
     queryKey: ['budgets'],
     queryFn:  () => apiFetch('/api/budgets'),
     enabled:  !!user,
+    staleTime: 5 * 60_000,
+  })
+
+  const { data: insightsData } = useQuery<{ cards: InsightCard[]; isStale: boolean }>({
+    queryKey: ['insights', year, month],
+    queryFn:  () => apiFetch(`/api/insights?year=${year}&month=${month}`),
+    enabled:  !!user && !!year && !!month,
     staleTime: 5 * 60_000,
   })
 
@@ -424,6 +433,9 @@ export default function DashboardPage() {
 
         {/* ── Spending breakdown: bar + donut ───────────────────────────────── */}
         <SpendingCharts categories={spendingCategories} totalSpending={summary.totalSpending as number} />
+
+        {/* ── Financial Autopsy ─────────────────────────────────────────────── */}
+        <FinancialAutopsyPanel cards={insightsData?.cards ?? []} />
 
         {/* ── Row 3: Full-width tabbed panel ────────────────────────────────── */}
         <div style={cardStyle} className="overflow-hidden">
