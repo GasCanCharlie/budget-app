@@ -28,7 +28,7 @@ const navItems = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
   { href: '/insights',     label: 'Insights Q&A', icon: Lightbulb },
   { href: '/history',      label: 'History',      icon: History },
-  { href: '/upload',       label: 'Statements',   icon: FileText },
+  { href: '/upload',       label: 'Uploads',      icon: FileText },
   { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/categorize',   label: 'Categorize',   icon: Tags },
   { href: '/categories',   label: 'Categories',   icon: Layers },

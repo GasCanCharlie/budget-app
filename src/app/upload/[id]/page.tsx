@@ -495,6 +495,7 @@ export default function UploadDetailPage() {
   const [tab, setTab] = useState<'open' | 'resolved'>('open')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [pendingOrder, setPendingOrder] = useState<'MDY' | 'DMY' | null>(null)
+  const [showAllCats, setShowAllCats] = useState(false)
 
   const deleteMutation = useMutation({
     mutationFn: () => apiFetch(`/api/uploads/${id}`, { method: 'DELETE' }),
@@ -617,7 +618,7 @@ export default function UploadDetailPage() {
             onClick={() => router.push('/upload')}
             className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-3 transition"
           >
-            <ArrowLeft size={14}/> Back to statements
+            <ArrowLeft size={14}/> Back to uploads
           </button>
 
           <div className="flex items-start gap-3">
@@ -660,66 +661,6 @@ export default function UploadDetailPage() {
             Categorize
           </button>
         </div>
-
-        {/* ── Category pie chart ──────────────────────────────────────────── */}
-        {spendingBreakdown.length > 0 && (() => {
-          const pieData = spendingBreakdown.slice(0, 8).map((c, i) => ({
-            name:  c.category,
-            value: Math.abs(c.total),
-            color: getCatColor(c.category, i),
-            pct:   c.pct,
-            total: c.total,
-          }))
-          return (
-            <div className="card space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="font-bold text-slate-700">Spending by Category</h2>
-                <button
-                  onClick={() => router.push('/categorize')}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
-                >
-                  Categorize →
-                </button>
-              </div>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} stroke="transparent" />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number, name: string) => [fmtPie(value), name]}
-                    contentStyle={{
-                      background: '#fff',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="space-y-1.5">
-                {pieData.map((c, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }} />
-                    <span className="flex-1 text-slate-700 truncate">{c.name}</span>
-                    <span className="text-slate-500 text-xs">{fmtPie(c.total)}</span>
-                    <span className="text-slate-400 text-xs w-8 text-right">{c.pct}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        })()}
 
         {/* ── Date range ─────────────────────────────────────────────────── */}
         {upload.dateRangeStart && upload.dateRangeEnd && (
@@ -784,6 +725,76 @@ export default function UploadDetailPage() {
             <p className="text-sm text-slate-400 mt-1">This upload was clean — no ambiguous dates, duplicates, or balance breaks.</p>
           </div>
         )}
+
+        {/* ── Spending by category pie ────────────────────────────────────── */}
+        {spendingBreakdown.length > 0 && (() => {
+          const totalSpend = spendingBreakdown.reduce((s, c) => s + Math.abs(c.total), 0)
+          const visibleData = (showAllCats ? spendingBreakdown : spendingBreakdown.slice(0, 8)).map((c, i) => ({
+            name:  c.category,
+            value: Math.abs(c.total),
+            color: getCatColor(c.category, i),
+            pct:   c.pct,
+            total: c.total,
+          }))
+          // For the pie chart we always use top 8 slices; legend shows the expanded list
+          const pieData = spendingBreakdown.slice(0, 8).map((c, i) => ({
+            name: c.category, value: Math.abs(c.total), color: getCatColor(c.category, i),
+          }))
+          return (
+            <div className="card space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-bold text-slate-700">Spending by Category</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Total spend: <strong className="text-slate-600">{fmtPie(totalSpend)}</strong></p>
+                </div>
+                <button
+                  onClick={() => router.push('/categorize')}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
+                >
+                  Categorize →
+                </button>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
+                      {pieData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} stroke="transparent" />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number, name: string) => [fmtPie(value), name]}
+                      contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center label */}
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                  <span className="text-xs text-slate-400">Spend</span>
+                  <span className="text-sm font-bold text-slate-700">{fmtPie(totalSpend)}</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                {visibleData.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }} />
+                    <span className="flex-1 text-slate-700 truncate">{c.name}</span>
+                    <span className="text-slate-500 text-xs">{fmtPie(c.total)}</span>
+                    <span className="text-slate-400 text-xs w-8 text-right">{c.pct}%</span>
+                  </div>
+                ))}
+              </div>
+              {spendingBreakdown.length > 8 && (
+                <button
+                  onClick={() => setShowAllCats(s => !s)}
+                  className="text-xs text-slate-500 hover:text-slate-700 underline transition w-full text-center"
+                >
+                  {showAllCats ? 'Show fewer' : `View all ${spendingBreakdown.length} categories`}
+                </button>
+              )}
+            </div>
+          )
+        })()}
 
         {/* ── Parser metadata ─────────────────────────────────────────────── */}
         <details className="card text-sm text-slate-500">
