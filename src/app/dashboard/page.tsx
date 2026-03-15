@@ -21,6 +21,7 @@ import { UpcomingChargesPanel } from '@/components/dashboard/UpcomingChargesPane
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard'
 import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome'
 import { FinancialAutopsyPanel } from '@/components/dashboard/FinancialAutopsyPanel'
+import { MonthlyStorylineCard } from '@/components/dashboard/MonthlyStorylineCard'
 import type { InsightCard } from '@/lib/insights/types'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
@@ -288,6 +289,12 @@ export default function DashboardPage() {
             Refreshing dashboard…
           </div>
         )}
+
+        {/* ── Monthly Storyline Hero ────────────────────────────────────────── */}
+        <MonthlyStorylineCard
+          cards={insightsData?.cards ?? []}
+          loading={!insightsData && !!user}
+        />
 
         {/* Partial month banner */}
         {!!summary.isPartialMonth && (
