@@ -57,30 +57,66 @@ export function normalizeKey(raw: string): string {
   return s
 }
 
-// Category names (case-insensitive) that indicate recurring charges.
-// Only transactions in these categories are considered for subscription detection.
-// Note: the categorization engine sends Netflix/Hulu/HBO to "Entertainment" and
-// Spotify/Adobe/iCloud to "Subscriptions" — both must be included here.
-const RECURRING_CATEGORY_NAMES = [
+/**
+ * Category names (case-insensitive) whose presence on a transaction is treated
+ * as a strong "this merchant is a recurring commitment" signal.
+ *
+ * The categorization engine routes:
+ *   Netflix/Hulu/HBO/Disney+  → "Entertainment"
+ *   Spotify/Adobe/iCloud      → "Subscriptions"
+ *   Xfinity/Verizon/electric  → "Utilities"
+ *   Planet Fitness            → "Health"
+ *   mortgage/rent             → "Housing"
+ *
+ * A merchant in any of these categories is eligible for the recurring panel
+ * even with weak recurrence evidence. Recurrence evidence then upgrades
+ * confidence from low → medium → high.
+ */
+const RECURRING_CATEGORY_SET = new Set([
   'subscriptions',
-  'entertainment',  // Netflix, Hulu, Disney+, HBO, YouTube Premium, etc.
+  'entertainment',  // Netflix, Hulu, Disney+, HBO, YouTube Premium
   'utilities',      // Xfinity, Verizon, electric, phone bills
   'health',         // Planet Fitness, gym memberships
-  'insurance',
-  'memberships',
-]
+  'insurance',      // GEICO, USAA, Allstate
+  'memberships',    // costco, clubs
+  'housing',        // rent, mortgage, HOA
+  'loans',          // loan payments
+  'internet',
+  'phone',
+  'cable',
+  'recurring',
+])
 
+type TxEntry = { amount: number; date: Date; categoryName: string | null }
+
+/**
+ * Layered recurring-commitment detection.
+ *
+ * Layer 1 — Category signal
+ *   If a transaction is categorized into a recurring-like category, treat that
+ *   merchant as a candidate even if recurrence evidence is thin.
+ *
+ * Layer 2 — Recurrence signal
+ *   Same normalized merchant across multiple billing cycles with consistent
+ *   amounts and timing.
+ *
+ * Layer 3 — Confidence
+ *   category signal + recurrence = high/medium
+ *   category only (1 occurrence, strong category) = medium
+ *   category only (1 occurrence, weaker category) = low
+ *   uncategorized + monthly pattern + high amount consistency = medium/low
+ *   neither signal = excluded
+ *
+ * Non-recurring-category merchants without a monthly/annual pattern are
+ * excluded — this prevents weekly gas-station fills, daily coffee etc.
+ * from polluting the panel.
+ */
 export async function detectSubscriptions(userId: string): Promise<number> {
+  // Fetch ALL negative, non-excluded transactions.
+  // Category is a SIGNAL here, not a hard filter — we need to see all merchants
+  // so uncategorized ones with strong monthly patterns are still caught.
   const transactions = await prisma.transaction.findMany({
-    where: {
-      account: { userId },
-      isExcluded: false,
-      amount: { lt: 0 },
-      OR: [
-        { category:         { name: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' } } },
-        { overrideCategory: { name: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' } } },
-      ],
-    },
+    where: { account: { userId }, isExcluded: false, amount: { lt: 0 } },
     select: {
       merchantNormalized: true,
       amount: true,
@@ -93,99 +129,146 @@ export async function detectSubscriptions(userId: string): Promise<number> {
 
   await prisma.subscriptionCandidate.deleteMany({ where: { userId } })
 
-  // Group by normalized key — strips bill-pay prefixes so "Payment To Verizon"
-  // and "Verizon Wireless" both collapse into "verizon wireless"
-  const byMerchant = new Map<string, { amount: number; date: Date; category: string | null }[]>()
+  // Group by normalized merchant key
+  const byMerchant = new Map<string, TxEntry[]>()
   for (const tx of transactions) {
     const key = normalizeKey(tx.merchantNormalized || '')
     if (!key || key.length < 2) continue
-    // Prefer the user's manual override category; fall back to the auto-assigned one
+    // User's manual override takes precedence over the auto-assigned category
     const effectiveCategory = tx.overrideCategory?.name ?? tx.category?.name ?? null
     if (!byMerchant.has(key)) byMerchant.set(key, [])
-    byMerchant.get(key)!.push({ amount: Math.abs(tx.amount), date: tx.date, category: effectiveCategory })
+    byMerchant.get(key)!.push({ amount: Math.abs(tx.amount), date: tx.date, categoryName: effectiveCategory })
   }
 
   let detected = 0
 
   for (const [merchant, txs] of byMerchant) {
-    if (txs.length < 2) continue
-
-    // Check amount consistency
+    // ── Amount stats ──────────────────────────────────────────────────────────
     const amounts = txs.map(t => t.amount)
     const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length
     if (mean < 2) continue
     const stdDev = Math.sqrt(amounts.reduce((s, a) => s + (a - mean) ** 2, 0) / amounts.length)
-    const cvPercent = (stdDev / mean) * 100
-
-    // Tier 1: high consistency (CV < 15%) — fixed-amount recurring (loans, subscriptions)
-    // Tier 2: variable recurring (CV < 40%) — utilities, usage-based SaaS
-    const isHighConsistency = cvPercent <= 15
+    const cvPercent = amounts.length > 1 ? (stdDev / mean) * 100 : 0 // single tx → CV=0
+    const isHighConsistency  = cvPercent <= 15
     const isVariableConsistency = cvPercent <= 40
-    if (!isVariableConsistency) continue
 
-    // Compute intervals between sorted charges
+    // ── Layer 1: Category signal ──────────────────────────────────────────────
+    // Determine the primary (most common) category for this merchant.
+    const catCounts = new Map<string, number>()
+    for (const tx of txs) {
+      if (tx.categoryName) {
+        const c = tx.categoryName.toLowerCase()
+        catCounts.set(c, (catCounts.get(c) ?? 0) + 1)
+      }
+    }
+    const primaryCategory = [...catCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+    const hasCategorySignal = primaryCategory !== null && RECURRING_CATEGORY_SET.has(primaryCategory)
+
+    // ── Layer 2: Recurrence signal ────────────────────────────────────────────
     const sorted = [...txs].sort((a, b) => a.date.getTime() - b.date.getTime())
-    const intervals: number[] = []
-    for (let i = 1; i < sorted.length; i++) {
-      const days = (sorted[i].date.getTime() - sorted[i - 1].date.getTime()) / 86_400_000
-      intervals.push(days)
+
+    let pattern: RecurrencePattern | null = null
+    let avgInterval = 0
+    let intervalCv = 100
+    let consecutiveMonths = 1
+    let hasRecurrenceSignal = false
+
+    if (txs.length >= 2) {
+      const intervals: number[] = []
+      for (let i = 1; i < sorted.length; i++) {
+        intervals.push((sorted[i].date.getTime() - sorted[i - 1].date.getTime()) / 86_400_000)
+      }
+      avgInterval = intervals.reduce((s, d) => s + d, 0) / intervals.length
+      pattern = detectPattern(avgInterval)
+
+      const intervalStdDev = Math.sqrt(
+        intervals.reduce((s, d) => s + (d - avgInterval) ** 2, 0) / intervals.length
+      )
+      intervalCv = avgInterval > 0 ? (intervalStdDev / avgInterval) * 100 : 100
+
+      if (pattern && isVariableConsistency) {
+        // Variable-amount merchants need tighter timing to avoid false positives
+        if (isHighConsistency || intervalCv <= 25) {
+          hasRecurrenceSignal = true
+        }
+      }
+
+      // Consecutive calendar months (for monthly patterns)
+      if (pattern === 'monthly') {
+        const monthKeys = [...new Set(sorted.map(t => t.date.getFullYear() * 12 + t.date.getMonth()))].sort((a, b) => a - b)
+        let max = 1, cur = 1
+        for (let i = 1; i < monthKeys.length; i++) {
+          if (monthKeys[i] === monthKeys[i - 1] + 1) { cur++; max = Math.max(max, cur) } else cur = 1
+        }
+        consecutiveMonths = max
+      } else {
+        consecutiveMonths = txs.length
+      }
     }
-    const avgInterval = intervals.reduce((s, d) => s + d, 0) / intervals.length
 
-    const pattern = detectPattern(avgInterval)
-    if (!pattern) continue
+    // ── Layer 3: Eligibility gate ─────────────────────────────────────────────
+    //
+    // Include if:
+    //   (a) category signal — merchant is in a known recurring category, OR
+    //   (b) no category signal, but strong monthly/annual pattern + high amount
+    //       consistency — catches uncategorized bills like loan payments
+    //
+    // Explicitly exclude:
+    //   - weekly merchants without a category signal (gas stations, coffee shops)
+    //   - biweekly merchants without a category signal
+    //   - merchants with neither signal at all
 
-    // Interval consistency — std dev of intervals relative to avg
-    const intervalStdDev = Math.sqrt(
-      intervals.reduce((s, d) => s + (d - avgInterval) ** 2, 0) / intervals.length
-    )
-    const intervalCv = avgInterval > 0 ? (intervalStdDev / avgInterval) * 100 : 100
+    const isMonthlyOrAnnual = pattern === 'monthly' || pattern === 'annual'
 
-    // Variable-amount patterns require tighter interval consistency
-    if (!isHighConsistency && intervalCv > 25) continue
-
-    // Monthly patterns require at least 2 consecutive calendar months
-    if (pattern === 'monthly') {
-      const dates = sorted.map(t => t.date)
-      if (!hasConsecutiveMonths(dates, 2)) continue
+    if (!hasCategorySignal) {
+      // Uncategorized merchant: require monthly/annual + high amount consistency
+      // This blocks weekly gas fills, daily coffee, biweekly payday patterns
+      if (!isMonthlyOrAnnual || !isHighConsistency) continue
+      if (!hasRecurrenceSignal) continue
+      if (!isVariableConsistency) continue
     }
 
-    // Weekly/biweekly require at least 3 occurrences
-    if ((pattern === 'weekly' || pattern === 'biweekly') && txs.length < 3) continue
+    // Category-backed merchants still need a reasonable amount (already checked mean >= 2)
+    // but are allowed even with a single occurrence or variable amounts
+    if (hasCategorySignal && !isVariableConsistency && txs.length > 1) continue
 
-    // Determine confidence
-    const consecutiveMonths = pattern === 'monthly'
-      ? (() => {
-          const keys = [...new Set(sorted.map(t => t.date.getFullYear() * 12 + t.date.getMonth()))].sort((a, b) => a - b)
-          let max = 1, cur = 1
-          for (let i = 1; i < keys.length; i++) {
-            if (keys[i] === keys[i - 1] + 1) { cur++; max = Math.max(max, cur) } else cur = 1
-          }
-          return max
-        })()
-      : txs.length
-
+    // ── Confidence: category + recurrence combined ────────────────────────────
     const confidence: string =
-      consecutiveMonths >= 3 && cvPercent < 5  ? 'high' :
-      consecutiveMonths >= 2 && cvPercent < 10 ? 'medium' :
-      consecutiveMonths >= 2 && isHighConsistency ? 'medium' : 'low'
+      // Strongest: category + confirmed monthly recurrence
+      hasCategorySignal && hasRecurrenceSignal && consecutiveMonths >= 3 && cvPercent < 10 ? 'high' :
+      hasCategorySignal && hasRecurrenceSignal && consecutiveMonths >= 2                   ? 'high' :
+      hasCategorySignal && hasRecurrenceSignal                                             ? 'medium' :
+      // Category present + consistent amount (even single occurrence = trusted)
+      hasCategorySignal && isHighConsistency                                               ? 'medium' :
+      hasCategorySignal && txs.length >= 2                                                ? 'low' :
+      hasCategorySignal                                                                    ? 'low' :
+      // No category: only here if passed the monthly+high-consistency gate above
+      consecutiveMonths >= 3 && cvPercent < 10 ? 'medium' :
+      'low'
 
+    // ── Score ─────────────────────────────────────────────────────────────────
     const score = Math.min(100,
-      consecutiveMonths * 15 +
+      (hasCategorySignal   ? 20 : 0) +
+      (hasRecurrenceSignal ? 15 : 0) +
+      Math.min(consecutiveMonths * 10, 30) +
       Math.round(Math.max(0, 15 - cvPercent) * 2) +
-      (isHighConsistency ? 10 : 0) +
-      (intervalCv < 10 ? 10 : 0)
+      (isHighConsistency   ? 10 : 0) +
+      (intervalCv < 10     ? 10 : 0)
     )
 
+    // ── Next charge estimate ──────────────────────────────────────────────────
     const lastDate = sorted[sorted.length - 1].date
-    const estimatedNext = new Date(lastDate.getTime() + avgInterval * 86_400_000)
-    const serviceCategory = sorted[sorted.length - 1].category ?? null
+    const estimatedNext = avgInterval > 0
+      ? new Date(lastDate.getTime() + avgInterval * 86_400_000)
+      : null
 
-    // Store the normalized key (not raw merchant) so the UI gets clean names
+    // Use the most recent effective category for display
+    const serviceCategory = sorted[sorted.length - 1].categoryName ?? null
+
     await prisma.subscriptionCandidate.create({
       data: {
         userId,
-        merchantNormalized: merchant,      // normalized key — no bill-pay prefixes
+        merchantNormalized: merchant,
         estimatedMonthlyAmount: mean,
         recurringConfidence: confidence,
         subscriptionScore: score,
