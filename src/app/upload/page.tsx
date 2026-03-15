@@ -95,9 +95,14 @@ export default function StatementsPage() {
       qc.invalidateQueries({ queryKey: ['uploads'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
-      setUploadResult({ success: true, data })
-      setSelectedFile(null)
-      setErrorMsg('')
+      const uploadId = data.uploadId as string | undefined
+      if (uploadId) {
+        router.push(`/reports/${uploadId}`)
+      } else {
+        setUploadResult({ success: true, data })
+        setSelectedFile(null)
+        setErrorMsg('')
+      }
     },
     onError: (err: Error) => {
       setErrorMsg(err.message)
