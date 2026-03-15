@@ -151,14 +151,25 @@ export default function ScanReportPage() {
   const [report, setReport] = useState<ScanReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [errorStatus, setErrorStatus] = useState<number | null>(null)
   const [showAllMerchants, setShowAllMerchants] = useState(false)
+  // Track whether the auth store has finished its initial hydration so we
+  // don't redirect to /login during the brief window before it rehydrates.
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
+    // Small tick lets the Zustand store rehydrate from localStorage before
+    // we decide the user is truly logged out.
+    const t = setTimeout(() => setAuthChecked(true), 50)
+    return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    if (!authChecked) return
     if (!user) {
       router.push('/login')
-      return
     }
-  }, [user, router])
+  }, [authChecked, user, router])
 
   useEffect(() => {
     if (!uploadId || !token) return
@@ -175,6 +186,7 @@ export default function ScanReportPage() {
         })
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+          setErrorStatus(res.status)
           throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
         }
         const data = await res.json() as ScanReport
@@ -192,6 +204,10 @@ export default function ScanReportPage() {
     return () => controller.abort()
   }, [uploadId, token])
 
+  // Don't render anything until auth hydration is checked to avoid flashing
+  // a redirect to /login on the first render tick.
+  if (!authChecked) return null
+
   if (!user) return null
 
   if (loading) return (
@@ -204,6 +220,9 @@ export default function ScanReportPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
       <p style={{ color: 'var(--danger)', fontWeight: 600, fontSize: 15 }}>Failed to load report</p>
       <p style={{ color: 'var(--muted)', fontSize: 13 }}>{error}</p>
+      <p style={{ color: 'var(--subtle)', fontSize: 11, fontFamily: 'monospace' }}>
+        upload: {uploadId} · status: {errorStatus ?? '—'}
+      </p>
       <button
         onClick={() => router.back()}
         style={{ marginTop: 8, padding: '8px 18px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer', fontSize: 13 }}

@@ -58,12 +58,20 @@ interface ScanReport {
 // ─── Core aggregation ─────────────────────────────────────────────────────────
 
 async function buildReport(uploadId: string, userId: string): Promise<ScanReport> {
+  console.log('[scan-report] buildReport called', { uploadId, userId })
+
   // Verify upload belongs to this user
   const upload = await prisma.upload.findFirst({
     where: { id: uploadId, userId },
     select: { id: true, createdAt: true },
   })
-  if (!upload) throw Object.assign(new Error('Upload not found'), { status: 404 })
+  console.log('[scan-report] upload lookup', { found: !!upload, uploadId, userId })
+  if (!upload) {
+    // Extra diagnostic: check if the upload exists at all (without userId constraint)
+    const uploadAny = await prisma.upload.findUnique({ where: { id: uploadId }, select: { id: true, userId: true } })
+    console.log('[scan-report] upload exists globally?', { found: !!uploadAny, ownerUserId: uploadAny?.userId, requestUserId: userId })
+    throw Object.assign(new Error('Upload not found'), { status: 404 })
+  }
 
   // Fetch all signals in parallel
   const [transactions, ingestionIssues, anomalyAlerts] =
