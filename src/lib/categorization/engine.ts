@@ -344,38 +344,44 @@ async function classifyWithAI(description: string): Promise<AIResult> {
   const sanitized = sanitizeForAI(description)
   const categoryList = AI_CATEGORY_NAMES.join(', ')
 
-  try {
-    const response = await getOpenAI().chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0,
-      max_tokens: 60,
-      messages: [
-        {
-          role: 'system',
-          content: `You are a transaction classifier. Classify the merchant/transaction into exactly ONE category from this list: ${categoryList}. Respond with JSON only: {"category": "<name>", "confidence": <0.0-1.0>}. No explanations. Only use categories from the list.`
-        },
-        {
-          role: 'user',
-          content: `Transaction: "${sanitized}"`
-        }
-      ]
-    })
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await getOpenAI().chat.completions.create({
+        model: 'gpt-4o-mini',
+        temperature: 0,
+        max_tokens: 60,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a transaction classifier. Classify the merchant/transaction into exactly ONE category from this list: ${categoryList}. Respond with JSON only: {"category": "<name>", "confidence": <0.0-1.0>}. No explanations. Only use categories from the list.`
+          },
+          {
+            role: 'user',
+            content: `Transaction: "${sanitized}"`
+          }
+        ]
+      })
 
-    const raw = response.choices[0]?.message?.content?.trim() || ''
-    // Strict output validation
-    const match = raw.match(/\{"category"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)\}/)
-    if (!match) throw new Error('Non-conforming AI response')
+      const raw = response.choices[0]?.message?.content?.trim() || ''
+      const match = raw.match(/\{"category"\s*:\s*"([^"]+)"\s*,\s*"confidence"\s*:\s*([\d.]+)\}/)
+      if (!match) throw new Error('Non-conforming AI response')
 
-    const catName = match[1]
-    const confidence = Math.min(1.0, Math.max(0.0, parseFloat(match[2])))
+      const catName = match[1]
+      const confidence = Math.min(1.0, Math.max(0.0, parseFloat(match[2])))
 
-    // Validate category is in our enum
-    if (!AI_CATEGORY_NAMES.includes(catName)) throw new Error(`Unknown category: ${catName}`)
+      if (!AI_CATEGORY_NAMES.includes(catName)) throw new Error(`Unknown category: ${catName}`)
 
-    return { categoryName: catName, confidence, source: 'ai' }
-  } catch {
-    return { categoryName: 'Other', confidence: 0.0, source: 'ai' }
+      if (confidence < 0.6) {
+        console.warn(`[categorize] low confidence (${confidence.toFixed(2)}) for: ${sanitized.slice(0, 40)}`)
+      }
+
+      return { categoryName: catName, confidence, source: 'ai' }
+    } catch (err) {
+      if (attempt === 0) continue // retry once on malformed response
+      console.warn('[categorize] AI fallback exhausted:', (err as Error).message)
+    }
   }
+  return { categoryName: 'Other', confidence: 0.0, source: 'ai' }
 }
 
 // ─── Main categorization pipeline ────────────────────────────────────────────
@@ -393,6 +399,7 @@ export async function categorize(
   amount: number,
 ): Promise<CategorizationResult> {
   const categories = await getCategories()
+  const normalized = normalizeMerchant(description)
 
   function findCatId(name: string): string | undefined {
     return categories.find(c => c.name === name)?.id ?? categories.find(c => c.name === 'Other')?.id
@@ -403,7 +410,7 @@ export async function categorize(
   const isLikelyIncome = amount > 0
 
   // Layer 1: User/system rules (highest priority)
-  const ruleMatch = await applyRules(description, userId)
+  const ruleMatch = await applyRules(normalized, userId)
   if (ruleMatch) {
     return {
       categoryId: ruleMatch.categoryId,
@@ -424,7 +431,7 @@ export async function categorize(
   }
 
   // Layer 2: Built-in keyword/merchant matching (before AI to reduce latency + handle outages)
-  const keywordMatch = await applyKeywordRules(description)
+  const keywordMatch = await applyKeywordRules(normalized)
   if (keywordMatch) {
     return {
       categoryId: keywordMatch.categoryId,
@@ -435,7 +442,7 @@ export async function categorize(
   }
 
   // Layer 3: AI fallback
-  const aiResult = await classifyWithAI(description)
+  const aiResult = await classifyWithAI(normalized)
 
   // Confidence thresholds (Phase 3 agreed design)
   // <0.60 → Uncategorized / Other
@@ -468,13 +475,23 @@ export async function categorizeBatch(
   userId: string,
   onProgress?: (done: number, total: number) => void
 ): Promise<CategorizationResult[]> {
-  const results: CategorizationResult[] = []
+  const CONCURRENCY = 10
+  const results: CategorizationResult[] = new Array(transactions.length)
+  let completed = 0
 
-  for (let i = 0; i < transactions.length; i++) {
-    const tx = transactions[i]
-    const result = await categorize(tx.description, userId, tx.amount)
-    results.push(result)
-    onProgress?.(i + 1, transactions.length)
+  async function processOne(idx: number) {
+    const tx = transactions[idx]
+    results[idx] = await categorize(tx.description, userId, tx.amount)
+    completed++
+    onProgress?.(completed, transactions.length)
+  }
+
+  for (let i = 0; i < transactions.length; i += CONCURRENCY) {
+    const batch: Promise<void>[] = []
+    for (let j = i; j < Math.min(i + CONCURRENCY, transactions.length); j++) {
+      batch.push(processOne(j))
+    }
+    await Promise.all(batch)
   }
 
   return results

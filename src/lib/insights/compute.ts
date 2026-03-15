@@ -319,17 +319,24 @@ export async function computeInsights(
   year: number,
   month: number,
 ): Promise<InsightCard[]> {
-  // ── Step 1: Current month summary ─────────────────────────────────────────
-  const summary = await computeMonthSummary(userId, year, month)
-
-  // ── Step 2: Previous month summary ───────────────────────────────────────
+  // ── Steps 1-4: Run all independent queries in parallel ────────────────────
   const { year: prevYear, month: prevMonth } = getPrevMonth(year, month)
-  const prevSummary = await computeMonthSummary(userId, prevYear, prevMonth)
-
-  // ── Step 3: Merchant aggregates (this month + prev month) ─────────────────
-  const [thisMerchants, prevMerchants] = await Promise.all([
+  const [
+    summary,
+    prevSummary,
+    thisMerchants,
+    prevMerchants,
+    p95Threshold,
+    categoryHistory,
+    smallPurchases,
+  ] = await Promise.all([
+    computeMonthSummary(userId, year, month),
+    computeMonthSummary(userId, prevYear, prevMonth),
     queryMerchantAggregates(userId, year, month),
     queryMerchantAggregates(userId, prevYear, prevMonth),
+    queryP95Threshold(userId),
+    queryCategoryHistory(userId, year, month),
+    querySmallPurchases(userId, year, month),
   ])
 
   const prevMerchantMap = new Map<string, number>()
@@ -337,20 +344,11 @@ export async function computeInsights(
     prevMerchantMap.set(row.merchantnormalized, Number(row.total))
   }
 
-  // ── Step 4: p95 large-transaction threshold ───────────────────────────────
-  const [p95Threshold, categoryHistory] = await Promise.all([
-    queryP95Threshold(userId),
-    queryCategoryHistory(userId, year, month),
+  // ── Steps 5-7: largeTransactions needs p95Threshold; subInsight is independent
+  const [largeTransactions, subInsight] = await Promise.all([
+    queryLargeTransactions(userId, year, month, p95Threshold),
+    detectSubscriptions(userId, year, month),
   ])
-
-  // ── Step 5: Large transactions ────────────────────────────────────────────
-  const largeTransactions = await queryLargeTransactions(userId, year, month, p95Threshold)
-
-  // ── Step 6: Small purchases ───────────────────────────────────────────────
-  const smallPurchases = await querySmallPurchases(userId, year, month)
-
-  // ── Step 7: Subscription detection ───────────────────────────────────────
-  const subInsight = await detectSubscriptions(userId, year, month)
 
   // Upsert SubscriptionCandidate rows
   for (const sub of subInsight.subscriptions) {

@@ -17,6 +17,7 @@ import { TopTransactions } from '@/components/dashboard/TopTransactions'
 import { CategorizationGate } from '@/components/dashboard/CategorizationGate'
 import { InsightPanel } from '@/components/dashboard/InsightPanel'
 import { SubscriptionPanel } from '@/components/dashboard/SubscriptionPanel'
+import { UpcomingChargesPanel } from '@/components/dashboard/UpcomingChargesPanel'
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard'
 import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome'
 
@@ -112,7 +113,7 @@ export default function DashboardPage() {
     staleTime: 5 * 60_000,
   })
 
-  const { data: subsData } = useQuery<{ subscriptions: { estimatedMonthlyAmount: number; recurringConfidence: string; subscriptionScore: number }[] }>({
+  const { data: subsData } = useQuery<{ subscriptions: { id: string; merchantNormalized: string; estimatedMonthlyAmount: number; recurringConfidence: string; subscriptionScore: number; estimatedNextCharge: string | null; consecutiveMonths: number; serviceCategory: string | null }[] }>({
     queryKey: ['subscriptions'],
     queryFn:  () => apiFetch('/api/subscriptions'),
     enabled:  !!user,
@@ -458,6 +459,9 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* ── Upcoming Charges ──────────────────────────────────────────────── */}
+        <UpcomingChargesPanel subscriptions={subsData?.subscriptions ?? []} />
 
         {/* ── Subscription Panel ────────────────────────────────────────────── */}
         <SubscriptionPanel userId={user?.id} />
