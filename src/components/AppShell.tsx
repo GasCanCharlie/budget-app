@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import {
   LayoutDashboard, FileText, ArrowLeftRight, Tags, Layers,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, Lightbulb, Lock, Settings,
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, Lightbulb, Settings,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
@@ -24,19 +24,25 @@ interface AppShellProps {
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-const navItems = [
+// Core product flow — shown in both desktop sidebar and mobile bottom nav
+const primaryNavItems = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
-  { href: '/insights',     label: 'Insights Q&A', icon: Lightbulb },
   { href: '/upload',       label: 'Uploads',      icon: FileText },
   { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/categorize',   label: 'Categorize',   icon: Tags },
-  { href: '/categories',   label: 'Categories',   icon: Layers },
-  { href: '/rules',        label: 'Rules',        icon: Gavel },
-  { href: '/history',      label: 'History',      icon: History },
-  { href: '/settings',    label: 'Settings',     icon: Settings },
+  { href: '/insights',     label: 'Insights Q&A', icon: Lightbulb },
 ]
 
-const TOOLTIP_TEXT = 'Finish categorizing all transactions to unlock AI Insights.'
+// Management utilities — desktop sidebar only, visually de-emphasized
+const secondaryNavItems = [
+  { href: '/categories', label: 'Categories', icon: Layers },
+  { href: '/rules',      label: 'Rules',       icon: Gavel },
+  { href: '/history',    label: 'History',     icon: History },
+  { href: '/settings',   label: 'Settings',    icon: Settings },
+]
+
+// Two-part message: header + body so the tooltip feels informative, not punishing
+const LOCKED_TOOLTIP = 'Complete categorization to unlock AI insights and financial analysis.'
 
 export function AppShell({ children, year, month, availableMonths, onMonthChange }: AppShellProps) {
   const pathname = usePathname()
@@ -46,7 +52,6 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
   const qc       = useQueryClient()
   const { unlocked, loading: unlockLoading } = useInsightsUnlock()
 
-  // Track transition locked→unlocked to trigger "just unlocked" toast + glow
   const prevUnlockedRef = useRef<boolean | null>(null)
   const [justUnlocked, setJustUnlocked] = useState(false)
   const [showUnlockToast, setShowUnlockToast] = useState(false)
@@ -85,6 +90,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
     ? availableMonths.findIndex(m => m.year === year && m.month === month) > 0
     : false
 
+  // Redirect to Categorize with context so user understands why they're there
   function handleLockedInsightsClick() {
     router.push('/categorize?from=insights')
   }
@@ -107,27 +113,22 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
           30%  { box-shadow: 0 0 0 3px rgba(111,128,255,0.35), 0 0 16px rgba(111,128,255,0.25); }
           100% { box-shadow: none; }
         }
-        .bl-unlock-glow {
-          animation: bl-unlock-glow 2.5s ease-out forwards;
-        }
+        .bl-unlock-glow { animation: bl-unlock-glow 2.5s ease-out forwards; }
       `}</style>
 
-      {/* ── Unlock toast ────────────────────────────────────────────────── */}
+      {/* ── Insights unlocked toast ──────────────────────────────────────────── */}
       {showUnlockToast && (
-        <div
-          style={{
-            position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
-            zIndex: 9999,
-            background: 'linear-gradient(135deg, rgba(39,210,120,0.18), rgba(63,180,255,0.14))',
-            border: '1px solid rgba(63,220,140,0.4)',
-            borderRadius: 14,
-            padding: '12px 20px',
-            display: 'flex', alignItems: 'center', gap: 10,
-            backdropFilter: 'blur(12px)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999,
+          background: 'linear-gradient(135deg, rgba(39,210,120,0.18), rgba(63,180,255,0.14))',
+          border: '1px solid rgba(63,220,140,0.4)',
+          borderRadius: 14, padding: '12px 20px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
+          whiteSpace: 'nowrap',
+        }}>
           <span style={{ fontSize: 18 }}>🎉</span>
           <span style={{ fontSize: 14, fontWeight: 700, color: '#d1fae5' }}>
             Insights unlocked! Your spending analysis is now ready.
@@ -135,11 +136,12 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         </div>
       )}
 
-      {/* ── Desktop sidebar ─────────────────────────────────────────── */}
-      <aside className="fixed inset-y-0 left-0 w-64 border-r hidden md:flex flex-col z-40"
+      {/* ── Desktop sidebar ──────────────────────────────────────────────────── */}
+      <aside
+        className="fixed inset-y-0 left-0 w-64 border-r hidden md:flex flex-col z-40"
         style={{ background: 'var(--sidebar)', borderColor: 'var(--border)', color: 'var(--text)' }}
       >
-        {/* Logo */}
+        {/* Logo mark */}
         <div className="h-14 px-4 flex items-center gap-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="bl-logo-container" style={{ width: 36, height: 36 }}>
             <LogoMark size={34} />
@@ -150,91 +152,132 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
           </div>
         </div>
 
-        {/* Nav links */}
-        <nav className="p-3 space-y-0.5 flex-1">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href
-              || (href === '/upload' && pathname.startsWith('/upload'))
-              || (href === '/staging' && pathname.startsWith('/staging'))
-              || (href === '/insights' && (pathname.startsWith('/insights') || pathname.startsWith('/chat')))
+        {/* Nav — primary core flow + secondary utilities */}
+        <nav className="p-3 flex-1 flex flex-col overflow-y-auto">
 
-            if (href === '/insights' && !unlocked) {
-              // Locked state
+          {/* Primary: core product flow */}
+          <div className="space-y-0.5">
+            {primaryNavItems.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href
+                || (href === '/upload' && pathname.startsWith('/upload'))
+                || (href === '/insights' && (pathname.startsWith('/insights') || pathname.startsWith('/chat')))
+
+              if (href === '/insights' && !unlocked) {
+                return (
+                  <div key={href} style={{ position: 'relative' }}>
+                    <button
+                      onClick={handleLockedInsightsClick}
+                      onMouseEnter={onInsightsMouseEnter}
+                      onMouseLeave={onInsightsMouseLeave}
+                      className="bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition w-full text-left"
+                      style={{ opacity: 0.55 }}
+                      aria-label={`${label} — complete categorization to unlock`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {label}
+                      <span style={{
+                        marginLeft: 'auto', fontSize: 10, fontWeight: 700,
+                        letterSpacing: '0.05em', textTransform: 'uppercase',
+                        padding: '2px 6px', borderRadius: 4,
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.10)',
+                        color: 'rgba(255,255,255,0.38)',
+                        flexShrink: 0,
+                      }}>
+                        Locked
+                      </span>
+                    </button>
+
+                    {insightsTooltip && (
+                      <div style={{
+                        position: 'absolute', left: '100%', top: '50%',
+                        transform: 'translateY(-50%)', marginLeft: 10, zIndex: 100,
+                        background: 'rgba(10,18,40,0.97)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: 10, padding: '10px 14px',
+                        fontSize: 12, fontWeight: 500, color: '#c8d4f0',
+                        maxWidth: 220, lineHeight: 1.55,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                        pointerEvents: 'none',
+                      }}>
+                        <div style={{ fontWeight: 700, marginBottom: 4, color: '#e5e7eb', fontSize: 13 }}>
+                          Insights locked
+                        </div>
+                        {LOCKED_TOOLTIP}
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
               return (
-                <div key={href} style={{ position: 'relative' }}>
-                  <button
-                    onClick={handleLockedInsightsClick}
-                    onMouseEnter={onInsightsMouseEnter}
-                    onMouseLeave={onInsightsMouseLeave}
-                    className="bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition w-full text-left"
-                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {label}
-                    <Lock className="h-3 w-3 ml-auto flex-shrink-0" />
-                  </button>
-                  {insightsTooltip && (
-                    <div style={{
-                      position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
-                      marginLeft: 10, zIndex: 100,
-                      background: 'rgba(10,18,40,0.97)',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      borderRadius: 10,
-                      padding: '8px 12px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: '#d0dbff',
-                      whiteSpace: 'nowrap',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-                      pointerEvents: 'none',
-                    }}>
-                      {TOOLTIP_TEXT}
-                    </div>
+                <Link
+                  key={href}
+                  href={href}
+                  className={clsx(
+                    'bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition',
+                    active ? 'active' : '',
+                    href === '/insights' && justUnlocked ? 'bl-unlock-glow' : '',
                   )}
-                </div>
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
               )
-            }
+            })}
+          </div>
 
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={clsx(
-                  'bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition',
-                  active ? 'active' : '',
-                  href === '/insights' && justUnlocked ? 'bl-unlock-glow' : '',
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* Bottom: integrity badge + logout */}
-        <div className="p-3 border-t space-y-2" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md" style={{ background: 'var(--surface2)' }}>
-            <ShieldCheck className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--success)' }} />
-            <div className="text-xs leading-tight" style={{ color: 'var(--text-secondary)' }}>
-              Privacy-first<br />No bank login required
+          {/* Secondary: management utilities, pushed to bottom */}
+          <div className="mt-auto">
+            <div className="pt-3 space-y-0.5" style={{ borderTop: '1px solid var(--border)' }}>
+              <p className="px-3 mb-1" style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+                textTransform: 'uppercase', color: 'var(--text-muted)',
+              }}>
+                Manage
+              </p>
+              {secondaryNavItems.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={clsx(
+                      'bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 transition',
+                      active ? 'active' : '',
+                    )}
+                    style={{ fontSize: 12, opacity: active ? 1 : 0.55 }}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </Link>
+                )
+              })}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleLogout}
-              className="bl-nav-link flex-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </button>
-            <ThemeToggle />
+        </nav>
+
+        {/* Footer: privacy badge + logout */}
+        <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md mb-2" style={{ background: 'var(--surface2)' }}>
+            <ShieldCheck className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--success)' }} />
+            <div className="text-xs leading-tight" style={{ color: 'var(--text-secondary)' }}>
+              Privacy-first · No bank login
+            </div>
           </div>
+          <button
+            onClick={handleLogout}
+            className="bl-nav-link w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
         </div>
       </aside>
 
-      {/* ── Main content area ────────────────────────────────────────── */}
+      {/* ── Main content area ─────────────────────────────────────────────────── */}
       <div className="md:pl-64 flex flex-col min-h-screen">
+
         {/* Topbar */}
         <header
           className="sticky top-0 z-30 h-14 border-b"
@@ -246,7 +289,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
           }}
         >
           <div className="h-full px-4 flex items-center justify-between gap-4">
-            {/* Mobile logo */}
+            {/* Mobile: logo only */}
             <div className="flex items-center gap-2 md:hidden">
               <div className="bl-logo-container" style={{ width: 30, height: 30 }}>
                 <LogoMark size={28} />
@@ -254,7 +297,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
               <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>BudgetLens</span>
             </div>
 
-            {/* Month navigator (desktop) */}
+            {/* Desktop: month navigator */}
             {availableMonths && availableMonths.length > 0 && year && month && (
               <div className="hidden md:flex items-center gap-1">
                 <button
@@ -277,11 +320,12 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
               </div>
             )}
 
+            {/* Desktop: privacy tagline */}
             <div className="hidden md:block text-xs" style={{ color: 'var(--text-secondary)' }}>
-              Privacy-first · No bank login · Local-first
+              Privacy-first · No bank login
             </div>
 
-            {/* User email + theme toggle */}
+            {/* User + theme toggle (single instance) */}
             <div className="flex items-center gap-2">
               <div className="text-xs hidden sm:block truncate max-w-[200px]" style={{ color: 'var(--text-secondary)' }}>
                 {user?.email}
@@ -297,7 +341,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         </main>
       </div>
 
-      {/* ── Mobile bottom nav ────────────────────────────────────────── */}
+      {/* ── Mobile bottom nav — core flow only ───────────────────────────────── */}
       <nav
         className="fixed bottom-0 inset-x-0 md:hidden border-t px-2 py-2 flex justify-around z-40"
         style={{
@@ -307,7 +351,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
           WebkitBackdropFilter: 'blur(12px)',
         }}
       >
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {primaryNavItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href === '/upload' && pathname.startsWith('/upload'))
 
           if (href === '/insights' && !unlocked) {
@@ -315,13 +359,22 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
               <button
                 key={href}
                 onClick={handleLockedInsightsClick}
-                className={clsx(
-                  'bl-nav-link flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                )}
-                style={{ opacity: 0.45, cursor: 'not-allowed', position: 'relative' }}
+                className="bl-nav-link flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                style={{ opacity: 0.45, position: 'relative' }}
+                aria-label="Insights — complete categorization to unlock"
               >
                 <Icon size={20} />
-                <Lock size={8} style={{ position: 'absolute', top: 4, right: 8 }} />
+                <span style={{
+                  position: 'absolute', top: 2, right: 6,
+                  fontSize: 8, fontWeight: 800, letterSpacing: '0.03em',
+                  background: 'rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 3, padding: '1px 3px',
+                  color: 'rgba(255,255,255,0.45)',
+                  textTransform: 'uppercase',
+                }}>
+                  lock
+                </span>
                 {label}
               </button>
             )

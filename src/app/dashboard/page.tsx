@@ -6,9 +6,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
-import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { AlertTriangle, Info, X, Loader2, UploadCloud } from 'lucide-react'
+import { AlertTriangle, Info, X, Loader2 } from 'lucide-react'
 import { FinancialSummaryHeader } from '@/components/dashboard/FinancialSummaryHeader'
 import { AskAiDrawer } from '@/components/dashboard/AskAiDrawer'
 import { CategoryRanking } from '@/components/dashboard/CategoryRanking'
@@ -225,7 +224,7 @@ export default function DashboardPage() {
     </AppShell>
   )
 
-  // ── Categorization Required (Strict Mode Gate) ─────────────────────────────
+  // ── Categorization Required ────────────────────────────────────────────────
   if (data.dashboardState === 'categorization_required') {
     return (
       <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
@@ -250,12 +249,10 @@ export default function DashboardPage() {
   // ── Analysis Unlocked ──────────────────────────────────────────────────────
   const summary = data.summary!
 
-  // Strict: spending charts ONLY include expense categories (isIncome === false)
-  const spendingCategories = summary.categoryTotals.filter(c => !c.isIncome)
-  const topTransactions    = summary.topTransactions ?? []
+  const spendingCategories     = summary.categoryTotals.filter(c => !c.isIncome)
+  const topTransactions        = summary.topTransactions ?? []
   const prevSpendingCategories = (prevSummaryData?.summary?.categoryTotals ?? []).filter(c => !c.isIncome)
 
-  // Previous month data for MoM change
   const prevMonthYear  = month === 1 ? year - 1 : year
   const prevMonthMonth = month === 1 ? 12 : month - 1
   const prevMonthData  = (trendMonths as { year: number; month: number; totalSpending: number | null; net: number | null; hasData: boolean }[])
@@ -271,14 +268,6 @@ export default function DashboardPage() {
     ? { name: spendingCategories[0].categoryName, pct: Math.round(spendingCategories[0].pctOfSpending) }
     : null
 
-  const cardStyle: React.CSSProperties = {
-    background: 'var(--card, #111827)',
-    border: '1px solid rgba(255,255,255,0.04)',
-    borderRadius: 16,
-    boxShadow: '0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.32)',
-    transition: 'border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease',
-  }
-
   return (
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="space-y-6 pb-24">
@@ -291,13 +280,31 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Monthly Storyline Hero ────────────────────────────────────────── */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* HERO — what happened this month                                    */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        {/* Primary metrics anchor */}
+        <FinancialSummaryHeader
+          month={month}
+          year={year}
+          totalIncome={summary.totalIncome as number}
+          totalSpending={summary.totalSpending as number}
+          net={summary.net as number}
+          transactionCount={summary.transactionCount as number}
+          prevMonthNet={prevMonthNet}
+          prevMonthSpending={prevMonthSpending}
+          largestCategory={largestCategory}
+          latestUploadId={latestUpload?.id}
+        />
+
+        {/* Narrative layer — plain-English month summary */}
         <MonthlyStorylineCard
           cards={insightsData?.cards ?? []}
           loading={!insightsData && !!user}
         />
 
-        {/* Partial month banner */}
+        {/* Partial month data notice */}
         {!!summary.isPartialMonth && (
           <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
             <Info size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#F59E0B' }} />
@@ -307,23 +314,54 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Row 1: Financial Hero (full width) ───────────────────────────── */}
-        <div style={cardStyle}>
-          <FinancialSummaryHeader
-            month={month}
-            year={year}
-            totalIncome={summary.totalIncome as number}
-            totalSpending={summary.totalSpending as number}
-            net={summary.net as number}
-            transactionCount={summary.transactionCount as number}
-            prevMonthNet={prevMonthNet}
-            prevMonthSpending={prevMonthSpending}
-            largestCategory={largestCategory}
-            latestUploadId={latestUpload?.id}
-          />
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* SPENDING ANALYSIS — where the money went                           */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        {/* Visual spending breakdown */}
+        <SpendingCharts categories={spendingCategories} totalSpending={summary.totalSpending as number} />
+
+        {/* Category-by-category ranking with MoM deltas */}
+        <CategoryRanking
+          categories={spendingCategories}
+          totalSpending={summary.totalSpending as number}
+          year={year}
+          month={month}
+          prevCategories={prevSpendingCategories}
+          budgets={budgetsData?.budgets ?? []}
+        />
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* DIAGNOSTICS — what to investigate                                  */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        <div style={{ paddingTop: 4 }}>
+          <p className="bl-section-label">Financial Autopsy</p>
         </div>
 
-        {/* ── Anomaly alerts ────────────────────────────────────────────────── */}
+        <FinancialAutopsyPanel
+          cards={insightsData?.cards ?? []}
+          year={year}
+          month={month}
+          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
+        />
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* SUBSCRIPTION INTELLIGENCE — recurring charge awareness             */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        <div style={{ paddingTop: 4 }}>
+          <p className="bl-section-label">Subscription Intelligence</p>
+        </div>
+
+        <SubscriptionPanel userId={user?.id} />
+        <UpcomingChargesPanel subscriptions={subsData?.subscriptions ?? []} />
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* DETAILS — supporting context and tools                             */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        {/* Anomaly alerts */}
         {summary.alerts && (summary.alerts as unknown[]).length > 0 && (
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--card, #111827)', border: '1px solid var(--border, #1F2937)' }}>
             <div className="flex items-center gap-2 px-5 py-3" style={{ borderBottom: '1px solid var(--border, #1F2937)' }}>
@@ -355,7 +393,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Financial Health Score ────────────────────────────────────────── */}
+        {/* Financial health score */}
         <HealthScoreCard
           totalIncome={summary.totalIncome as number}
           totalSpending={summary.totalSpending as number}
@@ -365,75 +403,7 @@ export default function DashboardPage() {
           monthlySubscriptions={monthlySubscriptions}
         />
 
-        {/* ── Row 2: 2-column split ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-
-          {/* LEFT: Category Ranking — lg:col-span-7 */}
-          <div className="lg:col-span-7">
-            <CategoryRanking
-              categories={spendingCategories}
-              totalSpending={summary.totalSpending as number}
-              year={year}
-              month={month}
-              prevCategories={prevSpendingCategories}
-              budgets={budgetsData?.budgets ?? []}
-            />
-          </div>
-
-          {/* RIGHT: Change / Insight Panel — lg:col-span-5 */}
-          <div className="lg:col-span-5">
-            <div style={cardStyle} className="p-5 space-y-5 h-full bl-card-interactive">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #E5E7EB)', letterSpacing: '-0.01em', margin: 0 }}>
-                  Monthly Snapshot
-                </h2>
-              </div>
-
-              {/* vs Last Month */}
-              <div style={{ borderRadius: 12, padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 12 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B7280', marginBottom: 8 }}>
-                  vs Last Month
-                </p>
-                {prevMonthSpending !== null ? (
-                  <p style={{ fontSize: 13, color: '#D1D5DB', margin: 0, lineHeight: 1.5 }}>
-                    Spending changed by{' '}
-                    <strong style={{ color: summary.totalSpending > prevMonthSpending ? '#EF4444' : '#22C55E', fontSize: 15 }}>
-                      {summary.totalSpending > prevMonthSpending ? '+' : ''}
-                      {Math.round(((summary.totalSpending - prevMonthSpending) / prevMonthSpending) * 100)}%
-                    </strong>
-                    {' '}from last month.
-                  </p>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: '#6B7280' }}>
-                    <UploadCloud size={14} style={{ marginTop: 2, flexShrink: 0 }} />
-                    <p style={{ fontSize: 12, margin: 0, lineHeight: 1.5 }}>Upload previous statement to compare months</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Largest Transaction */}
-              <div style={{ borderRadius: 12, padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B7280', marginBottom: 8 }}>
-                  Largest Transaction
-                </p>
-                {topTransactions.length > 0 ? (
-                  <div>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', margin: 0, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {topTransactions[0].merchantNormalized || topTransactions[0].description}
-                    </p>
-                    <p style={{ fontSize: 22, fontWeight: 800, color: '#EF4444', margin: 0, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-                      ${Math.abs(topTransactions[0].amount).toFixed(2)}
-                    </p>
-                  </div>
-                ) : (
-                  <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>No transactions yet</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Financial Control Panel ───────────────────────────────────────── */}
+        {/* Spending intelligence metrics */}
         <FinancialControlPanel
           totalIncome={summary.totalIncome as number}
           totalSpending={summary.totalSpending as number}
@@ -443,24 +413,8 @@ export default function DashboardPage() {
           topTransactions={topTransactions}
         />
 
-        {/* ── Spending breakdown: bar + donut ───────────────────────────────── */}
-        <SpendingCharts categories={spendingCategories} totalSpending={summary.totalSpending as number} />
-
-        {/* ── Financial Autopsy section label ───────────────────────────────── */}
-        <div style={{ paddingTop: 4 }}>
-          <p className="bl-section-label">Financial Autopsy</p>
-        </div>
-
-        {/* ── Financial Autopsy ─────────────────────────────────────────────── */}
-        <FinancialAutopsyPanel
-          cards={insightsData?.cards ?? []}
-          year={year}
-          month={month}
-          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
-        />
-
-        {/* ── Row 3: Full-width tabbed panel ────────────────────────────────── */}
-        <div style={cardStyle} className="overflow-hidden bl-card-interactive">
+        {/* Top transactions + raw insights tab */}
+        <div className="card bl-card-interactive overflow-hidden">
           {/* Tab header */}
           <div className="flex items-center gap-0 px-5 pt-4 pb-0" style={{ borderBottom: '1px solid var(--border, #1F2937)' }}>
             {(['transactions', 'insights'] as const).map(tab => (
@@ -493,13 +447,6 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-
-        {/* ── Subscription Intelligence section ─────────────────────────────── */}
-        <div style={{ paddingTop: 4 }}>
-          <p className="bl-section-label">Subscription Intelligence</p>
-        </div>
-        <UpcomingChargesPanel subscriptions={subsData?.subscriptions ?? []} />
-        <SubscriptionPanel userId={user?.id} />
 
       </div>
 
