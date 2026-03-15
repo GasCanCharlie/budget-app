@@ -6,9 +6,19 @@ import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { FileText, Upload, Trash2, Loader2, AlertCircle, ChevronRight, Tags, ArrowRight } from 'lucide-react'
+import { FileText, Upload, Trash2, Loader2, AlertCircle, ChevronRight, Tags, ArrowRight, CheckCircle } from 'lucide-react'
 import { ReconciliationShield } from '@/components/ReconciliationShield'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+
+// ─── Pipeline stages shown during upload ─────────────────────────────────────
+
+const PIPELINE_STAGES = [
+  { label: 'File received',         detail: 'SHA-256 fingerprint computed' },
+  { label: 'Format detection',      detail: 'Identifying bank and schema' },
+  { label: 'Parsing & normalizing', detail: 'Extracting transaction records' },
+  { label: 'Deduplication',         detail: 'Cross-upload hash check' },
+  { label: 'Reconciliation',        detail: 'Verifying statement totals' },
+]
 
 interface Account  { id: string; name: string; institution: string; accountType: string }
 interface UploadRow { id: string; filename: string; createdAt: string; status: string; rowCountAccepted: number; reconciliationStatus: string; account: { name: string } }
@@ -40,8 +50,9 @@ export default function StatementsPage() {
   const [newType,      setNewType]      = useState('checking')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [dragOver,     setDragOver]     = useState(false)
-  const [successMsg,   setSuccessMsg]   = useState('')
   const [errorMsg,     setErrorMsg]     = useState('')
+  const [pipelineStage, setPipelineStage] = useState(-1)
+  const [uploadResult,  setUploadResult]  = useState<null | { success: true; data: Record<string, unknown> } | { success: false; error: string }>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: accountsData } = useQuery({ queryKey: ['accounts'], queryFn: () => apiFetch('/api/accounts'), enabled: !!token })
@@ -80,21 +91,33 @@ export default function StatementsPage() {
       fd.append('accountId', finalId)
       return apiUpload('/api/uploads', fd)
     },
-    onSuccess: (data: { rowsImported?: number }) => {
+    onSuccess: (data: Record<string, unknown>) => {
       qc.invalidateQueries({ queryKey: ['uploads'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
-      setSuccessMsg(`${data.rowsImported ?? 0} transactions imported`)
+      qc.invalidateQueries({ queryKey: ['summary'] })
+      setUploadResult({ success: true, data })
       setSelectedFile(null)
       setErrorMsg('')
-      setTimeout(() => { setSuccessMsg(''); setShowForm(false) }, 2000)
     },
-    onError: (err: Error) => setErrorMsg(err.message),
+    onError: (err: Error) => {
+      setErrorMsg(err.message)
+      setUploadResult({ success: false, error: err.message })
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/uploads/${id}`, { method: 'DELETE' }),
     onSuccess:  () => qc.invalidateQueries({ queryKey: ['uploads'] }),
   })
+
+  // Advance pipeline stage indicators while upload is in flight
+  useEffect(() => {
+    if (!uploadMutation.isPending) { setPipelineStage(-1); return }
+    setPipelineStage(0)
+    const timings = [350, 1050, 1950, 3050, 4250]
+    const timeouts = timings.map((delay, i) => setTimeout(() => setPipelineStage(i + 1), delay))
+    return () => timeouts.forEach(clearTimeout)
+  }, [uploadMutation.isPending])
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault(); setDragOver(false)
@@ -108,7 +131,7 @@ export default function StatementsPage() {
 
   const canUpload = !!selectedFile && (showNewAcct ? newName.trim().length > 0 : !!accountId)
   const fmtDate   = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  const closeForm = () => { setShowForm(false); setErrorMsg(''); setSuccessMsg(''); setSelectedFile(null) }
+  const closeForm = () => { setShowForm(false); setErrorMsg(''); setUploadResult(null); setSelectedFile(null) }
 
   return (
     <AppShell>
@@ -180,16 +203,96 @@ export default function StatementsPage() {
                 <input ref={fileRef} type="file" accept=".csv,.ofx,.qfx" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) setSelectedFile(f) }} />
               </div>
 
-              {successMsg && <div style={{ ...S.flex(8), color: 'var(--success)', fontSize: 14 }}>✓ {successMsg}</div>}
-              {errorMsg   && <div style={{ ...S.flex(8), color: 'var(--danger)',  fontSize: 14 }}><AlertCircle size={15} /> {errorMsg}</div>}
+              {errorMsg && <div style={{ ...S.flex(8), color: 'var(--danger)', fontSize: 14 }}><AlertCircle size={15} /> {errorMsg}</div>}
 
-              <button
-                disabled={!canUpload || uploadMutation.isPending}
-                onClick={() => uploadMutation.mutate()}
-                style={{ padding: '11px 24px', borderRadius: 8, border: '1px solid rgba(124,137,255,0.35)', background: 'rgba(124,137,255,0.20)', color: 'var(--accent)', fontWeight: 600, fontSize: 14, cursor: (!canUpload || uploadMutation.isPending) ? 'not-allowed' : 'pointer', opacity: (!canUpload || uploadMutation.isPending) ? 0.5 : 1, ...S.flex(8), justifyContent: 'center' }}
-              >
-                {uploadMutation.isPending ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Uploading…</> : 'Upload'}
-              </button>
+              {/* ── Pipeline progress ───────────────────────────────── */}
+              {uploadMutation.isPending && pipelineStage >= 0 && (
+                <div style={{ borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card2)', padding: '14px 16px', fontFamily: 'monospace', fontSize: 12, ...S.col(10) }}>
+                  {PIPELINE_STAGES.map((stage, i) => {
+                    const done   = pipelineStage > i
+                    const active = pipelineStage === i
+                    return (
+                      <div key={i} style={{ ...S.flex(10), opacity: done || active ? 1 : 0.25 }}>
+                        {done
+                          ? <CheckCircle size={12} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                          : active
+                            ? <Loader2 size={12} style={{ color: 'var(--accent)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
+                            : <div style={{ width: 12, height: 12, borderRadius: '50%', border: '1px solid var(--border)', flexShrink: 0 }} />
+                        }
+                        <span style={{ color: done ? 'var(--subtle)' : active ? 'var(--text)' : 'var(--subtle)' }}>
+                          {stage.label}
+                          {(done || active) && (
+                            <span style={{ marginLeft: 8, color: 'var(--muted)' }}>· {stage.detail}</span>
+                          )}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* ── Upload result ────────────────────────────────────── */}
+              {uploadResult && (
+                <div style={{ borderRadius: 8, border: `1px solid ${uploadResult.success ? 'rgba(34,197,94,0.25)' : 'rgba(248,113,113,0.25)'}`, background: uploadResult.success ? 'rgba(34,197,94,0.06)' : 'rgba(248,113,113,0.06)', padding: 16, ...S.col(12) }}>
+                  {uploadResult.success ? (
+                    <>
+                      <div style={{ ...S.flex(8) }}>
+                        <CheckCircle size={16} style={{ color: 'var(--success)' }} />
+                        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--success)' }}>Upload complete</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        {([
+                          ['Transactions imported', String(uploadResult.data.accepted ?? uploadResult.data.rowsImported ?? 0)],
+                          ['Format detected',       String(uploadResult.data.formatDetected ?? '—')],
+                          ...(Number(uploadResult.data.possibleDuplicates) > 0
+                            ? [['Possible duplicates', String(uploadResult.data.possibleDuplicates)]]
+                            : []),
+                        ] as [string, string][]).map(([label, val]) => (
+                          <div key={label} style={{ borderRadius: 6, border: '1px solid rgba(34,197,94,0.18)', background: 'var(--card2)', padding: '8px 10px' }}>
+                            <p style={{ margin: 0, color: 'var(--success)', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' as const }}>{label}</p>
+                            <p style={{ margin: '3px 0 0', fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>{val}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {(() => {
+                        const st = String(uploadResult.data.reconciliationStatus ?? 'UNVERIFIABLE')
+                        return (
+                          <div style={{ ...S.flex(10), borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card2)', padding: '8px 12px' }}>
+                            <ReconciliationShield status={st} size="sm" />
+                            <span style={{ fontSize: 12, color: st === 'PASS' ? 'var(--success)' : st === 'FAIL' ? 'var(--danger)' : 'var(--muted)' }}>
+                              {st === 'PASS'               && 'All totals verified against bank statement'}
+                              {st === 'PASS_WITH_WARNINGS' && 'Minor issues found — see statement detail'}
+                              {st === 'FAIL'               && 'Totals don\'t match — review statement detail'}
+                              {st === 'UNVERIFIABLE'       && 'Bank format doesn\'t include statement totals'}
+                              {st === 'PENDING'            && 'Reconciliation pending'}
+                            </span>
+                          </div>
+                        )
+                      })()}
+                      <button
+                        onClick={() => { setUploadResult(null); setShowForm(false) }}
+                        style={{ alignSelf: 'flex-end', fontSize: 12, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Dismiss
+                      </button>
+                    </>
+                  ) : (
+                    <div style={{ ...S.flex(8), color: 'var(--danger)', fontSize: 13 }}>
+                      <AlertCircle size={15} /> {uploadResult.error}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!uploadResult && (
+                <button
+                  disabled={!canUpload || uploadMutation.isPending}
+                  onClick={() => uploadMutation.mutate()}
+                  style={{ padding: '11px 24px', borderRadius: 8, border: '1px solid rgba(124,137,255,0.35)', background: 'rgba(124,137,255,0.20)', color: 'var(--accent)', fontWeight: 600, fontSize: 14, cursor: (!canUpload || uploadMutation.isPending) ? 'not-allowed' : 'pointer', opacity: (!canUpload || uploadMutation.isPending) ? 0.5 : 1, ...S.flex(8), justifyContent: 'center' }}
+                >
+                  {uploadMutation.isPending ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Processing…</> : 'Upload'}
+                </button>
+              )}
             </div>
           )}
         </div>
