@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
+import { normalizeKey } from '@/lib/intelligence/detect-subscriptions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ async function buildReport(uploadId: string, userId: string): Promise<ScanReport
   if (!upload) throw Object.assign(new Error('Upload not found'), { status: 404 })
 
   // Fetch all signals in parallel
-  const [transactions, ingestionIssues, anomalyAlerts, subscriptionCandidates] =
+  const [transactions, ingestionIssues, anomalyAlerts] =
     await Promise.all([
       prisma.transaction.findMany({
         where: { uploadId },
@@ -89,20 +90,6 @@ async function buildReport(uploadId: string, userId: string): Promise<ScanReport
         select: { alertType: true, message: true, isDismissed: true },
         orderBy: { createdAt: 'desc' },
         take: 50,
-      }),
-      prisma.subscriptionCandidate.findMany({
-        where: {
-          userId,
-          isSuppressed: false,
-          recurringConfidence: { not: 'low' },
-          subscriptionScore: { gte: 40 },
-        },
-        select: {
-          merchantNormalized: true,
-          estimatedMonthlyAmount: true,
-          recurringConfidence: true,
-        },
-        orderBy: { estimatedMonthlyAmount: 'desc' },
       }),
     ])
 
@@ -145,18 +132,50 @@ async function buildReport(uploadId: string, userId: string): Promise<ScanReport
     .filter(a => !a.isDismissed)
     .map(a => ({ message: a.message, type: a.alertType }))
 
-  // ── Subscriptions ─────────────────────────────────────────────────────────
+  // ── Subscriptions (inline detection scoped to this upload) ───────────────
+  // Group negative transactions by normalized merchant key and detect recurring
+  // patterns inline — no category filter so uncategorized uploads still work.
 
-  const subscriptionItems: SubscriptionItem[] = subscriptionCandidates.map(s => ({
-    merchant: s.merchantNormalized,
-    amount: s.estimatedMonthlyAmount,
-    confidence: s.recurringConfidence,
-  }))
+  const merchantGroups = new Map<string, { amounts: number[]; dates: Date[] }>()
+  for (const tx of transactions) {
+    if (tx.amount >= 0) continue
+    const key = normalizeKey(tx.merchantNormalized || '')
+    if (!key || key.length < 2) continue
+    if (!merchantGroups.has(key)) merchantGroups.set(key, { amounts: [], dates: [] })
+    const g = merchantGroups.get(key)!
+    g.amounts.push(Math.abs(tx.amount))
+    g.dates.push(tx.date)
+  }
 
-  const monthlyTotal = subscriptionCandidates.reduce(
-    (sum, s) => sum + s.estimatedMonthlyAmount,
-    0,
-  )
+  const subscriptionItems: SubscriptionItem[] = []
+  for (const [merchant, { amounts, dates }] of merchantGroups) {
+    if (amounts.length < 2) continue
+    const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length
+    if (mean < 2) continue
+    const stdDev = Math.sqrt(amounts.reduce((s, a) => s + (a - mean) ** 2, 0) / amounts.length)
+    const cv = (stdDev / mean) * 100
+    if (cv > 40) continue
+
+    // Check that intervals suggest a recurring pattern (weekly / biweekly / monthly / annual)
+    const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime())
+    const intervals: number[] = []
+    for (let i = 1; i < sorted.length; i++) {
+      intervals.push((sorted[i].getTime() - sorted[i - 1].getTime()) / 86_400_000)
+    }
+    const avgInterval = intervals.reduce((s, d) => s + d, 0) / intervals.length
+    const isRecurring =
+      (avgInterval >= 5  && avgInterval <= 9)  ||   // weekly
+      (avgInterval >= 12 && avgInterval <= 16) ||   // biweekly
+      (avgInterval >= 20 && avgInterval <= 40) ||   // monthly
+      (avgInterval >= 340 && avgInterval <= 400)    // annual
+    if (!isRecurring) continue
+
+    const confidence = cv < 10 && amounts.length >= 3 ? 'high' : cv < 25 ? 'medium' : 'low'
+    subscriptionItems.push({ merchant, amount: mean, confidence })
+  }
+  subscriptionItems.sort((a, b) => b.amount - a.amount)
+
+  const monthlyTotal = subscriptionItems.reduce((sum, s) => sum + s.amount, 0)
 
   // ── Top merchants ─────────────────────────────────────────────────────────
 
