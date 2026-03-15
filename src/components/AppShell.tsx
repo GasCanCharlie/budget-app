@@ -27,12 +27,12 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 const navItems = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
   { href: '/insights',     label: 'Insights Q&A', icon: Lightbulb },
-  { href: '/history',      label: 'History',      icon: History },
   { href: '/upload',       label: 'Uploads',      icon: FileText },
   { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/categorize',   label: 'Categorize',   icon: Tags },
   { href: '/categories',   label: 'Categories',   icon: Layers },
   { href: '/rules',        label: 'Rules',        icon: Gavel },
+  { href: '/history',      label: 'History',      icon: History },
   { href: '/settings',    label: 'Settings',     icon: Settings },
 ]
 
