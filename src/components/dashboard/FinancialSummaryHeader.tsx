@@ -49,7 +49,7 @@ export function FinancialSummaryHeader({
     : { color: 'var(--success)' }
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.30)' }}>
       {/* Header row */}
       <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
         <div>
@@ -97,15 +97,15 @@ export function FinancialSummaryHeader({
         <div className="mt-5 grid grid-cols-3 divide-x rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', borderColor: 'var(--border)' }}>
           <div className="px-4 py-3" style={{ background: 'var(--surface2, rgba(0,0,0,0.03))' }}>
             <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-secondary)' }}>Income</p>
-            <p className="text-lg font-bold tabular-nums" style={{ color: 'var(--success)' }}>{fmt(totalIncome)}</p>
+            <p className="text-2xl font-bold tabular-nums tracking-tight" style={{ color: 'var(--success)' }}>{fmt(totalIncome)}</p>
           </div>
           <div className="px-4 py-3">
             <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-secondary)' }}>Spending</p>
-            <p className="text-lg font-bold tabular-nums" style={{ color: 'var(--text)' }}>{fmt(totalSpending)}</p>
+            <p className="text-2xl font-bold tabular-nums tracking-tight" style={{ color: 'var(--text)' }}>{fmt(totalSpending)}</p>
           </div>
           <div className="px-4 py-3" style={{ background: 'var(--surface2, rgba(0,0,0,0.03))' }}>
             <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-secondary)' }}>Ratio</p>
-            <p className="text-lg font-bold tabular-nums" style={ratioStyle}>
+            <p className="text-2xl font-bold tabular-nums tracking-tight" style={ratioStyle}>
               {spendingRatio !== null ? `${spendingRatio}%` : '—'}
             </p>
           </div>

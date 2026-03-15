@@ -192,11 +192,16 @@ html, body {
 @layer components {
   .card {
     background: var(--card);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255,255,255,0.04);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.32);
     overflow: hidden;
     position: relative;
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+  [data-theme="light"] .card {
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-soft);
   }
   .card-header {
     padding: 14px 18px;
@@ -288,12 +293,12 @@ html, body {
     background: var(--card2);
   }
   .bl-card-interactive {
-    transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
   }
   .bl-card-interactive:hover {
-    border-color: rgba(99,102,241,0.20);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.42);
-    transform: translateY(-1px);
+    border-color: rgba(99,102,241,0.18);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.18), 0 20px 48px rgba(0,0,0,0.40);
+    transform: translateY(-2px);
   }
   .bl-section-label {
     font-size: 11px;

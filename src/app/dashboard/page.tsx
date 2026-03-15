@@ -273,9 +273,10 @@ export default function DashboardPage() {
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--card, #111827)',
-    border: '1px solid var(--border, #1F2937)',
+    border: '1px solid rgba(255,255,255,0.04)',
     borderRadius: 16,
-    boxShadow: '0 4px 24px rgba(0,0,0,0.32)',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.32)',
+    transition: 'border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease',
   }
 
   return (
@@ -381,7 +382,7 @@ export default function DashboardPage() {
 
           {/* RIGHT: Change / Insight Panel — lg:col-span-5 */}
           <div className="lg:col-span-5">
-            <div style={cardStyle} className="p-5 space-y-5 h-full">
+            <div style={cardStyle} className="p-5 space-y-5 h-full bl-card-interactive">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #E5E7EB)', letterSpacing: '-0.01em', margin: 0 }}>
                   Monthly Snapshot
@@ -454,7 +455,7 @@ export default function DashboardPage() {
         />
 
         {/* ── Row 3: Full-width tabbed panel ────────────────────────────────── */}
-        <div style={cardStyle} className="overflow-hidden">
+        <div style={cardStyle} className="overflow-hidden bl-card-interactive">
           {/* Tab header */}
           <div className="flex items-center gap-0 px-5 pt-4 pb-0" style={{ borderBottom: '1px solid var(--border, #1F2937)' }}>
             {(['transactions', 'insights'] as const).map(tab => (
