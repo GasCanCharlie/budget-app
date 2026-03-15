@@ -462,7 +462,7 @@ export default function ScanReportPage() {
               {findings.topMerchants.length === 0 ? (
                 <EmptyState text="No merchant data available." />
               ) : (() => {
-                const MERCHANT_COLORS = ['#7c89ff','#f97316','#22c55e','#ec4899','#f59e0b','#06b6d4','#a78bfa','#10b981']
+                const MERCHANT_COLORS = ['#818cf8','#fb923c','#34d399','#f472b6','#fbbf24','#22d3ee','#c084fc','#4ade80']
                 const pieData = findings.topMerchants.slice(0, 8).map((m, i) => ({
                   name:  m.merchant,
                   value: m.total,
