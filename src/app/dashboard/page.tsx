@@ -190,8 +190,8 @@ export default function DashboardPage() {
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-slate-500 text-sm">Loading dashboard…</p>
+          <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: '#6C7CFF', borderTopColor: 'transparent' }} />
+          <p className="text-sm" style={{ color: '#9CA3AF' }}>Loading dashboard…</p>
         </div>
       </div>
     </AppShell>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
     return (
       <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
         {(isRefetching || trendsRefetching) && (
-          <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-600 mb-4">
+          <div className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs mb-4" style={{ background: 'rgba(108,124,255,0.08)', borderColor: 'rgba(108,124,255,0.2)', color: '#939AFF' }}>
             <Loader2 size={12} className="animate-spin flex-shrink-0" />
             Refreshing…
           </div>
@@ -261,10 +261,10 @@ export default function DashboardPage() {
     : null
 
   const cardStyle: React.CSSProperties = {
-    background: 'var(--surface)',
-    border: '1px solid var(--border)',
-    borderRadius: '16px',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)',
+    background: '#111827',
+    border: '1px solid #1F2937',
+    borderRadius: '12px',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
   }
 
   return (
@@ -273,7 +273,7 @@ export default function DashboardPage() {
 
         {/* Background-refetch indicator */}
         {!!(isRefetching || trendsRefetching) && (
-          <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-600">
+          <div className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs" style={{ background: 'rgba(108,124,255,0.08)', borderColor: 'rgba(108,124,255,0.2)', color: '#939AFF' }}>
             <Loader2 size={12} className="animate-spin flex-shrink-0" />
             Refreshing dashboard…
           </div>
@@ -281,9 +281,9 @@ export default function DashboardPage() {
 
         {/* Partial month banner */}
         {!!summary.isPartialMonth && (
-          <div className="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
-            <Info size={15} className="text-amber-600 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-amber-800">
+          <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <Info size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#F59E0B' }} />
+            <p className="text-sm" style={{ color: '#FCD34D' }}>
               <strong>Partial month</strong> — totals reflect only the imported date range, not the full month.
             </p>
           </div>
@@ -307,24 +307,25 @@ export default function DashboardPage() {
 
         {/* ── Anomaly alerts ────────────────────────────────────────────────── */}
         {summary.alerts && (summary.alerts as unknown[]).length > 0 && (
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-100">
-              <AlertTriangle size={14} className="text-amber-600" />
-              <span className="text-sm font-semibold text-slate-700">Anomaly Alerts</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
+          <div className="rounded-xl overflow-hidden" style={{ background: '#111827', border: '1px solid #1F2937' }}>
+            <div className="flex items-center gap-2 px-5 py-3" style={{ borderBottom: '1px solid #1F2937' }}>
+              <AlertTriangle size={14} style={{ color: '#F59E0B' }} />
+              <span className="text-sm font-semibold" style={{ color: '#E5E7EB' }}>Anomaly Alerts</span>
+              <span className="px-1.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>
                 {(summary.alerts as unknown[]).length}
               </span>
             </div>
-            <div className="divide-y divide-slate-50">
+            <div>
               {(summary.alerts as { id?: string; type: string; message: string }[]).map((alert, i) => (
-                <div key={alert.id ?? i} className="flex items-start gap-3 px-5 py-3">
-                  <AlertTriangle size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-amber-900 flex-1">{alert.message}</p>
+                <div key={alert.id ?? i} className="flex items-start gap-3 px-5 py-3" style={{ borderBottom: '1px solid #1F2937' }}>
+                  <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" style={{ color: '#F59E0B' }} />
+                  <p className="text-sm flex-1" style={{ color: '#D1D5DB' }}>{alert.message}</p>
                   {alert.id && (
                     <button
                       onClick={() => dismissAlert.mutate(alert.id!)}
                       disabled={dismissAlert.isPending}
-                      className="text-slate-400 hover:text-slate-600 transition flex-shrink-0"
+                      className="transition flex-shrink-0"
+                      style={{ color: '#6B7280' }}
                       title="Dismiss"
                     >
                       <X size={14} />
@@ -364,26 +365,24 @@ export default function DashboardPage() {
           {/* RIGHT: Change / Insight Panel — lg:col-span-5 */}
           <div className="lg:col-span-5">
             <div style={cardStyle} className="p-5 space-y-5 h-full">
-              <h2 className="text-sm font-semibold text-slate-800">Monthly Snapshot</h2>
+              <h2 className="text-sm font-semibold" style={{ color: '#E5E7EB' }}>Monthly Snapshot</h2>
 
               {/* vs Last Month */}
-              <div className="rounded-xl border border-slate-100 p-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+              <div className="rounded-xl p-4" style={{ border: '1px solid #1F2937' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#6B7280' }}>
                   vs Last Month
                 </p>
                 {prevMonthSpending !== null ? (
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm" style={{ color: '#D1D5DB' }}>
                     Spending changed by{' '}
-                    <strong className={
-                      summary.totalSpending > prevMonthSpending ? 'text-red-600' : 'text-emerald-600'
-                    }>
+                    <strong style={{ color: summary.totalSpending > prevMonthSpending ? '#EF4444' : '#22C55E' }}>
                       {summary.totalSpending > prevMonthSpending ? '+' : ''}
                       {Math.round(((summary.totalSpending - prevMonthSpending) / prevMonthSpending) * 100)}%
                     </strong>
                     {' '}from last month.
                   </p>
                 ) : (
-                  <div className="flex items-start gap-2.5 text-slate-400">
+                  <div className="flex items-start gap-2.5" style={{ color: '#6B7280' }}>
                     <UploadCloud size={15} className="mt-0.5 flex-shrink-0" />
                     <p className="text-sm">Upload previous statement to compare months</p>
                   </div>
@@ -391,21 +390,21 @@ export default function DashboardPage() {
               </div>
 
               {/* Unusual Purchases placeholder — anomaly alerts already shown above */}
-              <div className="rounded-xl border border-slate-100 p-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+              <div className="rounded-xl p-4" style={{ border: '1px solid #1F2937' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#6B7280' }}>
                   Largest Transaction
                 </p>
                 {topTransactions.length > 0 ? (
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                    <p className="text-sm font-semibold" style={{ color: '#E5E7EB' }}>
                       {topTransactions[0].merchantNormalized || topTransactions[0].description}
                     </p>
-                    <p className="text-lg font-bold text-red-500 mt-0.5">
+                    <p className="text-lg font-bold mt-0.5" style={{ color: '#EF4444' }}>
                       ${Math.abs(topTransactions[0].amount).toFixed(2)}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-400">No transactions yet</p>
+                  <p className="text-sm" style={{ color: '#6B7280' }}>No transactions yet</p>
                 )}
               </div>
             </div>
@@ -428,16 +427,16 @@ export default function DashboardPage() {
         {/* ── Row 3: Full-width tabbed panel ────────────────────────────────── */}
         <div style={cardStyle} className="overflow-hidden">
           {/* Tab header */}
-          <div className="flex items-center gap-1 px-5 pt-4 pb-0 border-b border-slate-100">
+          <div className="flex items-center gap-1 px-5 pt-4 pb-0" style={{ borderBottom: '1px solid #1F2937' }}>
             {(['transactions', 'insights'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors ${
-                  activeTab === tab
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
+                className="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors"
+                style={activeTab === tab
+                  ? { borderColor: '#6C7CFF', color: '#6C7CFF' }
+                  : { borderColor: 'transparent', color: '#6B7280' }
+                }
               >
                 {tab === 'transactions' ? 'Top Transactions' : 'Insights'}
               </button>
