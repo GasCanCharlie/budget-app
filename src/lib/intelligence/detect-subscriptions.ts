@@ -57,10 +57,28 @@ export function normalizeKey(raw: string): string {
   return s
 }
 
+// Category names (case-insensitive) that indicate recurring charges.
+// Only transactions in these categories are considered for subscription detection.
+const RECURRING_CATEGORY_NAMES = ['subscriptions', 'utilities', 'loans', 'insurance', 'memberships']
+
 export async function detectSubscriptions(userId: string): Promise<number> {
   const transactions = await prisma.transaction.findMany({
-    where: { account: { userId }, isExcluded: false, amount: { lt: 0 } },
-    select: { merchantNormalized: true, amount: true, date: true, appCategory: true },
+    where: {
+      account: { userId },
+      isExcluded: false,
+      amount: { lt: 0 },
+      OR: [
+        { category:         { name: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' } } },
+        { overrideCategory: { name: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' } } },
+      ],
+    },
+    select: {
+      merchantNormalized: true,
+      amount: true,
+      date: true,
+      category:         { select: { name: true } },
+      overrideCategory: { select: { name: true } },
+    },
     orderBy: { date: 'asc' },
   })
 
@@ -72,8 +90,10 @@ export async function detectSubscriptions(userId: string): Promise<number> {
   for (const tx of transactions) {
     const key = normalizeKey(tx.merchantNormalized || '')
     if (!key || key.length < 2) continue
+    // Prefer the user's manual override category; fall back to the auto-assigned one
+    const effectiveCategory = tx.overrideCategory?.name ?? tx.category?.name ?? null
     if (!byMerchant.has(key)) byMerchant.set(key, [])
-    byMerchant.get(key)!.push({ amount: Math.abs(tx.amount), date: tx.date, category: tx.appCategory })
+    byMerchant.get(key)!.push({ amount: Math.abs(tx.amount), date: tx.date, category: effectiveCategory })
   }
 
   let detected = 0
