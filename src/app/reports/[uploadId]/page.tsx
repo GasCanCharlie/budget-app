@@ -3,44 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-
-// ─── Category color map (matches CATEGORY_STYLES in summaries.ts) ─────────────
-
-const CAT_COLORS: Record<string, string> = {
-  'Food & Dining':      '#f97316',
-  'Groceries':          '#22c55e',
-  'Housing':            '#f59e0b',
-  'Transport':          '#3b82f6',
-  'Entertainment':      '#ec4899',
-  'Shopping':           '#f59e0b',
-  'Health':             '#10b981',
-  'Utilities':          '#6366f1',
-  'Subscriptions':      '#6366f1',
-  'Personal Care':      '#f472b6',
-  'Education':          '#06b6d4',
-  'Travel':             '#06b6d4',
-  'Insurance':          '#64748b',
-  'Fees & Charges':     '#ef4444',
-  'Gifts & Charity':    '#a78bfa',
-  'Income':             '#16a34a',
-  'Transfer':           '#64748b',
-  'Transfers':          '#64748b',
-  'Fast Food':          '#f97316',
-  'Alcohol':            '#8b5cf6',
-  'Restaurants':        '#f97316',
-  'Gas/Fuel':           '#3b82f6',
-  'Gasoline/Fuel':      '#3b82f6',
-  'Pets':               '#a3e635',
-  'Other':              '#94a3b8',
-  'Uncategorized':      '#94a3b8',
-}
-
-function getCatColor(name: string, index: number): string {
-  if (CAT_COLORS[name]) return CAT_COLORS[name]
-  const fallbacks = ['#7c89ff', '#34d399', '#fb923c', '#a78bfa', '#60a5fa', '#f472b6']
-  return fallbacks[index % fallbacks.length]
-}
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -552,85 +515,6 @@ export default function ScanReportPage() {
                         {showAllMerchants ? 'Show top 8' : `View all ${findings.topMerchants.length} merchants`}
                       </button>
                     )}
-                  </div>
-                )
-              })()}
-            </div>
-          </div>
-
-          {/* Category Breakdown — donut pie */}
-          <div style={card}>
-            <div style={{ ...cardHdr, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={hdrTitle}>Category Breakdown</p>
-              <a
-                href="/categorize"
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: 'var(--accent)',
-                  textDecoration: 'none',
-                  padding: '3px 9px',
-                  borderRadius: 999,
-                  background: 'var(--accent-muted)',
-                  border: '1px solid rgba(124,137,255,0.25)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Categorize →
-              </a>
-            </div>
-            <div style={{ padding: '8px 18px 16px' }}>
-              {findings.categoryBreakdown.length === 0 ? (
-                <EmptyState text="No category data available." />
-              ) : (() => {
-                const pieData = findings.categoryBreakdown.slice(0, 8).map((c, i) => ({
-                  name: c.category,
-                  value: Math.abs(c.total),
-                  color: getCatColor(c.category, i),
-                  pct: c.pct,
-                  total: c.total,
-                }))
-                return (
-                  <div>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={pieData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={55}
-                          outerRadius={85}
-                          paddingAngle={2}
-                          dataKey="value"
-                        >
-                          {pieData.map((entry, i) => (
-                            <Cell key={i} fill={entry.color} stroke="transparent" />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value: number, name: string) => [fmt(value), name]}
-                          contentStyle={{
-                            background: 'var(--card)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            color: 'var(--text)',
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
-                      {pieData.map((c, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                          <span style={{ fontSize: 12, color: 'var(--text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {c.name}
-                          </span>
-                          <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmt(c.total)}</span>
-                          <span style={{ fontSize: 11, color: 'var(--subtle)', whiteSpace: 'nowrap', minWidth: 28, textAlign: 'right' }}>{c.pct}%</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 )
               })()}
