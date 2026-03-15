@@ -206,7 +206,11 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated }: Props
     setGenerating(true)
     setGenError(null)
     try {
-      const res = await fetch(`/api/insights/generate?year=${year}&month=${month}`, { method: 'POST' })
+      const res = await fetch('/api/insights/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, month }),
+      })
       if (!res.ok) throw new Error(`Server error ${res.status}`)
       onGenerated?.()
     } catch (e) {
