@@ -41,31 +41,40 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ subscriptions: [], hasRules: false })
   }
 
-  // ── Step 2: Check whether any rules target those categories ─────────────────
-  // Rules are what make the panel trustworthy. Without rules the user hasn't
-  // told the system what their subscriptions are.
-  const ruleCount = await prisma.categoryRule.count({
+  // ── Step 2: Fetch rules that target those categories ────────────────────────
+  // Rules are the source of intent. We need the rule IDs so we can confirm
+  // each transaction was placed in a recurring category BY a rule — not by
+  // accident, manual override, or a stale default assignment.
+  const recurringRules = await prisma.categoryRule.findMany({
     where: {
       categoryId: { in: recurringCatIds },
       isEnabled: true,
-      OR: [{ userId }, { isSystem: false, userId: null }],
+      OR: [{ userId }, { isSystem: true }],
     },
+    select: { id: true },
   })
+  const recurringRuleIds = recurringRules.map(r => r.id)
 
-  if (ruleCount === 0) {
+  if (recurringRuleIds.length === 0) {
     return NextResponse.json({ subscriptions: [], hasRules: false })
   }
 
-  // ── Step 3: Pull transactions in recurring categories ───────────────────────
+  // ── Step 3: Triple-filter transaction query ──────────────────────────────────
+  // A transaction is eligible only when ALL THREE are true:
+  //   1. categoryId is a recurring-type category   (current assignment is correct)
+  //   2. appliedRuleId is one of the recurring rules (it got here via a rule)
+  //   3. categorizationSource = 'rule'              (not manual, not default)
+  //
+  // This prevents Taco Bell, car washes, etc. from appearing even if they
+  // happen to land in a recurring category through any other path.
   const transactions = await prisma.transaction.findMany({
     where: {
       account: { userId },
       isExcluded: false,
       amount: { lt: 0 },
-      OR: [
-        { categoryId:             { in: recurringCatIds } },
-        { userOverrideCategoryId: { in: recurringCatIds } },
-      ],
+      categoryId:             { in: recurringCatIds },
+      appliedRuleId:          { in: recurringRuleIds },
+      categorizationSource:   'rule',
     },
     select: {
       merchantNormalized: true,
