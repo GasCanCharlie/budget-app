@@ -357,89 +357,6 @@ export default function ScanReportPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}
           className="max-[720px]:!grid-cols-1">
 
-          {/* Duplicates */}
-          <div style={card}>
-            <div style={{ ...cardHdr, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={hdrTitle}>Possible Duplicates</p>
-              <span style={{
-                ...badge,
-                background: findings.duplicates.count > 0 ? 'rgba(248,113,113,0.15)' : 'var(--surface2)',
-                color: findings.duplicates.count > 0 ? 'var(--danger)' : 'var(--muted)',
-              }}>
-                {findings.duplicates.count}
-              </span>
-            </div>
-            <div style={{ padding: '12px 18px' }}>
-              {findings.duplicates.items.length === 0 ? (
-                <EmptyState text="No possible duplicates detected." />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {findings.duplicates.items.map((dup, i) => (
-                    <div key={i} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                        <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {dup.merchant}
-                        </span>
-                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--danger)', whiteSpace: 'nowrap' }}>
-                          {fmt(dup.amount)}
-                        </span>
-                      </div>
-                      <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted)' }}>
-                        {dup.dates.join(' · ')}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Subscriptions */}
-          <div style={card}>
-            <div style={{ ...cardHdr, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={hdrTitle}>Recurring Subscriptions</p>
-              <span style={{
-                ...badge,
-                background: findings.subscriptions.count > 0 ? 'var(--accent-muted)' : 'var(--surface2)',
-                color: findings.subscriptions.count > 0 ? 'var(--accent)' : 'var(--muted)',
-              }}>
-                {findings.subscriptions.count}
-              </span>
-            </div>
-            <div style={{ padding: '12px 18px' }}>
-              {findings.subscriptions.monthlyTotal > 0 && (
-                <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--muted)' }}>
-                  Est. <strong style={{ color: 'var(--text)' }}>{fmt(findings.subscriptions.monthlyTotal)}</strong>/month total
-                </p>
-              )}
-              {findings.subscriptions.items.length === 0 ? (
-                <EmptyState text="No recurring subscriptions detected." />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {findings.subscriptions.items.map((sub, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 10px', borderRadius: 10, background: 'var(--card2)', border: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                        {sub.merchant}
-                      </span>
-                      <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-                        {fmt(sub.amount)}/mo
-                      </span>
-                      <span style={{
-                        ...badge,
-                        background: sub.confidence === 'high' ? 'rgba(34,197,94,0.12)' : 'rgba(251,191,36,0.12)',
-                        color: sub.confidence === 'high' ? 'var(--success)' : 'var(--warn)',
-                        fontSize: 10,
-                        padding: '2px 6px',
-                      }}>
-                        {sub.confidence}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Top Merchants — pie chart */}
           <div style={card}>
             <div style={{ ...cardHdr, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -518,6 +435,89 @@ export default function ScanReportPage() {
                   </div>
                 )
               })()}
+            </div>
+          </div>
+
+          {/* Subscriptions */}
+          <div style={card}>
+            <div style={{ ...cardHdr, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={hdrTitle}>Recurring Subscriptions</p>
+              <span style={{
+                ...badge,
+                background: findings.subscriptions.count > 0 ? 'var(--accent-muted)' : 'var(--surface2)',
+                color: findings.subscriptions.count > 0 ? 'var(--accent)' : 'var(--muted)',
+              }}>
+                {findings.subscriptions.count}
+              </span>
+            </div>
+            <div style={{ padding: '12px 18px' }}>
+              {findings.subscriptions.monthlyTotal > 0 && (
+                <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--muted)' }}>
+                  Est. <strong style={{ color: 'var(--text)' }}>{fmt(findings.subscriptions.monthlyTotal)}</strong>/month total
+                </p>
+              )}
+              {findings.subscriptions.items.length === 0 ? (
+                <EmptyState text="No recurring subscriptions detected." />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {findings.subscriptions.items.map((sub, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 10px', borderRadius: 10, background: 'var(--card2)', border: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                        {sub.merchant}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                        {fmt(sub.amount)}/mo
+                      </span>
+                      <span style={{
+                        ...badge,
+                        background: sub.confidence === 'high' ? 'rgba(34,197,94,0.12)' : 'rgba(251,191,36,0.12)',
+                        color: sub.confidence === 'high' ? 'var(--success)' : 'var(--warn)',
+                        fontSize: 10,
+                        padding: '2px 6px',
+                      }}>
+                        {sub.confidence}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Duplicates */}
+          <div style={card}>
+            <div style={{ ...cardHdr, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={hdrTitle}>Possible Duplicates</p>
+              <span style={{
+                ...badge,
+                background: findings.duplicates.count > 0 ? 'rgba(248,113,113,0.15)' : 'var(--surface2)',
+                color: findings.duplicates.count > 0 ? 'var(--danger)' : 'var(--muted)',
+              }}>
+                {findings.duplicates.count}
+              </span>
+            </div>
+            <div style={{ padding: '12px 18px' }}>
+              {findings.duplicates.items.length === 0 ? (
+                <EmptyState text="No possible duplicates detected." />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {findings.duplicates.items.map((dup, i) => (
+                    <div key={i} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {dup.merchant}
+                        </span>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--danger)', whiteSpace: 'nowrap' }}>
+                          {fmt(dup.amount)}
+                        </span>
+                      </div>
+                      <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted)' }}>
+                        {dup.dates.join(' · ')}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
