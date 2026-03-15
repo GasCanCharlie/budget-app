@@ -188,6 +188,7 @@ export default function ScanReportPage() {
   const [report, setReport] = useState<ScanReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showAllMerchants, setShowAllMerchants] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -476,42 +477,84 @@ export default function ScanReportPage() {
             </div>
           </div>
 
-          {/* Top Merchants */}
+          {/* Top Merchants — pie chart */}
           <div style={card}>
-            <div style={cardHdr}>
+            <div style={{ ...cardHdr, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p style={hdrTitle}>Top Merchants by Spend</p>
+              {findings.topMerchants.length > 8 && (
+                <button
+                  onClick={() => setShowAllMerchants(s => !s)}
+                  style={{
+                    fontSize: 11, fontWeight: 600, color: 'var(--accent)',
+                    background: 'var(--accent-muted)', border: '1px solid rgba(124,137,255,0.25)',
+                    borderRadius: 999, padding: '3px 9px', cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {showAllMerchants ? 'Show top 8' : `View all ${findings.topMerchants.length}`}
+                </button>
+              )}
             </div>
-            <div style={{ padding: '12px 18px' }}>
+            <div style={{ padding: '8px 18px 16px' }}>
               {findings.topMerchants.length === 0 ? (
                 <EmptyState text="No merchant data available." />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(() => {
-                    const max = findings.topMerchants[0]?.total ?? 1
-                    return findings.topMerchants.map((m, i) => {
-                      const pct = max > 0 ? (m.total / max) * 100 : 0
-                      return (
-                        <div key={i}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-                            <span style={{ fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                              {m.merchant}
-                            </span>
-                            <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-                              {fmt(m.total)}
-                            </span>
-                            <span style={{ fontSize: 11, color: 'var(--subtle)', whiteSpace: 'nowrap' }}>
-                              {m.count}×
-                            </span>
-                          </div>
-                          <div style={{ height: 4, borderRadius: 999, background: 'var(--track)', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: 'var(--accent)', transition: 'width 0.4s ease' }} />
-                          </div>
+              ) : (() => {
+                const MERCHANT_COLORS = ['#7c89ff','#f97316','#22c55e','#ec4899','#f59e0b','#06b6d4','#a78bfa','#10b981']
+                const pieData = findings.topMerchants.slice(0, 8).map((m, i) => ({
+                  name:  m.merchant,
+                  value: m.total,
+                  color: MERCHANT_COLORS[i % MERCHANT_COLORS.length],
+                  count: m.count,
+                }))
+                const totalMerchantSpend = findings.topMerchants.reduce((s, m) => s + m.total, 0)
+                const displayList = showAllMerchants ? findings.topMerchants : findings.topMerchants.slice(0, 8)
+                return (
+                  <div>
+                    <div style={{ position: 'relative' }}>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
+                            {pieData.map((entry, i) => (
+                              <Cell key={i} fill={entry.color} stroke="transparent" />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value: number, name: string) => [fmt(value), name]}
+                            contentStyle={{
+                              background: 'var(--card)', border: '1px solid var(--border)',
+                              borderRadius: 8, fontSize: 12, color: 'var(--text)',
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>Total</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{fmt(totalMerchantSpend)}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                      {displayList.map((m, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: MERCHANT_COLORS[i % MERCHANT_COLORS.length], flexShrink: 0 }} />
+                          <span style={{ fontSize: 12, color: 'var(--text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {m.merchant}
+                          </span>
+                          <span style={{ fontSize: 11, color: 'var(--subtle)', whiteSpace: 'nowrap' }}>{m.count}×</span>
+                          <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmt(m.total)}</span>
                         </div>
-                      )
-                    })
-                  })()}
-                </div>
-              )}
+                      ))}
+                    </div>
+                    {findings.topMerchants.length > 8 && (
+                      <button
+                        onClick={() => setShowAllMerchants(s => !s)}
+                        style={{ marginTop: 10, fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', width: '100%', textAlign: 'center' }}
+                      >
+                        {showAllMerchants ? 'Show top 8' : `View all ${findings.topMerchants.length} merchants`}
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           </div>
 

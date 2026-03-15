@@ -174,7 +174,6 @@ async function buildReport(uploadId: string, userId: string): Promise<ScanReport
   const topMerchants: TopMerchant[] = Array.from(merchantMap.entries())
     .map(([merchant, { total, count }]) => ({ merchant, total, count }))
     .sort((a, b) => b.total - a.total)
-    .slice(0, 8)
 
   // ── Category breakdown ────────────────────────────────────────────────────
 
