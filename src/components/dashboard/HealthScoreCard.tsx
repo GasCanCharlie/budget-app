@@ -12,7 +12,6 @@ function ScoreArc({ score, color }: { score: number; color: string }) {
   const cy = 64
   const strokeWidth = 8
   const circumference = 2 * Math.PI * r
-  // Arc spans 270° (from 135° to 405°), so offset = circumference * (1 - score/100) * 0.75 + circumference*0.25
   const pct = score / 100
   const arcLength = circumference * 0.75
   const dashOffset = arcLength * (1 - pct)
@@ -66,9 +65,81 @@ function ScoreArc({ score, color }: { score: number; color: string }) {
 }
 
 export function HealthScoreCard(props: HealthInput) {
+  const { totalIncome, totalSpending, net, monthlySubscriptions, categories } = props
   const { score, color, label, factors } = computeHealthScore(props)
 
-  // Pick top 2 driving factors (biggest gap from 100) as talking points
+  // ── Plain-language display values (no changes to score calculation) ────────
+
+  // 1. Income Remaining
+  const incomeRemainingColor =
+    totalIncome > 0 && net / totalIncome >= 0.10 ? '#22C55E' :
+    net >= 0 ? '#F59E0B' : '#EF4444'
+
+  // 2. Savings Strength
+  const savingsRate = totalIncome > 0 ? (net / totalIncome) * 100 : 0
+  const savingsColor =
+    savingsRate >= 20 ? '#22C55E' :
+    savingsRate >= 10 ? '#F59E0B' : '#EF4444'
+
+  // 3. Positive Months (back-derive streak from factor points: pts = streak/3 × 100)
+  const streakPts = factors[2].points
+  const streakMonths = Math.round(streakPts * 3 / 100)
+  const streakColor =
+    streakMonths >= 3 ? '#22C55E' :
+    streakMonths >= 1 ? '#F59E0B' : '#EF4444'
+
+  // 4. Subscriptions
+  const subPct = totalIncome > 0 ? (monthlySubscriptions / totalIncome) * 100 : 0
+  const subColor =
+    subPct < 5 ? '#22C55E' :
+    subPct < 10 ? '#F59E0B' : '#EF4444'
+
+  // 5. Top Category Share
+  const topCat = categories[0] ?? null
+  const topPct = topCat?.pctOfSpending ?? 0
+  const topCatColor =
+    topPct <= 30 ? '#22C55E' :
+    topPct <= 50 ? '#F59E0B' : '#EF4444'
+
+  const metrics = [
+    {
+      label: 'Income Remaining',
+      value: fmt(Math.abs(net)),
+      sub: net >= 0 ? 'left this month' : 'over budget',
+      color: incomeRemainingColor,
+      barPct: factors[0].points,
+    },
+    {
+      label: 'Savings Strength',
+      value: `${Math.round(Math.max(0, savingsRate))}%`,
+      sub: 'of income saved',
+      color: savingsColor,
+      barPct: factors[1].points,
+    },
+    {
+      label: 'Positive Months',
+      value: `${streakMonths}`,
+      sub: `month${streakMonths !== 1 ? 's' : ''} in a row`,
+      color: streakColor,
+      barPct: factors[2].points,
+    },
+    {
+      label: 'Subscriptions',
+      value: `${Math.round(subPct)}%`,
+      sub: 'of income',
+      color: subColor,
+      barPct: factors[3].points,
+    },
+    {
+      label: 'Top Category Share',
+      value: topCat ? `${Math.round(topPct)}%` : '—',
+      sub: topCat ? topCat.categoryName : 'No data',
+      color: topCatColor,
+      barPct: factors[4].points,
+    },
+  ]
+
+  // Pick the 2 weakest metrics as talking points (lowest weighted contribution)
   const notes = [...factors]
     .sort((a, b) => (a.points * a.weight) - (b.points * b.weight))
     .slice(0, 2)
@@ -110,28 +181,27 @@ export function HealthScoreCard(props: HealthInput) {
         </div>
       </div>
 
-      {/* Right: factor breakdown */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 180 }}>
-        {factors.map(f => {
-          const pts = f.points
-          const barColor = pts >= 80 ? '#39d07f' : pts >= 50 ? '#f0b544' : '#ef4444'
-          return (
-            <div key={f.name}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>{f.name}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: barColor }}>{pts}</span>
-              </div>
-              <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', borderRadius: 999,
-                  width: `${pts}%`,
-                  background: barColor,
-                  transition: 'width 0.5s ease',
-                }} />
+      {/* Right: plain-language metrics */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 200 }}>
+        {metrics.map(m => (
+          <div key={m.label}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+              <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>{m.label}</span>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: m.color }}>{m.value}</span>
+                <span style={{ fontSize: 10, color: '#9CA3AF', marginLeft: 4 }}>{m.sub}</span>
               </div>
             </div>
-          )
-        })}
+            <div style={{ height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', borderRadius: 999,
+                width: `${m.barPct}%`,
+                background: m.color,
+                transition: 'width 0.5s ease',
+              }} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
