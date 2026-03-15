@@ -441,14 +441,13 @@ export default function HomePage() {
             <div>
               <div className="kicker">
                 <span className="dot" aria-hidden="true" />
-                Privacy-first • No bank login • Instant AI analysis
+                Financial Statement Intelligence  ·  No bank login required
               </div>
 
-              <h1>Upload your bank statement.<br />Get an instant scan in seconds.</h1>
+              <h1>Upload a bank statement.<br />Instantly understand your money.</h1>
 
               <p className="sub">
-                Drop in a CSV or OFX file and BudgetLens runs a full AI-powered scan — flagging hidden subscriptions,
-                duplicate charges, spending patterns, and anomalies. No bank login. No guesswork.
+                BudgetLens analyzes your spending, subscriptions, and financial habits to reveal insights most budgeting apps miss. No bank login. No guesswork. Just your statement and the truth.
               </p>
 
               <div className="hero-actions">
@@ -459,7 +458,7 @@ export default function HomePage() {
               <div className="mini">
                 <span className="pill"><span className="icon">✓</span>Finds subscriptions you forgot about</span>
                 <span className="pill"><span className="icon">⚡</span>Catches duplicate charges</span>
-                <span className="pill"><span className="icon">🛡</span>Downloadable PDF report</span>
+                <span className="pill"><span className="icon">🛡</span>Delete your data anytime</span>
               </div>
             </div>
 
@@ -732,14 +731,13 @@ export default function HomePage() {
               <div className="left">
                 <h2 style={{ margin: '0 0 8px' }}>Privacy-first by design</h2>
                 <p className="lead" style={{ margin: 0 }}>
-                  No bank login. Local-first workflow. Your organization system stays under your control —
-                  and insights are based on the data you upload and the rules you confirm.
+                  We never ask for your bank password. You upload a statement file, we analyze it, and you stay in full control. Your financial data is never sold or shared.
                 </p>
               </div>
               <div className="right">
-                <div className="chip"><span className="b" />&nbsp;No bank credentials</div>
-                <div className="chip"><span className="b" style={{ background: 'var(--good)', boxShadow: '0 0 0 6px rgba(46,229,157,.10)' }} />&nbsp;Rule-based accuracy</div>
-                <div className="chip"><span className="b" style={{ background: 'var(--warn)', boxShadow: '0 0 0 6px rgba(255,204,102,.10)' }} />&nbsp;Needs-review safeguards</div>
+                <div className="chip"><span className="b" />&nbsp;No bank login required</div>
+                <div className="chip"><span className="b" style={{ background: 'var(--good)', boxShadow: '0 0 0 6px rgba(46,229,157,.10)' }} />&nbsp;You control your categories</div>
+                <div className="chip"><span className="b" style={{ background: 'var(--warn)', boxShadow: '0 0 0 6px rgba(255,204,102,.10)' }} />&nbsp;Delete your data anytime</div>
               </div>
             </div>
           </div>
@@ -805,7 +803,7 @@ export default function HomePage() {
             <div className="cta">
               <div>
                 <h3>Ready to see what&apos;s really in your statement?</h3>
-                <p>Upload a CSV or OFX file and get your scan report in seconds. Free to try — no bank login required.</p>
+                <p>Upload a CSV or OFX file and get a full financial briefing in seconds. Privacy-first — no bank login, no credentials, no risk.</p>
               </div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <Link href="/login?mode=register" className="btn btn-primary">Scan my statement</Link>
@@ -824,7 +822,7 @@ export default function HomePage() {
               <div className="bl-logo-container" style={{ width: 28, height: 28, borderRadius: 8 }}><LogoMark size={17} /></div>
               <div>
                 <div style={{ fontWeight: 800, color: 'rgba(255,255,255,.90)' }}>BudgetLens</div>
-                <div style={{ color: 'var(--muted2)', fontSize: '12px' }}>© <span id="lp-year" /> · Privacy-first budgeting</div>
+                <div style={{ color: 'var(--muted2)', fontSize: '12px' }}>© <span id="lp-year" /> · Statement Intelligence</div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>

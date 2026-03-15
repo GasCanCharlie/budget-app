@@ -446,6 +446,11 @@ export default function DashboardPage() {
         {/* ── Spending breakdown: bar + donut ───────────────────────────────── */}
         <SpendingCharts categories={spendingCategories} totalSpending={summary.totalSpending as number} />
 
+        {/* ── Financial Autopsy section label ───────────────────────────────── */}
+        <div style={{ paddingTop: 4 }}>
+          <p className="bl-section-label">Financial Autopsy</p>
+        </div>
+
         {/* ── Financial Autopsy ─────────────────────────────────────────────── */}
         <FinancialAutopsyPanel
           cards={insightsData?.cards ?? []}
@@ -489,10 +494,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Upcoming Charges ──────────────────────────────────────────────── */}
+        {/* ── Subscription Intelligence section ─────────────────────────────── */}
+        <div style={{ paddingTop: 4 }}>
+          <p className="bl-section-label">Subscription Intelligence</p>
+        </div>
         <UpcomingChargesPanel subscriptions={subsData?.subscriptions ?? []} />
-
-        {/* ── Subscription Panel ────────────────────────────────────────────── */}
         <SubscriptionPanel userId={user?.id} />
 
       </div>

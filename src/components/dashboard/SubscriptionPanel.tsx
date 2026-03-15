@@ -71,7 +71,17 @@ export function SubscriptionPanel({ userId }: { userId: string | undefined }) {
     )
   }
 
-  if (subs.length === 0) return null
+  if (subs.length === 0) return (
+    <div style={{ background: 'var(--card2)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Repeat2 size={18} style={{ color: '#818CF8' }} />
+      </div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#E5E7EB', marginBottom: 3 }}>No recurring charges detected</div>
+        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>Upload more statements and we&apos;ll automatically detect subscriptions and recurring bills.</div>
+      </div>
+    </div>
+  )
 
   const totalMonthly = subs.reduce((s, sub) => s + sub.estimatedMonthlyAmount, 0)
 

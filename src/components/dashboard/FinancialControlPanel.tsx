@@ -115,11 +115,7 @@ export function FinancialControlPanel({
     }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Financial Control</h2>
-        <span className="text-xs font-bold px-2.5 py-1 rounded-full tracking-wide"
-          style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--border2)' }}>
-          PRO
-        </span>
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Spending Intelligence</h2>
       </div>
 
       {/* 4-metric grid */}
@@ -157,7 +153,7 @@ export function FinancialControlPanel({
 
         {/* 3. Top 3 Concentration */}
         <div style={metricCard}>
-          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Concentration</p>
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Category Focus</p>
           {top3Pct !== null ? (
             <div>
               <p className="text-3xl font-extrabold tabular-nums mb-1" style={{ color: 'var(--text)' }}>{top3Pct}%</p>
