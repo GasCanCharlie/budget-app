@@ -50,8 +50,8 @@ function ResetPasswordForm() {
       <Link href="/login" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
         <div className="bl-logo-container" style={{ width: 36, height: 36, borderRadius: 10 }}><LogoMark size={22} /></div>
         <div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#eaf0ff', letterSpacing: '.2px', lineHeight: '1' }}>BudgetLens</div>
-          <div style={{ fontSize: '12px', color: '#a8b3d6', fontWeight: 600, marginTop: '3px' }}>Statement Intelligence</div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#e5e7eb', letterSpacing: '.2px', lineHeight: '1' }}>BudgetLens</div>
+          <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 600, marginTop: '3px' }}>Statement Intelligence</div>
         </div>
       </Link>
 
@@ -60,21 +60,21 @@ function ResetPasswordForm() {
         {success ? (
           <div style={{ textAlign: 'center', padding: '8px 0' }}>
             <div style={{ fontSize: '40px', marginBottom: '16px' }}>✅</div>
-            <h2 style={{ margin: '0 0 12px', fontSize: '20px', fontWeight: 800, color: '#eaf0ff' }}>Password updated</h2>
-            <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#a8b3d6', lineHeight: '1.6' }}>
+            <h2 style={{ margin: '0 0 12px', fontSize: '20px', fontWeight: 800, color: '#e5e7eb' }}>Password updated</h2>
+            <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#9ca3af', lineHeight: '1.6' }}>
               Your password has been changed. Redirecting you to sign in…
             </p>
-            <Link href="/login" style={{ fontSize: '14px', color: '#7c91ff', fontWeight: 600 }}>
+            <Link href="/login" style={{ fontSize: '14px', color: '#6c7cff', fontWeight: 600 }}>
               Sign in now →
             </Link>
           </div>
         ) : (
           <>
             <div style={{ marginBottom: '24px' }}>
-              <h1 style={{ margin: '0 0 7px', fontSize: '22px', fontWeight: 800, letterSpacing: '-.3px', color: '#eaf0ff' }}>
+              <h1 style={{ margin: '0 0 7px', fontSize: '22px', fontWeight: 800, letterSpacing: '-.3px', color: '#e5e7eb' }}>
                 Set a new password
               </h1>
-              <p style={{ margin: 0, fontSize: '14px', color: '#a8b3d6', lineHeight: '1.5' }}>
+              <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af', lineHeight: '1.5' }}>
                 Choose a new password for your account.
               </p>
             </div>

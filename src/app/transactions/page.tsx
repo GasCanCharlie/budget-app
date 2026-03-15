@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown, X, Equal } from 'lucide-react'
+import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown, X, Equal, CheckSquare } from 'lucide-react'
 import clsx from 'clsx'
 import { CategoryIcon } from '@/components/CategoryIcon'
 
@@ -142,6 +142,8 @@ function TransactionsPageInner() {
   const [toast,           setToast]           = useState<string | null>(null)
   const [undoStack,       setUndoStack]       = useState<{ id: string; oldCatId: string }[]>([])
   const [downloading,     setDownloading]     = useState(false)
+  const [selectedIds,     setSelectedIds]     = useState<Set<string>>(new Set())
+  const [bulkCategoryId,  setBulkCategoryId]  = useState('')
 
   useEffect(() => { if (!user) router.replace('/login') }, [user, router])
 
@@ -218,6 +220,23 @@ function TransactionsPageInner() {
     },
   })
 
+  // ── Bulk recategorize mutation ─────────────────────────────────────────────
+
+  const bulkMutation = useMutation({
+    mutationFn: ({ ids, categoryId }: { ids: string[]; categoryId: string }) =>
+      apiFetch('/api/transactions/bulk', {
+        method: 'PATCH',
+        body: JSON.stringify({ ids, categoryId }),
+      }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['summary'] })
+      setSelectedIds(new Set())
+      setBulkCategoryId('')
+      showToast(`Updated ${data.updated} transaction${data.updated === 1 ? '' : 's'}`)
+    },
+  })
+
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 5000)
@@ -270,6 +289,43 @@ function TransactionsPageInner() {
       setSortDir(field === 'amount' ? 'desc' : field === 'vendor' ? 'asc' : 'desc')
     }
     setPage(1)
+  }
+
+  // ── Selection helpers ──────────────────────────────────────────────────────
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const allVisibleSelected =
+    transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id))
+
+  function toggleSelectAll() {
+    if (allVisibleSelected) {
+      // Deselect all visible rows
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        transactions.forEach(tx => next.delete(tx.id))
+        return next
+      })
+    } else {
+      // Select all visible rows (additive — keeps selections from other pages)
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        transactions.forEach(tx => next.add(tx.id))
+        return next
+      })
+    }
+  }
+
+  function handleBulkRecategorize() {
+    if (!bulkCategoryId || selectedIds.size === 0) return
+    bulkMutation.mutate({ ids: Array.from(selectedIds), categoryId: bulkCategoryId })
   }
 
   if (!user) return null
@@ -446,6 +502,25 @@ function TransactionsPageInner() {
           </div>
         ) : (
           <div className="card p-0 overflow-hidden divide-y divide-slate-100">
+            {/* ── Select-all header row ──────────────────────────────────── */}
+            <div
+              className="px-4 py-2 flex items-center gap-3"
+              style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}
+            >
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleSelectAll}
+                aria-label="Select all visible transactions"
+                className="rounded"
+                style={{ width: 15, height: 15, flexShrink: 0, cursor: 'pointer' }}
+              />
+              <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+                {selectedIds.size > 0
+                  ? `${selectedIds.size} selected`
+                  : `Select all ${transactions.length} on this page`}
+              </span>
+            </div>
             {transactions.map((tx) => (
               <TransactionRow
                 key={tx.id}
@@ -462,6 +537,8 @@ function TransactionsPageInner() {
                 onResolveDate={(resolvedDate) => resolveMutation.mutate({ id: tx.id, payload: { resolvedDate } })}
                 onDismissDuplicate={() => resolveMutation.mutate({ id: tx.id, payload: { dismissDuplicate: true } })}
                 isResolvePending={resolveMutation.isPending && resolveMutation.variables?.id === tx.id}
+                isSelected={selectedIds.has(tx.id)}
+                onToggleSelect={() => toggleSelect(tx.id)}
               />
             ))}
           </div>
@@ -476,6 +553,52 @@ function TransactionsPageInner() {
           </div>
         )}
       </main>
+
+      {/* ── Bulk action bar ──────────────────────────────────────────────── */}
+      {selectedIds.size > 0 && (
+        <div
+          className="fixed bottom-16 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl"
+          style={{
+            background:   'var(--card)',
+            border:       '1px solid var(--border)',
+            backdropFilter: 'blur(12px)',
+            maxWidth:     'calc(100vw - 32px)',
+            flexWrap:     'wrap',
+          }}
+        >
+          <span className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
+            <CheckSquare size={15} style={{ color: 'var(--accent)' }} />
+            {selectedIds.size} selected
+          </span>
+          <select
+            className="input py-1.5 text-sm w-auto"
+            value={bulkCategoryId}
+            onChange={e => setBulkCategoryId(e.target.value)}
+            style={{ minWidth: 160 }}
+          >
+            <option value="">Pick category…</option>
+            {categories.map((c: { id: string; name: string; icon: string }) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={handleBulkRecategorize}
+            disabled={!bulkCategoryId || bulkMutation.isPending}
+            className="btn-primary text-sm py-1.5 px-4 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+          >
+            {bulkMutation.isPending
+              ? <><Loader2 size={13} className="animate-spin" /> Saving…</>
+              : 'Recategorize'}
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs font-medium px-2 py-1.5 rounded-lg transition"
+            style={{ color: 'var(--muted)', background: 'var(--surface2)' }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* ── Toast ────────────────────────────────────────────────────────── */}
       {toast && (
@@ -499,6 +622,7 @@ function TransactionRow({
   tx, categories, isEditing, onEdit, onUpdate, isPending,
   isAppCatEditing, onAppCatEdit, onAppCatUpdate, isAppCatPending,
   onResolveDate, onDismissDuplicate, isResolvePending,
+  isSelected, onToggleSelect,
 }: {
   tx:                  Transaction
   categories:          TxCategory[]
@@ -513,6 +637,8 @@ function TransactionRow({
   onResolveDate:       (resolvedDate: string) => void
   onDismissDuplicate:  () => void
   isResolvePending:    boolean
+  isSelected:          boolean
+  onToggleSelect:      () => void
 }) {
   const [applyAll,       setApplyAll]       = useState(false)
   const [appCatApplyAll, setAppCatApplyAll] = useState(false)
@@ -523,11 +649,24 @@ function TransactionRow({
   const isFlagged     = tx.ingestionStatus === 'UNRESOLVED' || tx.ingestionStatus === 'WARNING'
 
   return (
-    <div className="px-4 py-3 transition-colors" style={{ ['--hover-bg' as string]: 'var(--surface2)' }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface2)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    <div
+      className="px-4 py-3 transition-colors"
+      style={{ background: isSelected ? 'var(--accent-muted)' : undefined }}
+      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--surface2)' }}
+      onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
     >
       <div className="flex items-center gap-3">
+        {/* Row checkbox */}
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={onToggleSelect}
+          aria-label="Select transaction"
+          onClick={e => e.stopPropagation()}
+          className="rounded flex-shrink-0"
+          style={{ width: 15, height: 15, cursor: 'pointer' }}
+        />
+
         {/* Category icon */}
         <div className="w-8 flex-shrink-0 flex items-center justify-center">
           <CategoryIcon name={cat?.icon ?? 'Package'} color={cat?.color} size={20} />

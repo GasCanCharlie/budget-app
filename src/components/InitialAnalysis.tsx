@@ -82,7 +82,7 @@ function useCategoryBreakdown(transactions: Tx[], summary: ImportSummary): Categ
 // ─── Colour palette ───────────────────────────────────────────────────────────
 
 const PALETTE = [
-  '#6f80ff','#39d07f','#f0b544','#ff7aac','#59c7ff','#a78bfa',
+  '#6c7cff','#39d07f','#f0b544','#ff7aac','#59c7ff','#8794ff',
   '#fb923c','#34d399','#f472b6','#38bdf8','#facc15','#4ade80',
   '#e879f9','#22d3ee','#fb7185','#a3e635','#818cf8','#fbbf24',
   '#2dd4bf','#f97316','#c084fc','#86efac','#fca5a5','#67e8f9',
@@ -136,7 +136,7 @@ export function InitialAnalysis({
         }
         .ia-btn-primary {
           border-color: transparent !important;
-          background: linear-gradient(180deg, #9aa5ff, #6f80ff) !important;
+          background: linear-gradient(180deg, #9aa5ff, #6c7cff) !important;
           box-shadow: 0 12px 28px rgba(111,128,255,0.32), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
           animation: ia-pulse 2.4s ease-in-out infinite;
           position: relative;

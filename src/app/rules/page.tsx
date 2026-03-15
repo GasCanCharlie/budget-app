@@ -71,10 +71,10 @@ function RuleCard({
         {/* IF condition pill */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          background: 'rgba(124,145,255,0.10)', border: '1px solid rgba(124,145,255,0.22)',
+          background: 'rgba(108,124,255,0.10)', border: '1px solid rgba(108,124,255,0.22)',
           borderRadius: 8, padding: '5px 10px',
         }}>
-          <Tag size={11} style={{ color: '#7c91ff', flexShrink: 0 }} />
+          <Tag size={11} style={{ color: '#6c7cff', flexShrink: 0 }} />
           <span style={{ fontSize: 12, color: '#a8b4d8', fontWeight: 600 }}>IF</span>
           <span style={{ fontSize: 13, color: '#e2e8f5', fontWeight: 700 }}>
             &ldquo;{rule.matchValue}&rdquo;
@@ -140,7 +140,7 @@ function RuleCard({
             style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             {rule.isEnabled
-              ? <ToggleRight size={20} style={{ color: '#7c91ff' }} />
+              ? <ToggleRight size={20} style={{ color: '#6c7cff' }} />
               : <ToggleLeft  size={20} style={{ color: '#3a4460' }} />
             }
           </button>
@@ -258,8 +258,8 @@ export default function RulesPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div style={{ background: 'rgba(124,145,255,0.15)', borderRadius: 10, padding: '6px 8px', display: 'inline-flex' }}>
-                <Zap size={18} style={{ color: '#7c91ff' }} />
+              <div style={{ background: 'rgba(108,124,255,0.15)', borderRadius: 10, padding: '6px 8px', display: 'inline-flex' }}>
+                <Zap size={18} style={{ color: '#6c7cff' }} />
               </div>
               <h1 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Smart Automation</h1>
             </div>
@@ -287,8 +287,8 @@ export default function RulesPage() {
             borderRadius: 20, padding: '48px 32px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 12,
           }}>
-            <div style={{ background: 'rgba(124,145,255,0.12)', borderRadius: '50%', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={28} style={{ color: '#7c91ff' }} />
+            <div style={{ background: 'rgba(108,124,255,0.12)', borderRadius: '50%', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Zap size={28} style={{ color: '#6c7cff' }} />
             </div>
             <div>
               <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text)' }}>No automation rules yet</h2>

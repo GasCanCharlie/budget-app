@@ -66,10 +66,10 @@ function LoginForm() {
       >
         <div className="bl-logo-container" style={{ width: 36, height: 36, borderRadius: 10 }}><LogoMark size={22} /></div>
         <div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#eaf0ff', letterSpacing: '.2px', lineHeight: '1' }}>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#e5e7eb', letterSpacing: '.2px', lineHeight: '1' }}>
             BudgetLens
           </div>
-          <div style={{ fontSize: '12px', color: '#a8b3d6', fontWeight: 600, marginTop: '3px' }}>
+          <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 600, marginTop: '3px' }}>
             Statement Intelligence
           </div>
         </div>
@@ -80,10 +80,10 @@ function LoginForm() {
 
         {/* Headline */}
         <div style={{ marginBottom: '24px', position: 'relative' }}>
-          <h1 style={{ margin: '0 0 7px', fontSize: '22px', fontWeight: 800, letterSpacing: '-.3px', color: '#eaf0ff' }}>
+          <h1 style={{ margin: '0 0 7px', fontSize: '22px', fontWeight: 800, letterSpacing: '-.3px', color: '#e5e7eb' }}>
             {mode === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: '#a8b3d6', lineHeight: '1.5' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af', lineHeight: '1.5' }}>
             Privacy-first · No bank login · Local-first
           </p>
         </div>
@@ -119,7 +119,7 @@ function LoginForm() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '7px' }}>
               <label className="auth-label" htmlFor="au-password" style={{ margin: 0 }}>Password</label>
               {mode === 'login' && (
-                <Link href="/forgot-password" style={{ fontSize: '12px', color: '#7c91ff', letterSpacing: '.1px', textDecoration: 'none' }}>
+                <Link href="/forgot-password" style={{ fontSize: '12px', color: '#6c7cff', letterSpacing: '.1px', textDecoration: 'none' }}>
                   Forgot password?
                 </Link>
               )}

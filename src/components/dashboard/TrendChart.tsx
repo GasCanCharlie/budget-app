@@ -101,7 +101,7 @@ export function TrendChart({ months }: Props) {
           <Bar
             dataKey="spending"
             name="spending"
-            fill="#7c89ff"
+            fill="#6c7cff"
             radius={[3, 3, 0, 0]}
           />
         </BarChart>

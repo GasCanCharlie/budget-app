@@ -27,8 +27,8 @@
   --au-good:   #2ee59d;
   --au-warn:   #ffcc66;
   --au-bad:    #ff5c7a;
-  --au-text:   #eaf0ff;
-  --au-muted:  #a8b3d6;
+  --au-text:   #e5e7eb;
+  --au-muted:  #9ca3af;
   --au-muted2: #8b97c3;
   --au-bg:     #0b1020;
   --au-bg2:    #070a14;
@@ -114,7 +114,7 @@
   border-radius: 13px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.06);
-  color: #eaf0ff;
+  color: #e5e7eb;
   font-size: 15px;
   font-family: inherit;
   outline: none;
@@ -216,7 +216,7 @@
 }
 .auth-tab.active {
   background: rgba(255,255,255,.12);
-  color: #eaf0ff;
+  color: #e5e7eb;
   box-shadow: 0 2px 8px rgba(0,0,0,.25);
 }
 

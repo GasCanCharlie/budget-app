@@ -120,9 +120,8 @@ export function computeHealthScore(input: HealthInput): HealthScore {
   )
 
   const color =
-    score >= 80 ? '#39d07f' :
-    score >= 60 ? '#f0b544' :
-    score >= 40 ? '#fb923c' : '#ef4444'
+    score >= 80 ? '#22C55E' :
+    score >= 50 ? '#F59E0B' : '#EF4444'
 
   const label =
     score >= 80 ? 'Excellent' :

@@ -44,7 +44,7 @@ export function CookieConsent() {
       <p style={{
         margin: 0,
         fontSize: 13,
-        color: '#a8b3d6',
+        color: '#9ca3af',
         lineHeight: 1.5,
         maxWidth: 640,
         flex: '1 1 280px',
@@ -52,11 +52,11 @@ export function CookieConsent() {
         BudgetLens uses essential cookies to keep you signed in. Your uploaded
         statements are processed privately on our servers — we never sell, share,
         or train on your financial data.{' '}
-        <Link href="/privacy" style={{ color: '#7c91ff', textDecoration: 'underline' }}>
+        <Link href="/privacy" style={{ color: '#6c7cff', textDecoration: 'underline' }}>
           Privacy Policy
         </Link>
         {' '}·{' '}
-        <Link href="/terms" style={{ color: '#7c91ff', textDecoration: 'underline' }}>
+        <Link href="/terms" style={{ color: '#6c7cff', textDecoration: 'underline' }}>
           Terms
         </Link>
       </p>
@@ -67,7 +67,7 @@ export function CookieConsent() {
           style={{
             padding: '8px 22px',
             borderRadius: 999,
-            background: 'linear-gradient(135deg,#7c91ff,#a78bfa)',
+            background: 'linear-gradient(135deg,#6c7cff,#8794ff)',
             color: '#fff',
             border: 'none',
             cursor: 'pointer',

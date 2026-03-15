@@ -39,8 +39,8 @@ export default function ForgotPasswordPage() {
       <Link href="/login" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
         <div className="bl-logo-container" style={{ width: 36, height: 36, borderRadius: 10 }}><LogoMark size={22} /></div>
         <div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#eaf0ff', letterSpacing: '.2px', lineHeight: '1' }}>BudgetLens</div>
-          <div style={{ fontSize: '12px', color: '#a8b3d6', fontWeight: 600, marginTop: '3px' }}>Statement Intelligence</div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#e5e7eb', letterSpacing: '.2px', lineHeight: '1' }}>BudgetLens</div>
+          <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 600, marginTop: '3px' }}>Statement Intelligence</div>
         </div>
       </Link>
 
@@ -49,21 +49,21 @@ export default function ForgotPasswordPage() {
         {submitted ? (
           <div style={{ textAlign: 'center', padding: '8px 0' }}>
             <div style={{ fontSize: '40px', marginBottom: '16px' }}>📬</div>
-            <h2 style={{ margin: '0 0 12px', fontSize: '20px', fontWeight: 800, color: '#eaf0ff' }}>Check your inbox</h2>
-            <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#a8b3d6', lineHeight: '1.6' }}>
-              If <strong style={{ color: '#eaf0ff' }}>{email}</strong> has an account, you&apos;ll receive a reset link shortly. It expires in 1 hour.
+            <h2 style={{ margin: '0 0 12px', fontSize: '20px', fontWeight: 800, color: '#e5e7eb' }}>Check your inbox</h2>
+            <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#9ca3af', lineHeight: '1.6' }}>
+              If <strong style={{ color: '#e5e7eb' }}>{email}</strong> has an account, you&apos;ll receive a reset link shortly. It expires in 1 hour.
             </p>
-            <Link href="/login" style={{ fontSize: '14px', color: '#7c91ff', fontWeight: 600 }}>
+            <Link href="/login" style={{ fontSize: '14px', color: '#6c7cff', fontWeight: 600 }}>
               ← Back to sign in
             </Link>
           </div>
         ) : (
           <>
             <div style={{ marginBottom: '24px' }}>
-              <h1 style={{ margin: '0 0 7px', fontSize: '22px', fontWeight: 800, letterSpacing: '-.3px', color: '#eaf0ff' }}>
+              <h1 style={{ margin: '0 0 7px', fontSize: '22px', fontWeight: 800, letterSpacing: '-.3px', color: '#e5e7eb' }}>
                 Forgot your password?
               </h1>
-              <p style={{ margin: 0, fontSize: '14px', color: '#a8b3d6', lineHeight: '1.5' }}>
+              <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af', lineHeight: '1.5' }}>
                 Enter your email and we&apos;ll send you a reset link.
               </p>
             </div>

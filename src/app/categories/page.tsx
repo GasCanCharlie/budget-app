@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
-import { PlusCircle, Trash2, Loader2, RotateCcw, Pencil, Check, X } from 'lucide-react'
+import { PlusCircle, Trash2, Loader2, RotateCcw, Pencil, Check, X, Target } from 'lucide-react'
 import clsx from 'clsx'
 import { CategoryIcon } from '@/components/CategoryIcon'
 
@@ -19,6 +19,13 @@ interface Category {
   isIncome: boolean
   isTransfer: boolean
   userId: string | null
+}
+
+interface BudgetTarget {
+  id: string
+  categoryId: string
+  amountCents: number
+  period: string
 }
 
 const PRESET_COLORS = [
@@ -54,6 +61,10 @@ export default function CategoriesPage() {
   const [editColor,   setEditColor]   = useState('#6366f1')
   const [editCustomIcon, setEditCustomIcon] = useState('')
 
+  // Budget state
+  const [budgetEditId,    setBudgetEditId]    = useState<string | null>(null)
+  const [budgetInputVal,  setBudgetInputVal]  = useState('')
+
   function startEdit(cat: Category) {
     setEditingId(cat.id)
     setEditName(cat.name)
@@ -80,6 +91,45 @@ export default function CategoriesPage() {
     queryFn: () => apiFetch('/api/preferences/hidden-categories'),
     enabled: !!user,
   })
+
+  const { data: budgetsData } = useQuery({
+    queryKey: ['budgets'],
+    queryFn: () => apiFetch('/api/budgets'),
+    enabled: !!user,
+  })
+  const budgets: BudgetTarget[] = budgetsData?.budgets ?? []
+  const budgetMap = new Map(budgets.map((b: BudgetTarget) => [b.categoryId, b]))
+
+  const budgetMutation = useMutation({
+    mutationFn: ({ categoryId, amountCents }: { categoryId: string; amountCents: number }) =>
+      apiFetch('/api/budgets', {
+        method: 'POST',
+        body: JSON.stringify({ categoryId, amountCents }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['budgets'] })
+      setBudgetEditId(null)
+      setBudgetInputVal('')
+    },
+  })
+
+  const budgetDeleteMutation = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/budgets/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['budgets'] }),
+  })
+
+  function openBudgetEdit(cat: Category) {
+    const existing = budgetMap.get(cat.id)
+    setBudgetEditId(cat.id)
+    setBudgetInputVal(existing ? String(existing.amountCents / 100) : '')
+    setEditingId(null)
+  }
+
+  function saveBudget(categoryId: string) {
+    const dollars = parseFloat(budgetInputVal)
+    if (isNaN(dollars) || dollars < 0) return
+    budgetMutation.mutate({ categoryId, amountCents: Math.round(dollars * 100) })
+  }
 
   const hiddenIds: string[] = hiddenData?.hidden ?? []
   const allSystemCats: Category[] = allCatsData?.categories ?? []
@@ -262,15 +312,21 @@ export default function CategoriesPage() {
             <p className="text-sm text-slate-400">No custom categories yet.</p>
           ) : (
             <div className="space-y-2">
-              {userCats.map(cat => (
-                <div key={cat.id} className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border2)', background: 'var(--tile)' }}>
+              {userCats.map(cat => {
+                const budget = budgetMap.get(cat.id)
+                const isEditingBudget = budgetEditId === cat.id
+                return (
+                <div key={cat.id} className="rounded-lg overflow-hidden" style={{ border: isEditingBudget ? '1px solid var(--accent)' : '1px solid var(--border2)', background: 'var(--tile)' }}>
 
                   {/* Row */}
                   <div className="flex items-center gap-3 p-3">
                     <CategoryIcon name={editingId === cat.id ? (editCustomIcon || editIcon) : cat.icon} color={editingId === cat.id ? editColor : cat.color} size={20} />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{cat.name}</p>
-                      <p className="text-xs" style={{ color: 'var(--muted)' }}>{cat.isIncome ? 'Income' : 'Expense'} · Custom</p>
+                      <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                        {cat.isIncome ? 'Income' : 'Expense'} · Custom
+                        {budget && !cat.isIncome && ` · $${(budget.amountCents / 100).toFixed(0)}/mo`}
+                      </p>
                     </div>
                     <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
 
@@ -285,6 +341,14 @@ export default function CategoriesPage() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-1">
+                        {!cat.isIncome && (
+                          <button onClick={() => isEditingBudget ? setBudgetEditId(null) : openBudgetEdit(cat)}
+                            className="p-1.5 rounded-lg transition"
+                            style={{ color: isEditingBudget ? 'var(--accent)' : 'var(--text-secondary)' }}
+                            title={budget ? 'Edit budget' : 'Set budget'}>
+                            <Target size={14} />
+                          </button>
+                        )}
                         <button onClick={() => editingId === cat.id ? setEditingId(null) : startEdit(cat)}
                           className="p-1.5 rounded-lg transition" style={{ color: editingId === cat.id ? 'var(--accent)' : 'var(--text-secondary)' }}
                           title="Edit category">
@@ -300,6 +364,36 @@ export default function CategoriesPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Inline budget editor for custom categories */}
+                  {isEditingBudget && (
+                    <div className="px-3 pb-3 flex items-center gap-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                      <span className="text-xs" style={{ color: 'var(--muted)' }}>Monthly budget: $</span>
+                      <input
+                        autoFocus
+                        type="number"
+                        min="0"
+                        step="10"
+                        placeholder="0"
+                        value={budgetInputVal}
+                        onChange={e => setBudgetInputVal(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveBudget(cat.id); if (e.key === 'Escape') setBudgetEditId(null) }}
+                        className="input text-sm py-1 px-2 flex-1 min-w-0"
+                        style={{ height: 32 }}
+                      />
+                      <button onClick={() => saveBudget(cat.id)} disabled={budgetMutation.isPending}
+                        className="btn-primary py-1 px-3 text-xs flex items-center gap-1">
+                        {budgetMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                        Save
+                      </button>
+                      {budget && (
+                        <button onClick={() => { budgetDeleteMutation.mutate(budget.id); setBudgetEditId(null) }}
+                          className="btn-secondary py-1 px-2 text-xs flex items-center gap-1 text-red-400">
+                          <X size={12} /> Remove
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Inline edit panel */}
                   {editingId === cat.id && (
@@ -357,7 +451,7 @@ export default function CategoriesPage() {
                     </div>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>
@@ -375,42 +469,99 @@ export default function CategoriesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {systemCats.map(cat => (
-                <div
-                  key={cat.id}
-                  className="flex items-center gap-2 p-2.5 rounded-lg group"
-                  style={{ background: 'var(--tile)', border: '1px solid var(--border2)' }}
-                >
-                  <CategoryIcon name={cat.icon} color={cat.color} size={16} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--text)' }}>{cat.name}</p>
-                    <p className="text-[10px]" style={{ color: 'var(--muted)' }}>
-                      {cat.isIncome ? 'income' : cat.isTransfer ? 'transfer' : 'expense'}
-                    </p>
-                  </div>
-                  {deleteConfirm === cat.id ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => deleteMutation.mutate(cat.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-[10px] font-bold text-red-400 px-1.5 py-0.5 rounded"
-                        style={{ background: 'rgba(255,127,144,0.12)', border: '1px solid rgba(255,127,144,0.25)' }}
-                      >
-                        {deleteMutation.isPending ? '…' : 'Hide'}
-                      </button>
-                      <button onClick={() => setDeleteConfirm(null)} className="text-[10px] text-slate-400 px-1 py-0.5 rounded hover:text-slate-300">✕</button>
+              {systemCats.map(cat => {
+                const budget = budgetMap.get(cat.id)
+                const isEditingBudget = budgetEditId === cat.id
+                return (
+                  <div
+                    key={cat.id}
+                    className="rounded-lg group overflow-hidden"
+                    style={{ background: 'var(--tile)', border: isEditingBudget ? '1px solid var(--accent)' : '1px solid var(--border2)' }}
+                  >
+                    <div className="flex items-center gap-2 p-2.5">
+                      <CategoryIcon name={cat.icon} color={cat.color} size={16} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold truncate" style={{ color: 'var(--text)' }}>{cat.name}</p>
+                        <p className="text-[10px]" style={{ color: 'var(--muted)' }}>
+                          {cat.isIncome ? 'income' : cat.isTransfer ? 'transfer' : (
+                            budget ? `$${(budget.amountCents / 100).toFixed(0)}/mo` : 'expense'
+                          )}
+                        </p>
+                      </div>
+                      {deleteConfirm === cat.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => deleteMutation.mutate(cat.id)}
+                            disabled={deleteMutation.isPending}
+                            className="text-[10px] font-bold text-red-400 px-1.5 py-0.5 rounded"
+                            style={{ background: 'rgba(255,127,144,0.12)', border: '1px solid rgba(255,127,144,0.25)' }}
+                          >
+                            {deleteMutation.isPending ? '…' : 'Hide'}
+                          </button>
+                          <button onClick={() => setDeleteConfirm(null)} className="text-[10px] text-slate-400 px-1 py-0.5 rounded hover:text-slate-300">✕</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+                          {!cat.isIncome && !cat.isTransfer && (
+                            <button
+                              onClick={() => isEditingBudget ? setBudgetEditId(null) : openBudgetEdit(cat)}
+                              className="p-1 rounded transition"
+                              style={{ color: isEditingBudget ? 'var(--accent)' : 'var(--text-secondary)' }}
+                              title={budget ? 'Edit budget' : 'Set budget'}
+                            >
+                              <Target size={12} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setDeleteConfirm(cat.id)}
+                            className="p-1 rounded transition text-slate-500 hover:text-red-400"
+                            title="Hide category"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => setDeleteConfirm(cat.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded transition text-slate-500 hover:text-red-400"
-                      title="Hide category"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
-              ))}
+
+                    {/* Inline budget editor */}
+                    {isEditingBudget && (
+                      <div className="px-2.5 pb-2.5 flex items-center gap-1.5 border-t" style={{ borderColor: 'var(--border)' }}>
+                        <span className="text-xs" style={{ color: 'var(--muted)' }}>$</span>
+                        <input
+                          autoFocus
+                          type="number"
+                          min="0"
+                          step="10"
+                          placeholder="0"
+                          value={budgetInputVal}
+                          onChange={e => setBudgetInputVal(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') saveBudget(cat.id); if (e.key === 'Escape') setBudgetEditId(null) }}
+                          className="input text-xs py-1 px-2 flex-1 min-w-0"
+                          style={{ height: 28 }}
+                        />
+                        <span className="text-[10px]" style={{ color: 'var(--muted)' }}>/mo</span>
+                        <button
+                          onClick={() => saveBudget(cat.id)}
+                          disabled={budgetMutation.isPending}
+                          className="p-1 rounded transition"
+                          style={{ color: 'var(--accent)' }}
+                        >
+                          {budgetMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                        </button>
+                        {budget && (
+                          <button
+                            onClick={() => { budgetDeleteMutation.mutate(budget.id); setBudgetEditId(null) }}
+                            className="p-1 rounded transition text-slate-500 hover:text-red-400"
+                            title="Remove budget"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
 

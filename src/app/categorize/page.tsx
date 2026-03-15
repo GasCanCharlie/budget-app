@@ -320,7 +320,7 @@ function CategoryBucket({
       <div className="category-meta">
         {/* Dollar total */}
         {catAmount != null && catAmount > 0 && !showOver && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#7c91ff', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#6c7cff', whiteSpace: 'nowrap' }}>
             ${catAmount >= 1000 ? `${(catAmount / 1000).toFixed(1)}k` : catAmount.toFixed(0)}
           </span>
         )}
@@ -377,7 +377,7 @@ function RuleAskModal({
             <Zap size={18} className="text-accent-600" />
           </span>
           <div>
-            <h3 className="font-bold text-[#eaf0ff]">
+            <h3 className="font-bold text-[#e5e7eb]">
               Auto-assign rule?{totalRemaining && totalRemaining > 0 ? ` (1 of ${totalInQueue})` : ''}
             </h3>
             <p className="text-sm text-[#8b97c3] mt-0.5">
@@ -460,7 +460,7 @@ function ConfirmModal({
             <CategoryIcon name={state.category.icon} color={state.category.color} size={20} />
           </span>
           <div>
-            <h3 className="font-bold text-[#eaf0ff]">Move to {state.category.name}?</h3>
+            <h3 className="font-bold text-[#e5e7eb]">Move to {state.category.name}?</h3>
             <p className="text-sm text-slate-500">
               &ldquo;{state.transaction.merchantNormalized || state.transaction.description}&rdquo;
               {' · '}
@@ -514,7 +514,7 @@ function TouchGhost({ tx, pos }: { tx: Transaction | null; pos: { x: number; y: 
       className="pointer-events-none fixed z-[100] max-w-[180px] rounded-lg p-2 shadow-lg backdrop-blur-sm"
       style={{ background: 'rgba(11,16,32,.92)', border: '1px solid rgba(110,168,255,.35)', left: pos.x - 90, top: pos.y - 30 }}
     >
-      <p className="truncate text-xs font-semibold text-[#eaf0ff]">{tx.merchantNormalized || tx.description}</p>
+      <p className="truncate text-xs font-semibold text-[#e5e7eb]">{tx.merchantNormalized || tx.description}</p>
       <p className="text-[10px] text-[#8b97c3]">{fmtAmt(tx.amount)}</p>
     </div>
   )
@@ -721,7 +721,7 @@ function RulePrompt({
             <Zap size={14} className="text-accent-600" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#eaf0ff]">Remember this?</p>
+            <p className="text-sm font-semibold text-[#e5e7eb]">Remember this?</p>
             <p className="text-xs text-[#8b97c3] mt-0.5">
               You&apos;ve assigned <strong>{state.vendor}</strong> → <strong>{state.catName}</strong> multiple times.
             </p>
@@ -858,8 +858,8 @@ function CategorizationTips({ onSortAmount, onSortVendor, onSortSamePrice }: Cat
               textAlign: 'left', transition: 'background 0.15s, border-color 0.15s',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(124,145,255,0.08)'
-              e.currentTarget.style.borderColor = 'rgba(124,145,255,0.16)'
+              e.currentTarget.style.background = 'rgba(108,124,255,0.08)'
+              e.currentTarget.style.borderColor = 'rgba(108,124,255,0.16)'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
@@ -1636,7 +1636,7 @@ export default function CategorizePage() {
                   width: `${txTotal > 0 ? Math.round((catCount / txTotal) * 100) : 0}%`,
                   background: unlocked
                     ? 'linear-gradient(90deg, #39d07f, #7be5ad)'
-                    : 'linear-gradient(90deg, #7c91ff, #9aa8ff)',
+                    : 'linear-gradient(90deg, #6c7cff, #939aff)',
                   transition: 'width 0.4s ease',
                 }} />
               </div>
@@ -1958,7 +1958,7 @@ export default function CategorizePage() {
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)' }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
             >
-              <PlusCircle size={14} style={{ color: '#7c91ff' }} />
+              <PlusCircle size={14} style={{ color: '#6c7cff' }} />
               Add category
             </button>
             <>
@@ -2030,7 +2030,7 @@ export default function CategorizePage() {
               <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:16 }}>
                 {CAT_ICONS.map(ico => (
                   <button key={ico} onClick={() => setAddCatIcon(ico)}
-                    style={{ width:34, height:34, borderRadius:8, fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', background: addCatIcon === ico ? 'rgba(124,145,255,0.2)' : 'rgba(255,255,255,0.06)', border: addCatIcon === ico ? '1px solid rgba(124,145,255,0.4)' : '1px solid rgba(255,255,255,0.08)' }}
+                    style={{ width:34, height:34, borderRadius:8, fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', background: addCatIcon === ico ? 'rgba(108,124,255,0.2)' : 'rgba(255,255,255,0.06)', border: addCatIcon === ico ? '1px solid rgba(108,124,255,0.4)' : '1px solid rgba(255,255,255,0.08)' }}
                   >{ico}</button>
                 ))}
               </div>
@@ -2047,7 +2047,7 @@ export default function CategorizePage() {
               <button
                 onClick={() => createCatMutation.mutate()}
                 disabled={!addCatName.trim() || createCatMutation.isPending}
-                style={{ width:'100%', padding:'10px 0', borderRadius:10, background: addCatName.trim() ? 'rgba(124,145,255,0.2)' : 'rgba(255,255,255,0.05)', border:'1px solid rgba(124,145,255,0.3)', color: addCatName.trim() ? '#c5d0ff' : '#6b7a99', fontSize:14, fontWeight:700, cursor: addCatName.trim() ? 'pointer' : 'not-allowed' }}
+                style={{ width:'100%', padding:'10px 0', borderRadius:10, background: addCatName.trim() ? 'rgba(108,124,255,0.2)' : 'rgba(255,255,255,0.05)', border:'1px solid rgba(108,124,255,0.3)', color: addCatName.trim() ? '#c5d0ff' : '#6b7a99', fontSize:14, fontWeight:700, cursor: addCatName.trim() ? 'pointer' : 'not-allowed' }}
               >
                 {createCatMutation.isPending ? 'Creating…' : 'Create Category'}
               </button>

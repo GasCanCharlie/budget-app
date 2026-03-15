@@ -44,14 +44,14 @@ export async function POST(req: NextRequest) {
           to:      email,
           subject: 'Reset your BudgetLens password',
           html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#eaf0ff;border-radius:12px">
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e5e7eb;border-radius:12px">
               <h2 style="margin:0 0 16px;font-size:20px;font-weight:700">Reset your password</h2>
-              <p style="margin:0 0 24px;color:#a8b3d6;font-size:14px;line-height:1.6">
+              <p style="margin:0 0 24px;color:#9ca3af;font-size:14px;line-height:1.6">
                 We received a request to reset the password for your BudgetLens account.
-                Click the button below to choose a new password. This link expires in <strong style="color:#eaf0ff">1 hour</strong>.
+                Click the button below to choose a new password. This link expires in <strong style="color:#e5e7eb">1 hour</strong>.
               </p>
               <a href="${resetUrl}"
-                style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#fff;font-weight:700;font-size:14px;border-radius:8px;text-decoration:none">
+                style="display:inline-block;padding:12px 24px;background:#6c7cff;color:#fff;font-weight:700;font-size:14px;border-radius:8px;text-decoration:none">
                 Reset password
               </a>
               <p style="margin:24px 0 0;color:#8b97c3;font-size:12px;line-height:1.6">

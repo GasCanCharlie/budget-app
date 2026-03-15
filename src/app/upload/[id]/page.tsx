@@ -16,16 +16,16 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
 const CAT_COLORS: Record<string, string> = {
   'Food & Dining': '#f97316', 'Groceries': '#22c55e', 'Housing': '#f59e0b',
-  'Transport': '#3b82f6', 'Entertainment': '#ec4899', 'Shopping': '#f59e0b',
+  'Transport': '#7aa2ff', 'Entertainment': '#ec4899', 'Shopping': '#f59e0b',
   'Health': '#10b981', 'Utilities': '#6366f1', 'Subscriptions': '#6366f1',
   'Personal Care': '#f472b6', 'Education': '#06b6d4', 'Travel': '#06b6d4',
-  'Insurance': '#64748b', 'Fees & Charges': '#ef4444', 'Gifts & Charity': '#a78bfa',
+  'Insurance': '#64748b', 'Fees & Charges': '#ef4444', 'Gifts & Charity': '#8794ff',
   'Income': '#16a34a', 'Transfer': '#64748b', 'Transfers': '#64748b',
   'Fast Food': '#f97316', 'Alcohol': '#8b5cf6', 'Restaurants': '#f97316',
-  'Gas/Fuel': '#3b82f6', 'Gasoline/Fuel': '#3b82f6', 'Pets': '#a3e635',
+  'Gas/Fuel': '#7aa2ff', 'Gasoline/Fuel': '#7aa2ff', 'Pets': '#a3e635',
   'Other': '#94a3b8', 'Uncategorized': '#94a3b8',
 }
-const FALLBACK_COLORS = ['#7c89ff','#34d399','#fb923c','#a78bfa','#60a5fa','#f472b6']
+const FALLBACK_COLORS = ['#6c7cff','#34d399','#fb923c','#8794ff','#60a5fa','#f472b6']
 function getCatColor(name: string, i: number) {
   return CAT_COLORS[name] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]
 }
@@ -648,7 +648,7 @@ export default function UploadDetailPage() {
           <button
             onClick={() => router.push(`/reports/${id}`)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition"
-            style={{ background: 'linear-gradient(135deg,#7c91ff,#a78bfa)', color: '#fff', border: 'none', cursor: 'pointer' }}
+            style={{ background: 'linear-gradient(135deg,#6c7cff,#8794ff)', color: '#fff', border: 'none', cursor: 'pointer' }}
           >
             <FileText size={16} />
             View Scan Report

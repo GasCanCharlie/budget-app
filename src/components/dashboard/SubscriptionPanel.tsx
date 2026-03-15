@@ -65,7 +65,7 @@ export function SubscriptionPanel({ userId }: { userId: string | undefined }) {
   if (isLoading || detectMutation.isPending) {
     return (
       <div style={{ background: 'var(--card2)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Loader2 size={16} style={{ color: '#7c91ff', animation: 'spin 1s linear infinite' }} />
+        <Loader2 size={16} style={{ color: '#6C7CFF', animation: 'spin 1s linear infinite' }} />
         <span style={{ fontSize: 13, color: 'var(--muted)' }}>Scanning for subscriptions…</span>
       </div>
     )
@@ -80,8 +80,8 @@ export function SubscriptionPanel({ userId }: { userId: string | undefined }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ background: 'rgba(124,145,255,0.12)', borderRadius: 8, padding: '6px 7px', display: 'inline-flex' }}>
-            <Repeat2 size={15} style={{ color: '#7c91ff' }} />
+          <div style={{ background: 'rgba(108,124,255,0.12)', borderRadius: 8, padding: '6px 7px', display: 'inline-flex' }}>
+            <Repeat2 size={15} style={{ color: '#6C7CFF' }} />
           </div>
           <div>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Recurring Charges</span>
@@ -89,7 +89,7 @@ export function SubscriptionPanel({ userId }: { userId: string | undefined }) {
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#7c91ff' }}>{fmtAmt(totalMonthly)}<span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginLeft: 3 }}>/mo</span></div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#6C7CFF' }}>{fmtAmt(totalMonthly)}<span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginLeft: 3 }}>/mo</span></div>
           <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>{fmtAmt(totalMonthly * 12)}/yr</div>
         </div>
       </div>
@@ -98,8 +98,8 @@ export function SubscriptionPanel({ userId }: { userId: string | undefined }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {subs.slice(0, 6).map(sub => (
           <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(124,145,255,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <TrendingUp size={14} style={{ color: '#7c91ff' }} />
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(108,124,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <TrendingUp size={14} style={{ color: '#6C7CFF' }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

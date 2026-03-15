@@ -11,8 +11,8 @@ const CSS = `
 .terms-shell {
   --bg:      #0b1020;
   --bg2:     #070a14;
-  --text:    #eaf0ff;
-  --muted:   #a8b3d6;
+  --text:    #e5e7eb;
+  --muted:   #9ca3af;
   --muted2:  #8b97c3;
   --brand:   #6ea8ff;
   --brand2:  #8a7dff;

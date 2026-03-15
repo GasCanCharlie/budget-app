@@ -30,6 +30,7 @@ model User {
   stagingTxs             StagingTransaction[]
   insightCards           InsightCard[]
   subscriptionCandidates SubscriptionCandidate[]
+  budgetTargets          BudgetTarget[]
 
   @@map("users")
 }
@@ -354,6 +355,7 @@ model Category {
   historyNew        CategoryHistory[] @relation("NewCategory")
   monthTotals       MonthCategoryTotal[]
   stagingTxs        StagingTransaction[]
+  budgetTargets     BudgetTarget[]
 
   @@map("categories")
 }
@@ -625,6 +627,26 @@ model SubscriptionCandidate {
 
   @@unique([userId, merchantNormalized])
   @@map("subscription_candidates")
+}
+
+// ─── BudgetTarget ─────────────────────────────────────────────────────────────
+// Monthly spending target per category. null amountCents = no budget set.
+// Period "monthly" is the only supported period for now.
+
+model BudgetTarget {
+  id         String   @id @default(cuid())
+  userId     String
+  categoryId String
+  amountCents Int     // monthly target in integer cents (e.g. 50000 = $500.00)
+  period     String   @default("monthly")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([userId, categoryId, period])
+  @@map("budget_targets")
 }
 
 model RateLimit {

@@ -10,8 +10,8 @@ const CSS = `
 .lp {
   --bg: #0b1020;
   --bg2: #070a14;
-  --text: #eaf0ff;
-  --muted: #a8b3d6;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
   --muted2: #8b97c3;
   --brand: #6ea8ff;
   --brand2: #8a7dff;
@@ -206,11 +206,85 @@ const CSS = `
 .lp .foot a { color: rgba(255,255,255,.75); }
 .lp .foot a:hover { color: var(--text); }
 
+.lp .testimonials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.lp .tcard {
+  border-radius: var(--radius-xl); border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04); box-shadow: var(--shadow2);
+  padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 14px;
+  position: relative; overflow: hidden;
+}
+.lp .tcard:before {
+  content: ""; position: absolute; inset: -1px;
+  background: radial-gradient(280px 160px at 10% 0%, rgba(110,168,255,.10), transparent 65%);
+  pointer-events: none;
+}
+.lp .tcard blockquote {
+  margin: 0; font-style: italic; color: var(--muted);
+  font-size: 14px; line-height: 1.65; position: relative;
+}
+.lp .tcard .tq-mark {
+  font-size: 38px; line-height: .65; color: rgba(110,168,255,.30);
+  font-style: normal; display: block; margin-bottom: 4px;
+}
+.lp .tcard .tauthor { display: flex; align-items: center; gap: 10px; position: relative; }
+.lp .tcard .tavatar {
+  width: 34px; height: 34px; border-radius: 999px; flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(110,168,255,.45), rgba(138,125,255,.40));
+  border: 1px solid rgba(255,255,255,.14);
+  display: grid; place-items: center; font-weight: 850; font-size: 13px; color: rgba(255,255,255,.90);
+}
+.lp .tcard .tname { font-weight: 750; font-size: 13px; }
+.lp .tcard .trole { font-size: 12px; color: var(--muted2); margin-top: 1px; }
+
+.lp .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 820px; margin: 0 auto; }
+.lp .pricing-card {
+  border-radius: var(--radius-xl); border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05); box-shadow: var(--shadow2);
+  padding: 26px; display: flex; flex-direction: column; gap: 0; position: relative; overflow: hidden;
+}
+.lp .pricing-card:before {
+  content: ""; position: absolute; inset: -1px;
+  background: radial-gradient(360px 200px at 20% 0%, rgba(110,168,255,.12), transparent 60%);
+  pointer-events: none;
+}
+.lp .pricing-card.pro {
+  border-color: rgba(110,168,255,.35);
+  background: linear-gradient(180deg, rgba(110,168,255,.09), rgba(138,125,255,.06), rgba(255,255,255,.04));
+  box-shadow: 0 0 0 1px rgba(110,168,255,.18), var(--shadow2);
+}
+.lp .pricing-card.pro:before {
+  background: radial-gradient(420px 240px at 30% 0%, rgba(110,168,255,.20), transparent 60%),
+              radial-gradient(320px 180px at 80% 20%, rgba(138,125,255,.16), transparent 60%);
+}
+.lp .popular-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 999px;
+  background: linear-gradient(135deg, rgba(110,168,255,.30), rgba(138,125,255,.24));
+  border: 1px solid rgba(110,168,255,.35);
+  font-size: 12px; font-weight: 850; color: rgba(255,255,255,.95);
+  letter-spacing: .2px; width: fit-content; margin-bottom: 14px;
+}
+.lp .popular-badge .pdot { width: 6px; height: 6px; border-radius: 999px; background: var(--brand); }
+.lp .pricing-tier { font-size: 13px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; position: relative; }
+.lp .pricing-price { margin: 0 0 4px; position: relative; }
+.lp .pricing-price .amount { font-size: 44px; font-weight: 950; letter-spacing: -2px; line-height: 1; color: var(--text); }
+.lp .pricing-price .period { font-size: 14px; color: var(--muted); font-weight: 550; margin-left: 2px; }
+.lp .pricing-tagline { font-size: 13px; color: var(--muted2); margin: 0 0 20px; position: relative; }
+.lp .pricing-divider { border: none; border-top: 1px solid rgba(255,255,255,.08); margin: 0 0 18px; }
+.lp .pricing-features { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 9px; position: relative; }
+.lp .pricing-features li { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; color: var(--muted); line-height: 1.4; }
+.lp .pricing-features li .fcheck { flex-shrink: 0; width: 18px; height: 18px; border-radius: 6px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); display: grid; place-items: center; font-size: 11px; margin-top: 1px; }
+.lp .pricing-card.pro .pricing-features li .fcheck { background: rgba(110,168,255,.15); border-color: rgba(110,168,255,.30); color: var(--brand); }
+.lp .pricing-cta { margin-top: auto; position: relative; }
+.lp .pricing-cta .btn { width: 100%; justify-content: center; padding: 13px 16px; border-radius: 14px; font-size: 15px; }
+
 @media (max-width: 980px) {
   .lp .hero-grid { grid-template-columns: 1fr; }
   .lp .grid3 { grid-template-columns: 1fr; }
   .lp .columns { grid-template-columns: 1fr; }
   .lp .nav-links { display: none; }
+  .lp .testimonials { grid-template-columns: 1fr; }
+  .lp .pricing-grid { grid-template-columns: 1fr; max-width: 440px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lp .logo:after { animation: none; }
@@ -349,6 +423,7 @@ export default function HomePage() {
           <nav className="nav-links" aria-label="Primary">
             <a href="#scan">What it finds</a>
             <a href="#how">How it works</a>
+            <a href="#pricing">Pricing</a>
             <a href="#privacy">Privacy</a>
           </nav>
 
@@ -579,6 +654,53 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── Social proof ─────────────────────────────────────────────────── */}
+        <section className="section" id="testimonials">
+          <div className="wrap">
+            <div className="testimonials">
+              <div className="tcard">
+                <blockquote>
+                  <span className="tq-mark">&ldquo;</span>
+                  I finally realized I was paying for three services I hadn&apos;t used in months. BudgetLens caught them on the first scan.
+                </blockquote>
+                <div className="tauthor">
+                  <div className="tavatar">S</div>
+                  <div>
+                    <div className="tname">Sarah M.</div>
+                    <div className="trole">Freelance designer</div>
+                  </div>
+                </div>
+              </div>
+              <div className="tcard">
+                <blockquote>
+                  <span className="tq-mark">&ldquo;</span>
+                  The drag-and-drop organizer is genuinely fast. I get through a whole month of transactions in under ten minutes.
+                </blockquote>
+                <div className="tauthor">
+                  <div className="tavatar">J</div>
+                  <div>
+                    <div className="tname">James R.</div>
+                    <div className="trole">Small business owner</div>
+                  </div>
+                </div>
+              </div>
+              <div className="tcard">
+                <blockquote>
+                  <span className="tq-mark">&ldquo;</span>
+                  No bank login required sold me immediately. I upload the CSV and get a clear picture in seconds — no anxiety about access.
+                </blockquote>
+                <div className="tauthor">
+                  <div className="tavatar">A</div>
+                  <div>
+                    <div className="tname">Alicia T.</div>
+                    <div className="trole">Independent contractor</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── Features ─────────────────────────────────────────────────────── */}
         <section className="section" id="features">
           <div className="wrap">
@@ -623,8 +745,62 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── Pricing / CTA ────────────────────────────────────────────────── */}
+        {/* ── Pricing ──────────────────────────────────────────────────────── */}
         <section className="section" id="pricing">
+          <div className="wrap">
+            <h2 style={{ textAlign: 'center', marginBottom: '8px' }}>Simple, honest pricing</h2>
+            <p className="lead" style={{ textAlign: 'center', margin: '0 auto 28px' }}>
+              Start free. Upgrade when you need more.
+            </p>
+            <div className="pricing-grid">
+              {/* Free tier */}
+              <div className="pricing-card">
+                <div className="pricing-tier">Free</div>
+                <div className="pricing-price">
+                  <span className="amount">$0</span>
+                </div>
+                <p className="pricing-tagline">Free forever — no credit card needed.</p>
+                <hr className="pricing-divider" />
+                <ul className="pricing-features">
+                  <li><span className="fcheck">✓</span>Upload &amp; analyze up to 2 statements / month</li>
+                  <li><span className="fcheck">✓</span>Full AI scan report (subscriptions, duplicates, anomalies)</li>
+                  <li><span className="fcheck">✓</span>Category management &amp; vendor rules</li>
+                  <li><span className="fcheck">✓</span>Basic spending dashboard</li>
+                  <li><span className="fcheck">✓</span>CSV / OFX / QFX / QBO import</li>
+                </ul>
+                <div className="pricing-cta">
+                  <Link href="/login" className="btn">Get started free</Link>
+                </div>
+              </div>
+
+              {/* Pro tier */}
+              <div className="pricing-card pro">
+                <div className="popular-badge"><span className="pdot" />Most popular</div>
+                <div className="pricing-tier">Pro</div>
+                <div className="pricing-price">
+                  <span className="amount">$9</span>
+                  <span className="period">/ mo</span>
+                </div>
+                <p className="pricing-tagline">Everything in Free, plus unlimited power.</p>
+                <hr className="pricing-divider" />
+                <ul className="pricing-features">
+                  <li><span className="fcheck">✓</span>Unlimited statement uploads</li>
+                  <li><span className="fcheck">✓</span>AI Q&amp;A chat — ask questions about your finances</li>
+                  <li><span className="fcheck">✓</span>Month-over-month trend insights</li>
+                  <li><span className="fcheck">✓</span>Subscription detection &amp; cost tracking</li>
+                  <li><span className="fcheck">✓</span>Downloadable PDF export</li>
+                  <li><span className="fcheck">✓</span>Priority support</li>
+                </ul>
+                <div className="pricing-cta">
+                  <Link href="/login" className="btn btn-primary">Start free trial</Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── CTA ──────────────────────────────────────────────────────────── */}
+        <section className="section" id="cta">
           <div className="wrap">
             <div className="cta">
               <div>

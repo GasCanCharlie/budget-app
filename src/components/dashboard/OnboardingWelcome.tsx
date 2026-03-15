@@ -258,7 +258,7 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
             gap: 10,
             padding: '14px 32px',
             borderRadius: 12,
-            background: 'linear-gradient(135deg, #7c89ff 0%, #8b6fff 100%)',
+            background: 'linear-gradient(135deg, #6c7cff 0%, #8b6fff 100%)',
             color: '#ffffff',
             fontWeight: 700,
             fontSize: 15,

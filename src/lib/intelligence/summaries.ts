@@ -86,7 +86,7 @@ const CATEGORY_STYLES: Record<string, { color: string; icon: string; isIncome: b
   'Travel':          { color: '#06b6d4', icon: 'Plane',           isIncome: false },
   'Insurance':       { color: '#64748b', icon: 'Shield',          isIncome: false },
   'Fees & Charges':  { color: '#ef4444', icon: 'DollarSign',      isIncome: false },
-  'Gifts & Charity': { color: '#a78bfa', icon: 'Gift',            isIncome: false },
+  'Gifts & Charity': { color: '#8794ff', icon: 'Gift',            isIncome: false },
   'Income':          { color: '#16a34a', icon: 'TrendingUp',      isIncome: true  },
   'Transfer':        { color: '#64748b', icon: 'ArrowLeftRight',  isIncome: false },
   'Transfers':       { color: '#64748b', icon: 'ArrowLeftRight',  isIncome: false },

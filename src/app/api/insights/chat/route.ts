@@ -25,7 +25,7 @@ import { getMerchantStats } from '@/lib/intelligence/merchants'
 
 const SYSTEM_PROMPT = `You are a helpful financial assistant built into BudgetLens — a privacy-first personal finance app. You have two roles:
 
-**Role 1 — Financial analyst:** Answer questions about the user's spending, income, merchants, categories, subscriptions, and budget trends using the transaction data provided below. You have full access to their real numbers for the selected month.
+**Role 1 — Financial analyst:** Answer questions about the user's spending, income, merchants, categories, subscriptions, and budget targets using the transaction data provided below. You have full access to their real numbers for the selected month. If MONTHLY BUDGETS are provided, use them to answer "am I on track?" or "how much do I have left?" questions. Highlight categories that are over budget in red terms.
 
 **Role 2 — App guide:** Answer questions about how BudgetLens works. Here is the full feature set:
 
@@ -35,7 +35,7 @@ BudgetLens features:
 - Staging (/staging): review parsed transactions before committing — filter, manually categorize, flag duplicates
 - Transactions (/transactions): full searchable/filterable transaction list; click any row for detail and category override
 - Categorize (/categorize): drag-and-drop workspace — drag transactions into category buckets, bulk-categorize by merchant, AI suggestions, save rules
-- Categories (/categories): create, rename, reorder, delete user-defined spending categories
+- Categories (/categories): create, rename, reorder, delete user-defined spending categories; set monthly budget targets per category (click the target icon on any expense category)
 - Rules (/rules): auto-categorization rules — map merchant keywords to categories, run automatically on new uploads
 - History (/history): all past uploads with status and transaction counts
 - Insights Q&A (/insights): this page — AI financial Q&A with web search for real-time prices
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
     const start = new Date(year, month - 1, 1)
     const end   = new Date(year, month, 0, 23, 59, 59)
 
-    const [summary, txRows, merchantStats, comparison, subscriptionData, webSearchResults] = await Promise.all([
+    const [summary, txRows, budgetTargets, merchantStats, comparison, subscriptionData, webSearchResults] = await Promise.all([
       // Always: summary
       computeMonthSummary(userId, year, month),
       // Always: raw transactions (up to 200)
@@ -235,6 +235,11 @@ export async function POST(req: NextRequest) {
         },
         orderBy: { date: 'asc' },
         take: 200,
+      }),
+      // Always: budget targets
+      prisma.budgetTarget.findMany({
+        where: { userId, period: 'monthly' },
+        include: { category: { select: { name: true, isIncome: true } } },
       }),
       // Conditional: merchant stats
       needsMerchant && merchantQuery
@@ -348,6 +353,23 @@ MONTH-OVER-MONTH COMPARISON (${comparison.labelA} vs ${comparison.labelB}):
 ${comparison.categoryDeltas.map(c => `    - ${c.categoryName}: $${c.amountA.toFixed(2)} → $${c.amountB.toFixed(2)} (${sign(c.delta)}$${c.delta.toFixed(2)})`).join('\n')}`
     }
 
+    // Budget section
+    let budgetSection = ''
+    if (budgetTargets.length > 0) {
+      const catTotalMap = new Map(summary.categoryTotals.map(c => [c.categoryName, c.total]))
+      const budgetLines = budgetTargets
+        .filter(b => !b.category.isIncome)
+        .map(b => {
+          const spent = catTotalMap.get(b.category.name) ?? 0
+          const budget = b.amountCents / 100
+          const remaining = budget - spent
+          const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0
+          const status = spent > budget ? `OVER by $${(spent - budget).toFixed(2)}` : `$${remaining.toFixed(2)} remaining`
+          return `  - ${b.category.name}: budget $${budget.toFixed(2)}/mo, spent $${spent.toFixed(2)} (${pct}%) — ${status}`
+        })
+      budgetSection = `\nMONTHLY BUDGETS:\n${budgetLines.join('\n')}`
+    }
+
     // Subscriptions section
     let subscriptionSection = ''
     if (subscriptionData) {
@@ -381,6 +403,7 @@ ${merchantSection}
 ${txSection}
 ${merchantDetailSection}
 ${comparisonSection}
+${budgetSection}
 ${subscriptionSection}
 
 IMPORTANT: Only reference the data shown above. Do not invent any numbers, merchants, or categories not listed here.`
