@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   Coins, Target, RefreshCw, TrendingUp, Gauge,
-  ChevronDown, ChevronRight, AlertTriangle, type LucideIcon,
+  ChevronDown, ChevronRight, AlertTriangle, Loader2, type LucideIcon,
 } from 'lucide-react'
 import type { InsightCard } from '@/lib/insights/types'
 
@@ -11,6 +11,9 @@ import type { InsightCard } from '@/lib/insights/types'
 
 interface Props {
   cards: InsightCard[]
+  year: number
+  month: number
+  onGenerated?: () => void
 }
 
 // ─── Icon map ─────────────────────────────────────────────────────────────────
@@ -191,12 +194,27 @@ function AutopsyCard({ card }: { card: InsightCard }) {
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
-export function FinancialAutopsyPanel({ cards }: Props) {
+export function FinancialAutopsyPanel({ cards, year, month, onGenerated }: Props) {
+  const [generating, setGenerating] = useState(false)
+  const [genError, setGenError] = useState<string | null>(null)
+
   const autopsyCards = cards
     .filter(c => c.card_type.startsWith('autopsy_'))
     .sort((a, b) => a.priority - b.priority)
 
-  if (autopsyCards.length === 0) return null
+  async function handleGenerate() {
+    setGenerating(true)
+    setGenError(null)
+    try {
+      const res = await fetch(`/api/insights/generate?year=${year}&month=${month}`, { method: 'POST' })
+      if (!res.ok) throw new Error(`Server error ${res.status}`)
+      onGenerated?.()
+    } catch (e) {
+      setGenError(e instanceof Error ? e.message : 'Generation failed')
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   // Count high-impact cards for the section header badge
   const highCount = autopsyCards.filter(c => c.confidence === 'high').length
@@ -215,7 +233,7 @@ export function FinancialAutopsyPanel({ cards }: Props) {
         }}>
           <AlertTriangle size={14} style={{ color: '#EF4444' }} />
         </div>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{
             fontSize: 13, fontWeight: 800,
             color: 'var(--text-primary, #e5e7eb)',
@@ -224,24 +242,75 @@ export function FinancialAutopsyPanel({ cards }: Props) {
             Financial Autopsy
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-faint, #6B7280)', marginTop: 1 }}>
-            {autopsyCards.length} finding{autopsyCards.length !== 1 ? 's' : ''}
+            {autopsyCards.length === 0
+              ? 'Deep-dive analysis of your spending patterns'
+              : `${autopsyCards.length} finding${autopsyCards.length !== 1 ? 's' : ''}`
+            }
             {highCount > 0 && (
-              <span style={{
-                marginLeft: 6, color: '#EF4444', fontWeight: 700,
-              }}>
+              <span style={{ marginLeft: 6, color: '#EF4444', fontWeight: 700 }}>
                 · {highCount} high impact
               </span>
             )}
           </div>
         </div>
+
+        {/* Generate button */}
+        <button
+          onClick={handleGenerate}
+          disabled={generating}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 12, fontWeight: 700,
+            padding: '6px 14px', borderRadius: 8,
+            border: '1px solid rgba(239,68,68,0.35)',
+            background: generating ? 'rgba(239,68,68,0.06)' : 'rgba(239,68,68,0.10)',
+            color: generating ? '#9ca3af' : '#EF4444',
+            cursor: generating ? 'not-allowed' : 'pointer',
+            transition: 'opacity 0.15s',
+            flexShrink: 0,
+          }}
+        >
+          {generating
+            ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Running…</>
+            : autopsyCards.length > 0 ? 'Re-run' : 'Run Autopsy'
+          }
+        </button>
       </div>
 
+      {/* Error */}
+      {genError && (
+        <div style={{
+          fontSize: 12, color: '#EF4444',
+          background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.2)',
+          borderRadius: 8, padding: '8px 12px', marginBottom: 10,
+        }}>
+          {genError}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {autopsyCards.length === 0 && !generating && (
+        <div style={{
+          background: 'var(--card2, #111827)',
+          border: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
+          borderRadius: 12, padding: '20px 16px',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 12, color: 'var(--text-faint, #6B7280)' }}>
+            Click <strong style={{ color: 'var(--text-secondary, #9ca3af)' }}>Run Autopsy</strong> to analyze spending patterns for this month.
+          </div>
+        </div>
+      )}
+
       {/* Cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {autopsyCards.map(card => (
-          <AutopsyCard key={card.id} card={card} />
-        ))}
-      </div>
+      {autopsyCards.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {autopsyCards.map(card => (
+            <AutopsyCard key={card.id} card={card} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

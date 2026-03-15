@@ -310,6 +310,11 @@ html, body {
 .bl-shimmer {
   animation: bl-shimmer-sweep 1.8s ease-in-out 0.4s forwards;
 }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 @keyframes bl-shimmer-sweep {
   0%   { transform: translateX(0px); }
   100% { transform: translateX(68px); }

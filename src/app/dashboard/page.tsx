@@ -435,7 +435,12 @@ export default function DashboardPage() {
         <SpendingCharts categories={spendingCategories} totalSpending={summary.totalSpending as number} />
 
         {/* ── Financial Autopsy ─────────────────────────────────────────────── */}
-        <FinancialAutopsyPanel cards={insightsData?.cards ?? []} />
+        <FinancialAutopsyPanel
+          cards={insightsData?.cards ?? []}
+          year={year}
+          month={month}
+          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
+        />
 
         {/* ── Row 3: Full-width tabbed panel ────────────────────────────────── */}
         <div style={cardStyle} className="overflow-hidden">
