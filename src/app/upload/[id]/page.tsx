@@ -3,13 +3,36 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, FileText } from 'lucide-react'
+import { ArrowLeft, Calendar, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, FileText, Tags } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { format } from 'date-fns'
 import { ReconciliationShield } from '@/components/ReconciliationShield'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+
+// ─── Category colors (matches CATEGORY_STYLES in summaries.ts) ───────────────
+
+const CAT_COLORS: Record<string, string> = {
+  'Food & Dining': '#f97316', 'Groceries': '#22c55e', 'Housing': '#f59e0b',
+  'Transport': '#3b82f6', 'Entertainment': '#ec4899', 'Shopping': '#f59e0b',
+  'Health': '#10b981', 'Utilities': '#6366f1', 'Subscriptions': '#6366f1',
+  'Personal Care': '#f472b6', 'Education': '#06b6d4', 'Travel': '#06b6d4',
+  'Insurance': '#64748b', 'Fees & Charges': '#ef4444', 'Gifts & Charity': '#a78bfa',
+  'Income': '#16a34a', 'Transfer': '#64748b', 'Transfers': '#64748b',
+  'Fast Food': '#f97316', 'Alcohol': '#8b5cf6', 'Restaurants': '#f97316',
+  'Gas/Fuel': '#3b82f6', 'Gasoline/Fuel': '#3b82f6', 'Pets': '#a3e635',
+  'Other': '#94a3b8', 'Uncategorized': '#94a3b8',
+}
+const FALLBACK_COLORS = ['#7c89ff','#34d399','#fb923c','#a78bfa','#60a5fa','#f472b6']
+function getCatColor(name: string, i: number) {
+  return CAT_COLORS[name] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]
+}
+
+function fmtPie(n: number) {
+  return '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -495,6 +518,15 @@ export default function UploadDetailPage() {
     enabled:  !!user && !!id,
   })
   const allIssues: Issue[] = issuesData?.issues ?? []
+
+  const { data: scanData } = useQuery({
+    queryKey: ['scan-report', id],
+    queryFn:  () => apiFetch(`/api/uploads/${id}/scan-report`),
+    enabled:  !!user && !!id,
+  })
+  const catBreakdown: Array<{ category: string; total: number; pct: number }> =
+    scanData?.findings?.categoryBreakdown ?? []
+  const spendingBreakdown = catBreakdown.filter(c => c.category !== 'Income')
   const openIssues     = allIssues.filter(i => !i.resolved)
   const resolvedIssues = allIssues.filter(i =>  i.resolved)
 
@@ -611,14 +643,83 @@ export default function UploadDetailPage() {
         </div>
 
         {/* ── Scan Report CTA ─────────────────────────────────────────────── */}
-        <button
-          onClick={() => router.push(`/reports/${id}`)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition"
-          style={{ background: 'linear-gradient(135deg,#7c91ff,#a78bfa)', color: '#fff', border: 'none', cursor: 'pointer' }}
-        >
-          <FileText size={16} />
-          View Scan Report
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => router.push(`/reports/${id}`)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition"
+            style={{ background: 'linear-gradient(135deg,#7c91ff,#a78bfa)', color: '#fff', border: 'none', cursor: 'pointer' }}
+          >
+            <FileText size={16} />
+            View Scan Report
+          </button>
+          <button
+            onClick={() => router.push('/categorize')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
+          >
+            <Tags size={16} />
+            Categorize
+          </button>
+        </div>
+
+        {/* ── Category pie chart ──────────────────────────────────────────── */}
+        {spendingBreakdown.length > 0 && (() => {
+          const pieData = spendingBreakdown.slice(0, 8).map((c, i) => ({
+            name:  c.category,
+            value: Math.abs(c.total),
+            color: getCatColor(c.category, i),
+            pct:   c.pct,
+            total: c.total,
+          }))
+          return (
+            <div className="card space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="font-bold text-slate-700">Spending by Category</h2>
+                <button
+                  onClick={() => router.push('/categorize')}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
+                >
+                  Categorize →
+                </button>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} stroke="transparent" />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number, name: string) => [fmtPie(value), name]}
+                    contentStyle={{
+                      background: '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-1.5">
+                {pieData.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }} />
+                    <span className="flex-1 text-slate-700 truncate">{c.name}</span>
+                    <span className="text-slate-500 text-xs">{fmtPie(c.total)}</span>
+                    <span className="text-slate-400 text-xs w-8 text-right">{c.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── Date range ─────────────────────────────────────────────────── */}
         {upload.dateRangeStart && upload.dateRangeEnd && (
