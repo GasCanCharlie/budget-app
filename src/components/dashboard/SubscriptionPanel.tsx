@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useApi } from '@/hooks/useApi'
-import { Repeat2, Zap, Loader2, Landmark, Play, Tag, Shield } from 'lucide-react'
+import { Repeat2, Zap, Loader2, Landmark, Play, Tag, Shield, BookOpen, ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -215,27 +215,17 @@ function CommitmentRow({ item }: { item: Commitment & { commitmentType: Commitme
 
 export function SubscriptionPanel({ userId }: { userId: string | undefined }) {
   const { apiFetch } = useApi()
-  const qc = useQueryClient()
+  const router = useRouter()
 
-  const detectMutation = useMutation({
-    mutationFn: () => apiFetch('/api/subscriptions', { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['subscriptions'] }),
-  })
-
-  const { data, isLoading } = useQuery<{ subscriptions: Commitment[] }>({
+  const { data, isLoading } = useQuery<{ subscriptions: Commitment[]; hasRules: boolean }>({
     queryKey: ['subscriptions'],
     queryFn: () => apiFetch('/api/subscriptions'),
     enabled: !!userId,
     staleTime: 5 * 60_000,
   })
 
-  useEffect(() => {
-    if (userId) detectMutation.mutate()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId])
-
   // ── Loading ──────────────────────────────────────────────────────────────────
-  if (isLoading || detectMutation.isPending) {
+  if (isLoading) {
     return (
       <div style={{ background: 'var(--card2)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <Loader2 size={16} style={{ color: '#6366F1', animation: 'spin 1s linear infinite' }} />
@@ -244,14 +234,45 @@ export function SubscriptionPanel({ userId }: { userId: string | undefined }) {
     )
   }
 
-  // ── Filter (medium+ confidence or high score) ────────────────────────────────
-  const rawItems = (data?.subscriptions ?? []).filter(
-    s => s.recurringConfidence !== 'low' && s.subscriptionScore >= 40
+  // ── No rules set up yet ──────────────────────────────────────────────────────
+  if (!data?.hasRules) return (
+    <div style={{
+      background: 'var(--card2)', border: '1px solid var(--border-soft)',
+      borderRadius: 16, padding: '24px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <BookOpen size={18} style={{ color: '#818CF8' }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#E5E7EB', marginBottom: 6 }}>
+            How Monthly Commitments works
+          </div>
+          <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.7, marginBottom: 14 }}>
+            This panel reads from your <strong style={{ color: '#C4B5FD' }}>category rules</strong>. When you create a rule that assigns a merchant to a recurring category — like <em>Subscriptions</em>, <em>Utilities</em>, or <em>Insurance</em> — it automatically appears here with its estimated monthly amount.
+          </div>
+          <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 18 }}>
+            For example: a rule that maps &quot;Verizon&quot; → <em>Utilities</em>, or &quot;Netflix&quot; → <em>Subscriptions</em>, will show those merchants as monthly commitments once transactions match.
+          </div>
+          <button
+            onClick={() => router.push('/rules')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '8px 16px', borderRadius: 8,
+              background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
+              color: '#818CF8', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Set up rules <ArrowRight size={13} />
+          </button>
+        </div>
+      </div>
+    </div>
   )
 
-  // ── Deduplicate by normalized key (safety net for pre-fix DB data) ───────────
+  // ── Deduplicate by normalized key ────────────────────────────────────────────
   const seen = new Map<string, Commitment>()
-  for (const item of rawItems) {
+  for (const item of data.subscriptions) {
     const key = normalizeKeyUI(item.merchantNormalized)
     const existing = seen.get(key)
     if (!existing || item.subscriptionScore > existing.subscriptionScore) {
@@ -260,15 +281,15 @@ export function SubscriptionPanel({ userId }: { userId: string | undefined }) {
   }
   const items = [...seen.values()]
 
-  // ── Empty state ──────────────────────────────────────────────────────────────
+  // ── Rules exist but no matching transactions yet ──────────────────────────────
   if (items.length === 0) return (
     <div style={{ background: 'var(--card2)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
       <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Repeat2 size={18} style={{ color: '#818CF8' }} />
       </div>
       <div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#E5E7EB', marginBottom: 3 }}>No recurring payments detected</div>
-        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>Upload more statements and we&apos;ll automatically identify your monthly commitments.</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#E5E7EB', marginBottom: 3 }}>No matching transactions yet</div>
+        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>Your rules are set up. Upload statements containing your recurring payments and they&apos;ll appear here automatically.</div>
       </div>
     </div>
   )
