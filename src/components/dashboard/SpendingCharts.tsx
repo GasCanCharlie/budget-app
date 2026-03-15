@@ -11,18 +11,19 @@ import {
   Pie,
   Cell,
   Legend,
+  CartesianGrid,
 } from 'recharts'
 
 // Tonal accent palette — indigo-based, calibrated for dark backgrounds
 const DONUT_PALETTE = [
-  '#818cf8',
-  '#fb923c',
-  '#34d399',
-  '#f472b6',
-  '#fbbf24',
-  '#22d3ee',
-  '#c084fc',
-  '#4ade80',
+  '#6366F1',
+  '#06B6D4',
+  '#22C55E',
+  '#F59E0B',
+  '#A78BFA',
+  '#F472B6',
+  '#34D399',
+  '#818CF8',
 ]
 
 interface CategoryItem {
@@ -61,8 +62,8 @@ function GradientBar(props: {
     <g>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#5E6BFF" />
-          <stop offset="100%" stopColor="#8791FF" />
+          <stop offset="0%" stopColor="#4F46E5" />
+          <stop offset="100%" stopColor="#818CF8" />
         </linearGradient>
       </defs>
       <rect
@@ -91,20 +92,21 @@ export function SpendingCharts({ categories }: Props) {
   }))
 
   const tooltipStyle = {
-    background: '#111827',
-    border: '1px solid #1F2937',
-    borderRadius: 8,
+    background: '#0F172A',
+    border: '1px solid rgba(255,255,255,0.10)',
+    borderRadius: 10,
     fontSize: 12,
     color: '#E5E7EB',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.50)',
+    padding: '8px 12px',
   }
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       {/* Bar chart — 2/3 width on md+ */}
       <div className="card p-5 md:col-span-2" style={{
-        background: '#111827',
-        border: '1px solid #1F2937',
+        background: 'var(--card, #111827)',
+        border: '1px solid var(--border, #1F2937)',
         borderRadius: 12,
         boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
       }}>
@@ -120,6 +122,7 @@ export function SpendingCharts({ categories }: Props) {
               layout="vertical"
               margin={{ top: 0, right: 16, bottom: 0, left: 0 }}
             >
+              <CartesianGrid horizontal={false} vertical={true} stroke="rgba(255,255,255,0.04)" strokeDasharray="4 4" />
               <XAxis
                 type="number"
                 tickFormatter={(v: number) => `$${v.toLocaleString()}`}
@@ -152,8 +155,8 @@ export function SpendingCharts({ categories }: Props) {
 
       {/* Donut chart — 1/3 width on md+ */}
       <div className="card p-5 md:col-span-1" style={{
-        background: '#111827',
-        border: '1px solid #1F2937',
+        background: 'var(--card, #111827)',
+        border: '1px solid var(--border, #1F2937)',
         borderRadius: 12,
         boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
       }}>

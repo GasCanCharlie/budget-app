@@ -58,11 +58,11 @@ function AutopsyCard({ card }: { card: InsightCard }) {
   return (
     <div
       style={{
-        background: 'var(--card2, #111827)',
-        border: `1px solid var(--border-soft, rgba(255,255,255,0.06))`,
-        borderRadius: 12,
+        background: 'var(--card2, #0F1623)',
+        border: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
+        borderRadius: 14,
         overflow: 'hidden',
-        transition: 'border-color 0.2s',
+        transition: 'border-color 200ms ease, box-shadow 200ms ease',
       }}
     >
       {/* Header row */}
@@ -227,7 +227,7 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated }: Props
     <div style={{ marginBottom: 8 }}>
       {/* Section header */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
+        display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
       }}>
         <div style={{
           width: 28, height: 28, borderRadius: 8,

@@ -271,15 +271,15 @@ export default function DashboardPage() {
     : null
 
   const cardStyle: React.CSSProperties = {
-    background: '#111827',
-    border: '1px solid #1F2937',
-    borderRadius: '12px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+    background: 'var(--card, #111827)',
+    border: '1px solid var(--border, #1F2937)',
+    borderRadius: 16,
+    boxShadow: '0 4px 24px rgba(0,0,0,0.32)',
   }
 
   return (
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
-      <div className="space-y-5 pb-24">
+      <div className="space-y-6 pb-24">
 
         {/* Background-refetch indicator */}
         {!!(isRefetching || trendsRefetching) && (
@@ -317,8 +317,8 @@ export default function DashboardPage() {
 
         {/* ── Anomaly alerts ────────────────────────────────────────────────── */}
         {summary.alerts && (summary.alerts as unknown[]).length > 0 && (
-          <div className="rounded-xl overflow-hidden" style={{ background: '#111827', border: '1px solid #1F2937' }}>
-            <div className="flex items-center gap-2 px-5 py-3" style={{ borderBottom: '1px solid #1F2937' }}>
+          <div className="rounded-xl overflow-hidden" style={{ background: 'var(--card, #111827)', border: '1px solid var(--border, #1F2937)' }}>
+            <div className="flex items-center gap-2 px-5 py-3" style={{ borderBottom: '1px solid var(--border, #1F2937)' }}>
               <AlertTriangle size={14} style={{ color: '#F59E0B' }} />
               <span className="text-sm font-semibold" style={{ color: '#E5E7EB' }}>Anomaly Alerts</span>
               <span className="px-1.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>
@@ -327,7 +327,7 @@ export default function DashboardPage() {
             </div>
             <div>
               {(summary.alerts as { id?: string; type: string; message: string }[]).map((alert, i) => (
-                <div key={alert.id ?? i} className="flex items-start gap-3 px-5 py-3" style={{ borderBottom: '1px solid #1F2937' }}>
+                <div key={alert.id ?? i} className="flex items-start gap-3 px-5 py-3" style={{ borderBottom: '1px solid var(--border, #1F2937)' }}>
                   <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" style={{ color: '#F59E0B' }} />
                   <p className="text-sm flex-1" style={{ color: '#D1D5DB' }}>{alert.message}</p>
                   {alert.id && (
@@ -375,46 +375,50 @@ export default function DashboardPage() {
           {/* RIGHT: Change / Insight Panel — lg:col-span-5 */}
           <div className="lg:col-span-5">
             <div style={cardStyle} className="p-5 space-y-5 h-full">
-              <h2 className="text-sm font-semibold" style={{ color: '#E5E7EB' }}>Monthly Snapshot</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #E5E7EB)', letterSpacing: '-0.01em', margin: 0 }}>
+                  Monthly Snapshot
+                </h2>
+              </div>
 
               {/* vs Last Month */}
-              <div className="rounded-xl p-4" style={{ border: '1px solid #1F2937' }}>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#6B7280' }}>
+              <div style={{ borderRadius: 12, padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 12 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B7280', marginBottom: 8 }}>
                   vs Last Month
                 </p>
                 {prevMonthSpending !== null ? (
-                  <p className="text-sm" style={{ color: '#D1D5DB' }}>
+                  <p style={{ fontSize: 13, color: '#D1D5DB', margin: 0, lineHeight: 1.5 }}>
                     Spending changed by{' '}
-                    <strong style={{ color: summary.totalSpending > prevMonthSpending ? '#EF4444' : '#22C55E' }}>
+                    <strong style={{ color: summary.totalSpending > prevMonthSpending ? '#EF4444' : '#22C55E', fontSize: 15 }}>
                       {summary.totalSpending > prevMonthSpending ? '+' : ''}
                       {Math.round(((summary.totalSpending - prevMonthSpending) / prevMonthSpending) * 100)}%
                     </strong>
                     {' '}from last month.
                   </p>
                 ) : (
-                  <div className="flex items-start gap-2.5" style={{ color: '#6B7280' }}>
-                    <UploadCloud size={15} className="mt-0.5 flex-shrink-0" />
-                    <p className="text-sm">Upload previous statement to compare months</p>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: '#6B7280' }}>
+                    <UploadCloud size={14} style={{ marginTop: 2, flexShrink: 0 }} />
+                    <p style={{ fontSize: 12, margin: 0, lineHeight: 1.5 }}>Upload previous statement to compare months</p>
                   </div>
                 )}
               </div>
 
-              {/* Unusual Purchases placeholder — anomaly alerts already shown above */}
-              <div className="rounded-xl p-4" style={{ border: '1px solid #1F2937' }}>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#6B7280' }}>
+              {/* Largest Transaction */}
+              <div style={{ borderRadius: 12, padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B7280', marginBottom: 8 }}>
                   Largest Transaction
                 </p>
                 {topTransactions.length > 0 ? (
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: '#E5E7EB' }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', margin: 0, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {topTransactions[0].merchantNormalized || topTransactions[0].description}
                     </p>
-                    <p className="text-lg font-bold mt-0.5" style={{ color: '#EF4444' }}>
+                    <p style={{ fontSize: 22, fontWeight: 800, color: '#EF4444', margin: 0, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
                       ${Math.abs(topTransactions[0].amount).toFixed(2)}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-sm" style={{ color: '#6B7280' }}>No transactions yet</p>
+                  <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>No transactions yet</p>
                 )}
               </div>
             </div>
@@ -445,15 +449,15 @@ export default function DashboardPage() {
         {/* ── Row 3: Full-width tabbed panel ────────────────────────────────── */}
         <div style={cardStyle} className="overflow-hidden">
           {/* Tab header */}
-          <div className="flex items-center gap-1 px-5 pt-4 pb-0" style={{ borderBottom: '1px solid #1F2937' }}>
+          <div className="flex items-center gap-0 px-5 pt-4 pb-0" style={{ borderBottom: '1px solid var(--border, #1F2937)' }}>
             {(['transactions', 'insights'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors"
+                className="px-4 py-2.5 text-sm font-semibold -mb-px transition-all"
                 style={activeTab === tab
-                  ? { borderColor: '#6C7CFF', color: '#6C7CFF' }
-                  : { borderColor: 'transparent', color: '#6B7280' }
+                  ? { borderBottom: '2px solid #6366F1', color: '#a5b4fc', marginBottom: -1 }
+                  : { borderBottom: '2px solid transparent', color: '#6B7280', marginBottom: -1 }
                 }
               >
                 {tab === 'transactions' ? 'Top Transactions' : 'Insights'}
