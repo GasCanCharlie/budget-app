@@ -303,6 +303,14 @@ export async function PATCH(
       await computeMonthSummary(payload.userId, txYear, txMonth)
     }
 
+    // Stale insight cards so the next visit auto-regenerates with fresh category data
+    if (data.appCategory !== undefined || data.categoryId !== undefined) {
+      await prisma.insightCard.updateMany({
+        where: { userId: payload.userId },
+        data:  { generatedAt: new Date(0) },
+      })
+    }
+
     return NextResponse.json({ updated: appliedCount })
   } catch (e) {
     if (e instanceof z.ZodError) return NextResponse.json({ error: e.errors[0].message }, { status: 400 })

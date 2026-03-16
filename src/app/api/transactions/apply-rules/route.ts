@@ -93,6 +93,14 @@ export async function POST(req: NextRequest) {
       applied++
     }
 
+    // Stale insight cards so the next visit auto-regenerates with fresh category data
+    if (applied > 0) {
+      await prisma.insightCard.updateMany({
+        where: { userId },
+        data:  { generatedAt: new Date(0) },
+      })
+    }
+
     return NextResponse.json({ applied, skipped })
   } catch (err) {
     console.error('POST /api/transactions/apply-rules error:', err)

@@ -137,6 +137,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Stale insight cards so the next visit auto-regenerates with fresh category data
+    if (totalUpdated > 0) {
+      await prisma.insightCard.updateMany({
+        where: { userId: payload.userId },
+        data:  { generatedAt: new Date(0) },
+      })
+    }
+
     return NextResponse.json({ updated: totalUpdated })
   } catch (e) {
     if (e instanceof z.ZodError) return NextResponse.json({ error: e.errors[0].message }, { status: 400 })
