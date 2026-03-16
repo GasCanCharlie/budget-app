@@ -92,15 +92,18 @@ export async function POST(
 
       const categoryName = stx.category?.name ?? null
 
+      const isRule = stx.categorySource !== 'manual' && stx.ruleId != null
       // Update the Transaction record in the ledger
       await prisma.transaction.update({
         where: { id: matchingTx.id },
         data: {
-          appCategory:     categoryName,
-          assignedBy:      stx.categorySource === 'manual' ? 'manual' : 'rule',
-          appliedRuleId:   stx.ruleId ?? null,
-          needsReview:     stx.status === 'needs_review',
-          reviewedByUser:  true,
+          appCategory:          categoryName,
+          categoryId:           stx.categoryId ?? null,
+          categorizationSource: isRule ? 'rule' : 'user',
+          assignedBy:           stx.categorySource === 'manual' ? 'manual' : 'rule',
+          appliedRuleId:        stx.ruleId ?? null,
+          needsReview:          stx.status === 'needs_review',
+          reviewedByUser:       true,
         },
       })
 

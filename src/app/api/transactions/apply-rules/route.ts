@@ -25,11 +25,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ applied: 0, skipped: 0, message: 'No rules found' })
     }
 
-    // Fetch all uncategorized (appCategory null) committed transactions for this user
+    // Fetch all transactions missing categoryId (uncategorized or previously categorized
+    // before categoryId was being written — catches both new and legacy transactions)
     const transactions = await prisma.transaction.findMany({
       where: {
         account: { userId },
-        appCategory: null,
+        categoryId: null,
         isExcluded: false,
       },
       select: {
@@ -81,10 +82,12 @@ export async function POST(req: NextRequest) {
       await prisma.transaction.update({
         where: { id: tx.id },
         data: {
-          appCategory:   category.name,
-          assignedBy:    'rule',
-          appliedRuleId: rule.id,
-          needsReview:   false,
+          appCategory:          category.name,
+          categoryId:           rule.categoryId,
+          categorizationSource: 'rule',
+          assignedBy:           'rule',
+          appliedRuleId:        rule.id,
+          needsReview:          false,
         },
       })
       applied++
