@@ -134,7 +134,6 @@ export async function computeMonthSummary(
       description:        true,
       merchantNormalized: true,
       amount:             true,
-      bankCategoryRaw:    true,
       appCategory:        true,
     },
     orderBy: { date: 'asc' },
@@ -176,8 +175,7 @@ export async function computeMonthSummary(
   }> = new Map()
 
   for (const tx of transactions) {
-    // New display category: appCategory > bankCategoryRaw > "Uncategorized"
-    const displayCat = tx.appCategory?.trim() || tx.bankCategoryRaw?.trim() || 'Uncategorized'
+    const displayCat = tx.appCategory?.trim() || 'Uncategorized'
 
     // For icon/color, use a static lookup
     const catStyle = getDisplayCategoryStyle(displayCat)
@@ -234,7 +232,7 @@ export async function computeMonthSummary(
     .sort((a, b) => a.amount - b.amount)
     .slice(0, 5)
     .map(t => {
-      const displayCat = t.appCategory?.trim() || t.bankCategoryRaw?.trim() || 'Uncategorized'
+      const displayCat = t.appCategory?.trim() || 'Uncategorized'
       const cat = getDisplayCategoryStyle(displayCat)
       return {
         id:                 t.id,

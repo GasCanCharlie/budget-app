@@ -198,7 +198,6 @@ async function queryLargeTransactions(
       amount: true,
       date: true,
       appCategory: true,
-      bankCategoryRaw: true,
     },
     orderBy: { amount: 'asc' }, // most negative = largest expense first
     take: 10,
@@ -209,7 +208,7 @@ async function queryLargeTransactions(
     merchantNormalized: r.merchantNormalized,
     amount: Math.abs(r.amount),
     date: r.date.toISOString(),
-    categoryName: r.appCategory ?? r.bankCategoryRaw ?? 'Uncategorized',
+    categoryName: r.appCategory ?? 'Uncategorized',
   }))
 }
 
