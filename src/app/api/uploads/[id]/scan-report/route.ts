@@ -140,60 +140,66 @@ async function buildReport(uploadId: string, userId: string): Promise<ScanReport
     .filter(a => !a.isDismissed)
     .map(a => ({ message: a.message, type: a.alertType }))
 
-  // ── Subscriptions (inline detection scoped to this upload) ───────────────
-  // Group negative transactions by normalized merchant key and detect recurring
-  // patterns inline — no category filter so uncategorized uploads still work.
-  // Strict thresholds to avoid false positives from food/gas/irregular spend.
+  // ── Subscriptions — rules-based only ─────────────────────────────────────
+  // Only show merchants that have been explicitly categorized via a saved rule
+  // into a recurring-type category. If no rules exist, return empty.
 
-  // Merchants that are never subscriptions regardless of recurrence
-  const NON_SUBSCRIPTION_PATTERN = /\b(taco|bell|mcdonald|burger|pizza|subway|starbucks|coffee|dunkin|chipotle|wendys|chick.?fil|popeyes|domino|kfc|sonic|dairy queen|dq|ihop|denny|olive garden|applebee|chilis|sushi|ramen|cafe|bakery|deli|grill|bbq|steakhouse|restaurant|eatery|food|dining|gas|fuel|texaco|shell|chevron|exxon|mobil|bp |arco|valero|76 |circle k|7.eleven|wawa|speedway|quiktrip|casey|car wash|carwash|wash|detailing|autozone|oreilly|napa auto|jiffy lube|oil change|parking|park|lot |garage|atm |withdrawal|walmart|target|costco|sam.?s|kroger|safeway|albertson|publix|whole foods|trader joe|aldi|grocery|supermarket|market|cvs|walgreen|rite aid|pharmacy|dollar|dollar tree|dollar general|five below|ross|tjmaxx|marshalls|homegoods|goodwill|amazon(?! prime| digital))\b/
+  const RECURRING_CATEGORY_NAMES = [
+    'subscriptions', 'entertainment', 'utilities', 'health',
+    'insurance', 'memberships', 'housing', 'loans',
+    'internet', 'phone', 'cable', 'recurring',
+  ]
 
-  const merchantGroups = new Map<string, { amounts: number[]; dates: Date[] }>()
-  for (const tx of transactions) {
-    if (tx.amount >= 0) continue
-    const key = normalizeKey(tx.merchantNormalized || '')
-    if (!key || key.length < 2) continue
-    // Skip known non-subscription merchant types
-    if (NON_SUBSCRIPTION_PATTERN.test(key)) continue
-    if (!merchantGroups.has(key)) merchantGroups.set(key, { amounts: [], dates: [] })
-    const g = merchantGroups.get(key)!
-    g.amounts.push(Math.abs(tx.amount))
-    g.dates.push(tx.date)
-  }
+  const recurringCategories = await prisma.category.findMany({
+    where: { name: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' } },
+    select: { id: true },
+  })
+  const recurringCatIds = recurringCategories.map(c => c.id)
 
   const subscriptionItems: SubscriptionItem[] = []
-  for (const [merchant, { amounts, dates }] of merchantGroups) {
-    if (amounts.length < 3) continue  // require at least 3 occurrences
-    const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length
-    if (mean < 5) continue  // ignore amounts under $5
-    const stdDev = Math.sqrt(amounts.reduce((s, a) => s + (a - mean) ** 2, 0) / amounts.length)
-    const cv = (stdDev / mean) * 100
-    if (cv > 15) continue  // tightened from 40% — amounts must be very consistent
+  let monthlyTotal = 0
 
-    // Check that intervals suggest a recurring pattern (weekly / biweekly / monthly / annual)
-    const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime())
-    const intervals: number[] = []
-    for (let i = 1; i < sorted.length; i++) {
-      intervals.push((sorted[i].getTime() - sorted[i - 1].getTime()) / 86_400_000)
+  if (recurringCatIds.length > 0) {
+    const recurringRules = await prisma.categoryRule.findMany({
+      where: {
+        categoryId: { in: recurringCatIds },
+        isEnabled: true,
+        OR: [{ userId }, { isSystem: true }],
+      },
+      select: { id: true },
+    })
+    const recurringRuleIds = recurringRules.map(r => r.id)
+
+    if (recurringRuleIds.length > 0) {
+      const ruleTxs = await prisma.transaction.findMany({
+        where: {
+          account: { userId },
+          isExcluded: false,
+          amount: { lt: 0 },
+          categoryId:           { in: recurringCatIds },
+          appliedRuleId:        { in: recurringRuleIds },
+          categorizationSource: 'rule',
+        },
+        select: { merchantNormalized: true, amount: true },
+      })
+
+      const byMerchant = new Map<string, number[]>()
+      for (const tx of ruleTxs) {
+        const key = normalizeKey(tx.merchantNormalized || '')
+        if (!key || key.length < 2) continue
+        if (!byMerchant.has(key)) byMerchant.set(key, [])
+        byMerchant.get(key)!.push(Math.abs(tx.amount))
+      }
+
+      for (const [merchant, amounts] of byMerchant) {
+        const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length
+        const confidence = amounts.length >= 3 ? 'high' : 'medium'
+        subscriptionItems.push({ merchant, amount: mean, confidence })
+      }
+      subscriptionItems.sort((a, b) => b.amount - a.amount)
+      monthlyTotal = subscriptionItems.reduce((sum, s) => sum + s.amount, 0)
     }
-    const avgInterval = intervals.reduce((s, d) => s + d, 0) / intervals.length
-    // Also require that interval variance is low (charges happen on a consistent schedule)
-    const intervalStdDev = Math.sqrt(intervals.reduce((s, d) => s + (d - avgInterval) ** 2, 0) / intervals.length)
-    const intervalCV = avgInterval > 0 ? (intervalStdDev / avgInterval) * 100 : 100
-    if (intervalCV > 25) continue  // schedule must be consistent
-    const isRecurring =
-      (avgInterval >= 5  && avgInterval <= 9)  ||   // weekly
-      (avgInterval >= 12 && avgInterval <= 16) ||   // biweekly
-      (avgInterval >= 20 && avgInterval <= 40) ||   // monthly
-      (avgInterval >= 340 && avgInterval <= 400)    // annual
-    if (!isRecurring) continue
-
-    const confidence = cv < 5 && amounts.length >= 4 ? 'high' : cv < 10 ? 'medium' : 'low'
-    subscriptionItems.push({ merchant, amount: mean, confidence })
   }
-  subscriptionItems.sort((a, b) => b.amount - a.amount)
-
-  const monthlyTotal = subscriptionItems.reduce((sum, s) => sum + s.amount, 0)
 
   // ── Top merchants ─────────────────────────────────────────────────────────
 
