@@ -164,9 +164,16 @@ export async function computeMonthSummary(
   let totalSpending = 0
   let incomeTxCount = 0
 
-  // Track total (abs) and netAmount (signed) per category so we can determine
-  // income vs expense purely from transaction direction, not from name lookup.
-  const categoryMap: Map<string, { total: number; netAmount: number; count: number; cat: ReturnType<typeof getDisplayCategoryStyle> }> = new Map()
+  // Track spending (negatives) and income (positives) separately per category.
+  // This prevents refunds/credits in a spending category from inflating its total
+  // above totalSpending, and prevents a single positive transaction from misclassifying
+  // an expense category as income and hiding it from the spending chart.
+  const categoryMap: Map<string, {
+    spendingTotal: number
+    incomeTotal:   number
+    count:         number
+    cat:           ReturnType<typeof getDisplayCategoryStyle>
+  }> = new Map()
 
   for (const tx of transactions) {
     // New display category: appCategory > bankCategoryRaw > "Uncategorized"
@@ -186,23 +193,28 @@ export async function computeMonthSummary(
 
     const existing = categoryMap.get(displayCat)
     if (existing) {
-      existing.total     += Math.abs(tx.amount)
-      existing.netAmount += tx.amount
+      if (tx.amount < 0) existing.spendingTotal += Math.abs(tx.amount)
+      else               existing.incomeTotal   += tx.amount
       existing.count++
     } else {
-      categoryMap.set(displayCat, { total: Math.abs(tx.amount), netAmount: tx.amount, count: 1, cat: catStyle })
+      categoryMap.set(displayCat, {
+        spendingTotal: tx.amount < 0 ? Math.abs(tx.amount) : 0,
+        incomeTotal:   tx.amount > 0 ? tx.amount           : 0,
+        count: 1,
+        cat:   catStyle,
+      })
     }
   }
 
   const net = totalIncome - totalSpending
 
-  // Category breakdown.
-  // isIncome is determined by the net direction of the category's transactions —
-  // if the category's net amount is positive it's income, regardless of category name.
-  // This correctly handles user-defined income categories like "Paycheck" or "Freelance".
+  // A category is income only if ALL its transactions are positive (e.g. Paycheck, Salary).
+  // A category with ANY negative transactions is an expense category — even if it also
+  // has some refunds. This prevents a single credit from hiding a spending category.
   const categoryTotals: CategoryTotal[] = Array.from(categoryMap.entries())
-    .map(([, { total, netAmount, count, cat }]) => {
-      const isIncome = netAmount > 0
+    .map(([, { spendingTotal, incomeTotal, count, cat }]) => {
+      const isIncome = spendingTotal === 0 && incomeTotal > 0
+      const total    = isIncome ? incomeTotal : spendingTotal
       return {
         categoryId:       cat.id,
         categoryName:     cat.name,
@@ -210,7 +222,6 @@ export async function computeMonthSummary(
         categoryIcon:     cat.icon,
         total,
         transactionCount: count,
-        // pctOfSpending is only meaningful for expense categories
         pctOfSpending:    totalSpending > 0 && !isIncome ? (total / totalSpending) * 100 : 0,
         isIncome,
       }
