@@ -140,66 +140,43 @@ async function buildReport(uploadId: string, userId: string): Promise<ScanReport
     .filter(a => !a.isDismissed)
     .map(a => ({ message: a.message, type: a.alertType }))
 
-  // ── Subscriptions — rules-based only ─────────────────────────────────────
-  // Only show merchants that have been explicitly categorized via a saved rule
-  // into a recurring-type category. If no rules exist, return empty.
+  // ── Subscriptions — based on appCategory (what categorize page actually writes) ──
+  // Query all user transactions marked as a recurring-type category via appCategory.
+  // This works for both manual categorization and rule-applied transactions.
 
   const RECURRING_CATEGORY_NAMES = [
-    'subscriptions', 'entertainment', 'utilities', 'health',
-    'insurance', 'memberships', 'housing', 'loans',
-    'internet', 'phone', 'cable', 'recurring',
+    'subscriptions', 'utilities', 'insurance', 'memberships',
+    'housing', 'loans', 'internet', 'phone', 'cable', 'recurring',
   ]
 
-  const recurringCategories = await prisma.category.findMany({
-    where: { name: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' } },
-    select: { id: true },
+  const recurringTxs = await prisma.transaction.findMany({
+    where: {
+      account:     { userId },
+      isExcluded:  false,
+      amount:      { lt: 0 },
+      appCategory: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' },
+    },
+    select: { merchantNormalized: true, amount: true, appCategory: true },
   })
-  const recurringCatIds = recurringCategories.map(c => c.id)
+
+  const byMerchant = new Map<string, number[]>()
+  for (const tx of recurringTxs) {
+    const key = normalizeKey(tx.merchantNormalized || '')
+    if (!key || key.length < 2) continue
+    if (!byMerchant.has(key)) byMerchant.set(key, [])
+    byMerchant.get(key)!.push(Math.abs(tx.amount))
+  }
 
   const subscriptionItems: SubscriptionItem[] = []
-  let monthlyTotal = 0
-
-  if (recurringCatIds.length > 0) {
-    const recurringRules = await prisma.categoryRule.findMany({
-      where: {
-        categoryId: { in: recurringCatIds },
-        isEnabled: true,
-        OR: [{ userId }, { isSystem: true }],
-      },
-      select: { id: true },
-    })
-    const recurringRuleIds = recurringRules.map(r => r.id)
-
-    if (recurringRuleIds.length > 0) {
-      const ruleTxs = await prisma.transaction.findMany({
-        where: {
-          account: { userId },
-          isExcluded: false,
-          amount: { lt: 0 },
-          categoryId:           { in: recurringCatIds },
-          appliedRuleId:        { in: recurringRuleIds },
-          categorizationSource: 'rule',
-        },
-        select: { merchantNormalized: true, amount: true },
-      })
-
-      const byMerchant = new Map<string, number[]>()
-      for (const tx of ruleTxs) {
-        const key = normalizeKey(tx.merchantNormalized || '')
-        if (!key || key.length < 2) continue
-        if (!byMerchant.has(key)) byMerchant.set(key, [])
-        byMerchant.get(key)!.push(Math.abs(tx.amount))
-      }
-
-      for (const [merchant, amounts] of byMerchant) {
-        const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length
-        const confidence = amounts.length >= 3 ? 'high' : 'medium'
-        subscriptionItems.push({ merchant, amount: mean, confidence })
-      }
-      subscriptionItems.sort((a, b) => b.amount - a.amount)
-      monthlyTotal = subscriptionItems.reduce((sum, s) => sum + s.amount, 0)
-    }
+  for (const [merchant, amounts] of byMerchant) {
+    const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length
+    if (mean < 1) continue
+    const confidence = amounts.length >= 3 ? 'high' : amounts.length >= 2 ? 'medium' : 'low'
+    subscriptionItems.push({ merchant, amount: mean, confidence })
   }
+  subscriptionItems.sort((a, b) => b.amount - a.amount)
+
+  let monthlyTotal = subscriptionItems.reduce((sum, s) => sum + s.amount, 0)
 
   // ── Top merchants ─────────────────────────────────────────────────────────
 

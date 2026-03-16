@@ -3,24 +3,19 @@ import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { normalizeKey } from '@/lib/intelligence/detect-subscriptions'
 
-// Categories whose presence means "this merchant is a recurring commitment"
+// appCategory values that indicate a recurring commitment
 const RECURRING_CATEGORY_NAMES = [
-  'subscriptions', 'entertainment', 'utilities', 'health',
-  'insurance', 'memberships', 'housing', 'loans',
-  'internet', 'phone', 'cable', 'recurring',
+  'subscriptions', 'utilities', 'insurance', 'memberships',
+  'housing', 'loans', 'internet', 'phone', 'cable', 'recurring',
 ]
 
 /**
  * GET /api/subscriptions
  *
- * Derives recurring commitments from the user's category rules + categorized
- * transactions. Rules are the primary source of truth:
- *
- *   1. Find categories that map to recurring-type names.
- *   2. Check whether any rules target those categories. If none → hasRules:false.
- *   3. Pull all transactions categorized into those categories (by rule or manually).
- *   4. Group by normalized merchant, compute average amount + recurrence evidence.
- *   5. Return sorted by estimated monthly amount.
+ * Returns recurring commitments based on transactions the user has manually
+ * categorized (or rules have categorized) into a recurring-type category.
+ * Uses appCategory (the free-text field written by the categorize page and
+ * apply-rules) as the source of truth — NOT categoryId FK.
  */
 export async function GET(req: NextRequest) {
   const payload = getUserFromRequest(req)
@@ -28,80 +23,43 @@ export async function GET(req: NextRequest) {
 
   const userId = payload.userId
 
-  // ── Step 1: Find recurring-type categories (system + user-created) ──────────
-  const recurringCategories = await prisma.category.findMany({
-    where: {
-      name: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' },
-    },
-    select: { id: true, name: true },
-  })
-  const recurringCatIds = recurringCategories.map(c => c.id)
-
-  if (recurringCatIds.length === 0) {
-    return NextResponse.json({ subscriptions: [], hasRules: false })
-  }
-
-  // ── Step 2: Fetch rules that target those categories ────────────────────────
-  // Rules are the source of intent. We need the rule IDs so we can confirm
-  // each transaction was placed in a recurring category BY a rule — not by
-  // accident, manual override, or a stale default assignment.
-  const recurringRules = await prisma.categoryRule.findMany({
-    where: {
-      categoryId: { in: recurringCatIds },
-      isEnabled: true,
-      OR: [{ userId }, { isSystem: true }],
-    },
-    select: { id: true },
-  })
-  const recurringRuleIds = recurringRules.map(r => r.id)
-
-  if (recurringRuleIds.length === 0) {
-    return NextResponse.json({ subscriptions: [], hasRules: false })
-  }
-
-  // ── Step 3: Triple-filter transaction query ──────────────────────────────────
-  // A transaction is eligible only when ALL THREE are true:
-  //   1. categoryId is a recurring-type category   (current assignment is correct)
-  //   2. appliedRuleId is one of the recurring rules (it got here via a rule)
-  //   3. categorizationSource = 'rule'              (not manual, not default)
-  //
-  // This prevents Taco Bell, car washes, etc. from appearing even if they
-  // happen to land in a recurring category through any other path.
+  // Find all negative transactions categorized into a recurring-type category
   const transactions = await prisma.transaction.findMany({
     where: {
-      account: { userId },
-      isExcluded: false,
-      amount: { lt: 0 },
-      categoryId:             { in: recurringCatIds },
-      appliedRuleId:          { in: recurringRuleIds },
-      categorizationSource:   'rule',
+      account:     { userId },
+      isExcluded:  false,
+      amount:      { lt: 0 },
+      appCategory: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' },
     },
     select: {
       merchantNormalized: true,
-      amount: true,
-      date: true,
-      category:         { select: { name: true } },
-      overrideCategory: { select: { name: true } },
+      amount:             true,
+      date:               true,
+      appCategory:        true,
     },
     orderBy: { date: 'asc' },
   })
 
-  // ── Step 4: Group by normalized merchant ────────────────────────────────────
+  // No categorized recurring transactions yet
+  if (transactions.length === 0) {
+    return NextResponse.json({ subscriptions: [], hasRules: false })
+  }
+
+  // Group by normalized merchant
   type Group = { amounts: number[]; dates: Date[]; categoryName: string | null }
   const byMerchant = new Map<string, Group>()
 
   for (const tx of transactions) {
     const key = normalizeKey(tx.merchantNormalized || '')
     if (!key || key.length < 2) continue
-    const cat = tx.overrideCategory?.name ?? tx.category?.name ?? null
     if (!byMerchant.has(key)) byMerchant.set(key, { amounts: [], dates: [], categoryName: null })
     const g = byMerchant.get(key)!
     g.amounts.push(Math.abs(tx.amount))
     g.dates.push(tx.date)
-    if (cat) g.categoryName = cat // keep most recent
+    if (tx.appCategory) g.categoryName = tx.appCategory
   }
 
-  // ── Step 5: Build subscription items ────────────────────────────────────────
+  // Build subscription items
   const subscriptions: {
     id: string
     merchantNormalized: string
@@ -115,7 +73,7 @@ export async function GET(req: NextRequest) {
 
   for (const [merchant, { amounts, dates, categoryName }] of byMerchant) {
     const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length
-    if (mean < 2) continue
+    if (mean < 1) continue
 
     const stdDev = amounts.length > 1
       ? Math.sqrt(amounts.reduce((s, a) => s + (a - mean) ** 2, 0) / amounts.length)
@@ -135,7 +93,6 @@ export async function GET(req: NextRequest) {
       }
       avgInterval = intervals.reduce((s, d) => s + d, 0) / intervals.length
 
-      // Consecutive calendar months
       const monthKeys = [
         ...new Set(sorted.map(d => d.getFullYear() * 12 + d.getMonth())),
       ].sort((a, b) => a - b)
@@ -151,28 +108,27 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Confidence — rule-backed merchants start at "medium" even with one occurrence
     const confidence =
       consecutiveMonths >= 3 && cv < 10 ? 'high' :
       consecutiveMonths >= 2             ? 'high' :
       amounts.length   >= 2             ? 'medium' :
-      'medium'  // rule-backed single occurrence = confirmed by user categorization
+      'medium'
 
     const score = Math.min(100,
-      20 +  // rule-backed baseline
+      20 +
       Math.min(consecutiveMonths * 10, 30) +
       Math.round(Math.max(0, 15 - cv) * 2) +
       (cv <= 15 ? 10 : 0)
     )
 
     subscriptions.push({
-      id: merchant,
-      merchantNormalized: merchant,
+      id:                     merchant,
+      merchantNormalized:     merchant,
       estimatedMonthlyAmount: mean,
-      recurringConfidence: confidence,
-      subscriptionScore: score,
+      recurringConfidence:    confidence,
+      subscriptionScore:      score,
       consecutiveMonths,
-      serviceCategory: categoryName,
+      serviceCategory:        categoryName,
       estimatedNextCharge,
     })
   }
