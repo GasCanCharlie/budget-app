@@ -344,10 +344,35 @@ export async function computeInsights(
   }
 
   // ── Steps 5-7: largeTransactions needs p95Threshold; subInsight is independent
-  const [largeTransactions, subInsight] = await Promise.all([
+  const RECURRING_CATEGORY_NAMES = [
+    'subscriptions', 'utilities', 'insurance', 'memberships',
+    'housing', 'loans', 'internet', 'phone', 'cable', 'recurring',
+  ]
+
+  const [largeTransactions, subInsight, categorizedRecurringTxs] = await Promise.all([
     queryLargeTransactions(userId, year, month, p95Threshold),
     detectSubscriptions(userId, year, month),
+    prisma.transaction.findMany({
+      where: {
+        account:     { userId },
+        isExcluded:  false,
+        amount:      { lt: 0 },
+        appCategory: { in: RECURRING_CATEGORY_NAMES, mode: 'insensitive' },
+      },
+      select: { merchantNormalized: true },
+      distinct: ['merchantNormalized'],
+    }),
   ])
+
+  // Only keep subscriptions the user has actually categorized as recurring.
+  // This prevents pattern-detected false positives (e.g. any merchant appearing
+  // 2+ times) from inflating the subscription count and monthly total.
+  const categorizedMerchantSet = new Set(
+    categorizedRecurringTxs.map(t => t.merchantNormalized).filter(Boolean)
+  )
+  subInsight.subscriptions = subInsight.subscriptions.filter(
+    s => categorizedMerchantSet.has(s.merchantNormalized)
+  )
 
   // Upsert SubscriptionCandidate rows
   for (const sub of subInsight.subscriptions) {
@@ -380,9 +405,15 @@ export async function computeInsights(
     })
   }
 
-  // Fetch DB subscription candidates (includes isSuppressed / isConfirmedByUser from DB)
+  // Fetch DB subscription candidates — only those the user has categorized as recurring.
+  // The categorizedMerchantSet acts as a gate so old pattern-detected false positives
+  // that are still in the DB don't surface in insight cards.
   const dbCandidates = await prisma.subscriptionCandidate.findMany({
-    where: { userId, isSuppressed: false },
+    where: {
+      userId,
+      isSuppressed: false,
+      merchantNormalized: { in: Array.from(categorizedMerchantSet) },
+    },
   })
 
   // Map to SubscriptionCandidateRecord
