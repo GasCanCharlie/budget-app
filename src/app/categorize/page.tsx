@@ -976,6 +976,8 @@ export default function CategorizePage() {
     queryKey: ['categorize-transactions'],
     queryFn: () => apiFetch('/api/transactions?limit=500'),
     enabled: !!user,
+    staleTime: 60_000,          // don't eagerly refetch — optimistic updates handle the UI
+    refetchOnWindowFocus: false, // prevent mid-categorization refetches from restoring removed txs
   })
 
   const { data: catData, isLoading: catLoading } = useQuery({
@@ -1127,7 +1129,10 @@ export default function CategorizePage() {
       if (ctx?.prev) qc.setQueryData(['categorize-transactions'], ctx.prev)
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+      // Do NOT invalidate categorize-transactions here — doing so triggers a server
+      // refetch that returns stale data (other in-flight PATCHes not yet committed),
+      // which overwrites the optimistic update and makes transactions reappear.
+      // The optimistic update in onMutate is the source of truth for the queue.
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['insights-unlock-status'] })
       invalidateDashboard()
@@ -1182,7 +1187,8 @@ export default function CategorizePage() {
       if (ctx?.prev) qc.setQueryData(['categorize-transactions'], ctx.prev)
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+      // Same as updateMutation — don't invalidate categorize-transactions to avoid
+      // race condition where refetch restores optimistically-removed transactions.
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['rules'] })
       qc.invalidateQueries({ queryKey: ['insights-unlock-status'] })
