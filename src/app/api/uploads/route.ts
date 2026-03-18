@@ -26,13 +26,17 @@ import type { CsvXlsxSourceLocator } from '@/types/ingestion'
 // ─────────────────────────────────────────────────────────────────────────────
 
 function normalizeVendor(raw: string): string {
-  return raw
+  let key = raw
     .toLowerCase()
     .replace(/^(pos |ach |debit |credit |purchase |tsq?\*|sq \*|sq\*|tst\*|dda |wdrl |wd |chk |chkcd |preauth |preauthorized |online |recurring )/gi, '')
     .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 80)
+  // Strip trailing store/branch numbers to match normalizeForRule (e.g. "walmart 4321" → "walmart")
+  const stripped = key.replace(/\s+\d+$/, '').trim()
+  if (stripped.length >= 3) key = stripped
+  return key
 }
 
 function amountToCents(amount: number): number {
