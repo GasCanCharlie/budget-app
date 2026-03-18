@@ -349,8 +349,11 @@ interface RuleAskState {
   similarCount: number
 }
 
+type RuleMatchType = 'vendor_exact_amount' | 'vendor_exact' | 'vendor_smart'
+
 function RuleAskModal({
   state,
+  allVendorAmounts,
   isPending,
   onAlways,
   onAlwaysAll,
@@ -359,78 +362,158 @@ function RuleAskModal({
   totalRemaining,
 }: {
   state: RuleAskState
+  allVendorAmounts: number[]
   isPending: boolean
-  onAlways: () => void
-  onAlwaysAll?: () => void
+  onAlways:    (matchType: RuleMatchType, learnedAmounts: number[]) => void
+  onAlwaysAll?: (matchType: RuleMatchType, learnedAmounts: number[]) => void
   onJustOne: () => void
-  onCancel: () => void
+  onCancel:  () => void
   totalRemaining?: number
 }) {
-  const vendor = state.tx.merchantNormalized || state.tx.description
-  const amount = state.tx.amount
+  const { apiFetch } = useApi()
+  const [matchType, setMatchType] = useState<RuleMatchType>('vendor_exact_amount')
+  const vendor     = state.tx.merchantNormalized
+  const amountExact = Math.abs(Math.round(state.tx.amount * 100))
   const totalInQueue = (totalRemaining ?? 0) + 1
+
+  function fmtCents(cents: number) {
+    return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  }
+
+  const { data: preview } = useQuery<{ exactCount: number; vendorCount: number; smartCount: number }>({
+    queryKey: ['rule-preview', vendor, amountExact, allVendorAmounts],
+    queryFn: () => apiFetch('/api/rules/preview', {
+      method: 'POST',
+      body: JSON.stringify({ vendor, amountExact, learnedAmounts: allVendorAmounts }),
+    }),
+    staleTime: 30_000,
+    enabled: !!vendor,
+  })
+
+  const previewCount =
+    matchType === 'vendor_exact_amount' ? preview?.exactCount :
+    matchType === 'vendor_exact'        ? preview?.vendorCount :
+    preview?.smartCount
+
+  const options: Array<{ value: RuleMatchType; label: string; desc: string }> = [
+    {
+      value: 'vendor_exact_amount',
+      label: 'This exact transaction',
+      desc:  `Only ${vendor} transactions of exactly ${fmtCents(amountExact)}`,
+    },
+    {
+      value: 'vendor_exact',
+      label: 'This vendor only (any amount)',
+      desc:  `All ${vendor} transactions regardless of amount`,
+    },
+    {
+      value: 'vendor_smart',
+      label: allVendorAmounts.length > 1
+        ? `Similar amounts (${allVendorAmounts.slice(0, 3).map(fmtCents).join(', ')}${allVendorAmounts.length > 3 ? '…' : ''})`
+        : 'Smart match (learned amounts)',
+      desc: allVendorAmounts.length > 1
+        ? `Matches any of the ${allVendorAmounts.length} amounts seen for this vendor`
+        : `Matches ${fmtCents(amountExact)} and any future amounts you categorize`,
+    },
+  ]
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" style={{ backdropFilter: 'blur(4px)' }}>
-      <div className="w-full max-w-md rounded-2xl p-6 shadow-xl" style={{ background: 'rgba(11,16,32,.96)', border: '1px solid rgba(255,255,255,.12)' }}>
-        <div className="mb-4 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-100">
-            <Zap size={18} className="text-accent-600" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
+      <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: 'rgba(11,16,32,.97)', border: '1px solid rgba(110,168,255,.25)', boxShadow: '0 24px 64px rgba(0,0,0,.65)' }}>
+        {/* Header */}
+        <div className="flex items-start gap-3 p-4 pb-3">
+          <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full" style={{ background: 'rgba(99,102,241,.15)' }}>
+            <Zap size={15} className="text-accent-400" />
           </span>
-          <div>
-            <h3 className="font-bold text-[#e5e7eb]">
-              Auto-assign rule?{totalRemaining && totalRemaining > 0 ? ` (1 of ${totalInQueue})` : ''}
-            </h3>
-            <p className="text-sm text-[#8b97c3] mt-0.5">
-              Always assign <strong className="text-[#c8d4f5]">{vendor}</strong>{' '}
-              ({fmtAmt(amount)}) →{' '}
-              <strong className="text-[#c8d4f5]">{state.category.name}</strong>{' '}
-              for future imports?
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[#e5e7eb]">Create a rule?</p>
+            <p className="text-xs mt-0.5" style={{ color: '#8b97c3' }}>
+              <span className="font-medium text-[#c4cde8]">{vendor}</span>
+              {' → '}
+              <span style={{ color: state.category.color }}>
+                {state.category.icon} {state.category.name}
+              </span>
             </p>
-            {state.similarCount > 1 && (
-              <p className="text-xs text-[rgba(255,180,60,.85)] mt-1">
-                Also categorizes {state.similarCount - 1} similar transaction{state.similarCount > 2 ? 's' : ''} in this batch.
-              </p>
-            )}
           </div>
+          <button onClick={onCancel} className="flex-shrink-0 ml-auto" style={{ color: 'rgba(255,255,255,.3)' }}>
+            <X size={14} />
+          </button>
         </div>
 
-        <div className="flex flex-col gap-2">
-          {/* Apply All — full-width primary CTA when queue has multiple items */}
-          {onAlwaysAll && totalRemaining != null && totalRemaining > 0 && (
+        {/* Radio options */}
+        <div className="px-4 pb-3 space-y-2">
+          {options.map(opt => (
+            <label
+              key={opt.value}
+              className="flex items-start gap-3 rounded-xl p-3 cursor-pointer transition-all"
+              style={{
+                background: matchType === opt.value ? 'rgba(99,102,241,.12)' : 'rgba(255,255,255,.03)',
+                border: `1px solid ${matchType === opt.value ? 'rgba(99,102,241,.4)' : 'rgba(255,255,255,.07)'}`,
+              }}
+              onClick={() => setMatchType(opt.value)}
+            >
+              <span
+                className="flex-shrink-0 mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center"
+                style={{ borderColor: matchType === opt.value ? '#818cf8' : 'rgba(255,255,255,.3)' }}
+              >
+                {matchType === opt.value && (
+                  <span className="w-2 h-2 rounded-full" style={{ background: '#818cf8' }} />
+                )}
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold" style={{ color: matchType === opt.value ? '#c7d2fe' : '#9ca3af' }}>
+                  {opt.label}
+                </p>
+                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'rgba(139,151,195,.7)' }}>
+                  {opt.desc}
+                </p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        {/* Preview count */}
+        {previewCount !== undefined && previewCount > 0 && (
+          <div className="mx-4 mb-3 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs" style={{ background: 'rgba(34,197,94,.1)', color: '#86efac' }}>
+            <CheckCircle2 size={12} />
+            Will auto-categorize {previewCount} past transaction{previewCount !== 1 ? 's' : ''}
+          </div>
+        )}
+
+        {/* Apply all (queue) */}
+        {onAlwaysAll && totalRemaining != null && totalRemaining > 0 && (
+          <div className="px-4 pb-2">
             <button
-              onClick={onAlwaysAll}
+              onClick={() => onAlwaysAll(matchType, allVendorAmounts)}
               disabled={isPending}
-              className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50"
+              style={{ background: 'rgba(99,102,241,.2)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,.3)' }}
             >
               {isPending
-                ? <Loader2 size={14} className="inline animate-spin" />
-                : `Apply all ${totalRemaining + 1} rules at once`}
-            </button>
-          )}
-          <div className="flex gap-2 justify-end">
-            <button
-              onClick={onCancel}
-              disabled={isPending}
-              className="rounded-lg border px-4 py-2 text-sm font-medium text-[#8b97c3] hover:bg-white/[.06] disabled:opacity-50"
-              style={{ borderColor: 'rgba(255,255,255,.12)' }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onJustOne}
-              disabled={isPending}
-              className="rounded-lg border border-accent-200 bg-accent-50 px-4 py-2 text-sm font-medium text-accent-700 hover:bg-accent-100 disabled:opacity-50"
-            >
-              {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Just this one'}
-            </button>
-            <button
-              onClick={onAlways}
-              disabled={isPending}
-              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Yes, always'}
+                ? <Loader2 size={12} className="inline animate-spin" />
+                : `Apply all ${totalInQueue} rules at once`}
             </button>
           </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-2 p-4 pt-2">
+          <button
+            onClick={onJustOne}
+            disabled={isPending}
+            className="flex-1 rounded-xl py-2 text-xs font-medium transition-all disabled:opacity-50"
+            style={{ background: 'rgba(255,255,255,.05)', color: '#9ca3af', border: '1px solid rgba(255,255,255,.08)' }}
+          >
+            Just this one
+          </button>
+          <button
+            onClick={() => onAlways(matchType, allVendorAmounts)}
+            disabled={isPending}
+            className="flex-1 rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50"
+            style={{ background: '#4f46e5', color: '#fff' }}
+          >
+            {isPending ? <Loader2 size={12} className="inline animate-spin" /> : 'Apply Rule'}
+          </button>
         </div>
       </div>
     </div>
@@ -1141,10 +1224,14 @@ export default function CategorizePage() {
 
   // ── Rule creation mutation ──
   const createRuleMutation = useMutation({
-    mutationFn: ({ matchValue, amountExact, categoryId, mode, scopeAccountId }: { matchValue: string; amountExact?: number; categoryId: string; mode: 'always' | 'ask'; scopeAccountId?: string }) =>
+    mutationFn: ({ matchType, matchValue, amountExact, learnedAmounts, categoryId, mode, scopeAccountId }: {
+      matchType: 'vendor_exact_amount' | 'vendor_exact' | 'vendor_smart'
+      matchValue: string; amountExact?: number; learnedAmounts?: number[]
+      categoryId: string; mode: 'always' | 'ask'; scopeAccountId?: string
+    }) =>
       apiFetch('/api/rules', {
         method: 'POST',
-        body: JSON.stringify({ matchType: 'vendor_exact_amount', matchValue, amountExact, categoryId, mode, scopeAccountId }),
+        body: JSON.stringify({ matchType, matchValue, amountExact, learnedAmounts, categoryId, mode, scopeAccountId }),
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rules'] })
@@ -1157,7 +1244,8 @@ export default function CategorizePage() {
   const bulkAssignMutation = useMutation({
     mutationFn: (items: {
       txId: string; appCategory: string; applyToAll: boolean
-      createRule: boolean; matchValue?: string; amountExact?: number
+      createRule: boolean; matchType?: 'vendor_exact_amount' | 'vendor_exact' | 'vendor_smart'
+      matchValue?: string; amountExact?: number; learnedAmounts?: number[]
       categoryId?: string; scopeAccountId?: string
     }[]) =>
       apiFetch('/api/transactions/bulk-assign', {
@@ -1247,6 +1335,15 @@ export default function CategorizePage() {
       (r.scopeAccountId === null || r.scopeAccountId === accountId)
     )
   }, [existingRules])
+
+  // Compute all distinct absolute-cent amounts seen for a vendor across all transactions
+  const vendorAmountsFor = useCallback((merchant: string): number[] => {
+    const seen = new Set<number>()
+    allTxs.forEach(t => {
+      if (t.merchantNormalized === merchant) seen.add(Math.abs(Math.round(t.amount * 100)))
+    })
+    return [...seen]
+  }, [allTxs])
 
   const initiateAssign = useCallback((tx: Transaction, categoryId: string) => {
     const cat = categories.find(c => c.id === categoryId)
@@ -2065,20 +2162,23 @@ export default function CategorizePage() {
         {ruleAsk && (
           <RuleAskModal
             state={ruleAsk}
+            allVendorAmounts={vendorAmountsFor(ruleAsk.tx.merchantNormalized)}
             isPending={updateMutation.isPending || createRuleMutation.isPending || bulkAssignMutation.isPending}
             totalRemaining={ruleAskQueue.length}
-            onAlways={() => {
+            onAlways={(matchType, learnedAmounts) => {
               updateMutation.mutate({ id: ruleAsk.tx.id, appCategory: ruleAsk.category.name, applyToAll: ruleAsk.similarCount > 1 })
               createRuleMutation.mutate({
+                matchType,
                 matchValue:     ruleAsk.tx.merchantNormalized,
-                amountExact:    Math.round(ruleAsk.tx.amount * 100),
+                amountExact:    matchType === 'vendor_exact_amount' ? Math.round(ruleAsk.tx.amount * 100) : undefined,
+                learnedAmounts: matchType === 'vendor_smart' ? learnedAmounts : undefined,
                 categoryId:     ruleAsk.category.id,
                 mode:           'always',
                 scopeAccountId: ruleAsk.tx.accountId,
               })
               popRuleAsk(); setSelectedIds(new Set()); setAnchorId(null)
             }}
-            onAlwaysAll={() => {
+            onAlwaysAll={(matchType, learnedAmounts) => {
               const allItems = [ruleAsk, ...ruleAskQueue]
               bulkAssignMutation.mutate(
                 allItems.map(item => ({
@@ -2086,8 +2186,10 @@ export default function CategorizePage() {
                   appCategory:    item.category.name,
                   applyToAll:     item.similarCount > 1,
                   createRule:     true,
+                  matchType,
                   matchValue:     item.tx.merchantNormalized,
-                  amountExact:    Math.round(item.tx.amount * 100),
+                  amountExact:    matchType === 'vendor_exact_amount' ? Math.round(item.tx.amount * 100) : undefined,
+                  learnedAmounts: matchType === 'vendor_smart' ? [Math.abs(Math.round(item.tx.amount * 100))] : undefined,
                   categoryId:     item.category.id,
                   scopeAccountId: item.tx.accountId,
                 }))

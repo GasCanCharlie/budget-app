@@ -400,6 +400,8 @@ model CategoryRule {
   lastHitAt        DateTime?
   // audit: which staging transaction IDs triggered rule creation
   createdFromTxIds String    @default("[]")  // JSON array
+  // learnedAmounts: JSON array of Int (cents) for smart/multi-amount matching
+  learnedAmounts   String  @default("[]")
 
   user            User?               @relation(fields: [userId], references: [id])
   category        Category            @relation(fields: [categoryId], references: [id])

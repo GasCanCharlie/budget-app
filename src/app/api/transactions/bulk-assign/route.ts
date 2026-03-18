@@ -17,9 +17,11 @@ const itemSchema = z.object({
   appCategory:    z.string(),
   applyToAll:     z.boolean(),
   createRule:     z.boolean(),
-  matchValue:     z.string().optional(),    // tx.merchantNormalized
-  amountExact:    z.number().int().optional(), // cents
-  categoryId:     z.string().optional(),    // needed for rule creation
+  matchType:      z.enum(['vendor_exact_amount', 'vendor_exact', 'vendor_smart']).optional(),
+  matchValue:     z.string().optional(),
+  amountExact:    z.number().int().optional(),
+  learnedAmounts: z.array(z.number().int()).optional(),
+  categoryId:     z.string().optional(),
   scopeAccountId: z.string().optional(),
 })
 
@@ -86,8 +88,12 @@ export async function POST(req: NextRequest) {
       }
 
       // ── 3. Create rule if requested ─────────────────────────────────────
-      if (item.createRule && item.matchValue && item.categoryId && item.amountExact !== undefined) {
-        // Verify category ownership
+      const ruleMatchType = item.matchType ?? 'vendor_exact_amount'
+      const isSmartRule   = ruleMatchType === 'vendor_smart'
+      const isVendorOnly  = ruleMatchType === 'vendor_exact'
+      const needsAmount   = !isSmartRule && !isVendorOnly
+      if (item.createRule && item.matchValue && item.categoryId &&
+          (!needsAmount || item.amountExact !== undefined)) {
         const category = await prisma.category.findFirst({
           where: {
             id: item.categoryId,
@@ -98,12 +104,11 @@ export async function POST(req: NextRequest) {
 
         const normalizedValue = normalizeForRule(item.matchValue)
         const existing = await prisma.categoryRule.findFirst({
-          where: {
-            userId:      payload.userId,
-            vendorKey:   normalizedValue,
-            amountExact: item.amountExact,
-            isSystem:    false,
-          },
+          where: isSmartRule
+            ? { userId: payload.userId, matchType: 'vendor_smart', vendorKey: normalizedValue, isSystem: false }
+            : needsAmount
+              ? { userId: payload.userId, vendorKey: normalizedValue, amountExact: item.amountExact!, isSystem: false }
+              : { userId: payload.userId, matchType: 'vendor_exact', matchValue: normalizedValue, isSystem: false },
         })
 
         if (existing) {
@@ -113,6 +118,7 @@ export async function POST(req: NextRequest) {
               categoryId:     item.categoryId,
               mode:           'always',
               isEnabled:      true,
+              learnedAmounts: isSmartRule ? JSON.stringify(item.learnedAmounts ?? []) : undefined,
               scopeAccountId: item.scopeAccountId ?? null,
             },
           })
@@ -121,15 +127,16 @@ export async function POST(req: NextRequest) {
             data: {
               userId:         payload.userId,
               categoryId:     item.categoryId,
-              matchType:      'vendor_exact_amount',
+              matchType:      ruleMatchType,
               matchValue:     normalizedValue,
               vendorKey:      normalizedValue,
-              amountExact:    item.amountExact,
+              amountExact:    needsAmount ? (item.amountExact ?? null) : null,
+              learnedAmounts: isSmartRule ? JSON.stringify(item.learnedAmounts ?? []) : '[]',
               mode:           'always',
               confidence:     'high',
               isEnabled:      true,
               isSystem:       false,
-              priority:       30,
+              priority:       ruleMatchType === 'vendor_exact_amount' ? 30 : isSmartRule ? 25 : 20,
               scopeAccountId: item.scopeAccountId ?? null,
             },
           })

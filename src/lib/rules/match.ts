@@ -27,6 +27,7 @@ function specificityScore(matchType: string): number {
     case 'vendor_exact_amount':  return 1
     case 'vendor_amount_range':  return 2
     case 'vendor_contains_text': return 3
+    case 'vendor_smart':         return 2
     default:                     return 4  // vendor_only and any unknown type
   }
 }
@@ -37,6 +38,7 @@ function buildReason(matchType: string): string {
     case 'vendor_exact_amount':  return 'Vendor + Exact Amount'
     case 'vendor_amount_range':  return 'Vendor + Amount Range'
     case 'vendor_contains_text': return 'Vendor + Description'
+    case 'vendor_smart': return 'Vendor + Smart Amounts'
     default:                     return 'Vendor only'
   }
 }
@@ -144,6 +146,14 @@ export async function matchRules(
         return { matched: false, status: 'unmatched' }
       }
       if (!description.toLowerCase().includes(top.containsText.toLowerCase())) {
+        return { matched: false, status: 'unmatched' }
+      }
+      break
+    }
+
+    case 'vendor_smart': {
+      const learned: number[] = JSON.parse((top.learnedAmounts as string) || '[]')
+      if (learned.length > 0 && !learned.includes(absAmount)) {
         return { matched: false, status: 'unmatched' }
       }
       break

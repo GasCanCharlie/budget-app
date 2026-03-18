@@ -61,6 +61,11 @@ export async function POST(req: NextRequest) {
         }
         if (rule.matchType === 'vendor_exact') return txKey === mv
         if (rule.matchType === 'contains') return txKey.includes(mv) || mv.includes(txKey)
+        if (rule.matchType === 'vendor_smart') {
+          const learned: number[] = JSON.parse((rule.learnedAmounts as string) || '[]')
+          const absAmt = Math.abs(amountCents)
+          return txKey === mv && (learned.length === 0 || learned.includes(absAmt))
+        }
         return false
       })
 
