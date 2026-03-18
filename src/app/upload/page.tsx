@@ -95,6 +95,10 @@ export default function StatementsPage() {
       qc.invalidateQueries({ queryKey: ['uploads'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
+      // Auto-apply saved rules to the newly uploaded transactions before redirecting
+      void apiFetch('/api/transactions/apply-rules', { method: 'POST' }).then(() => {
+        qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+      })
       const uploadId = data.uploadId as string | undefined
       if (uploadId) {
         router.push(`/reports/${uploadId}`)
