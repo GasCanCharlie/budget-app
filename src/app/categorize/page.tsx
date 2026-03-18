@@ -426,7 +426,7 @@ function RuleAskModal({
             <Zap size={15} className="text-accent-400" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#e5e7eb]">Create a rule?</p>
+            <p className="text-sm font-semibold text-[#e5e7eb]">Save a rule for future transactions?</p>
             <p className="text-xs mt-0.5" style={{ color: '#8b97c3' }}>
               <span className="font-medium text-[#c4cde8]">{vendor}</span>
               {' → '}
@@ -501,20 +501,26 @@ function RuleAskModal({
           <button
             onClick={onJustOne}
             disabled={isPending}
+            aria-label="Apply category to this transaction only — no rule will be saved"
             className="flex-1 rounded-xl py-2 text-xs font-medium transition-all disabled:opacity-50"
             style={{ background: 'rgba(255,255,255,.05)', color: '#9ca3af', border: '1px solid rgba(255,255,255,.08)' }}
           >
-            Just this one
+            Apply once
           </button>
           <button
             onClick={() => onAlways(matchType, allVendorAmounts)}
             disabled={isPending}
+            aria-label="Save rule and apply to matching transactions"
             className="flex-1 rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50"
             style={{ background: '#4f46e5', color: '#fff' }}
           >
-            {isPending ? <Loader2 size={12} className="inline animate-spin" /> : 'Apply Rule'}
+            {isPending ? <Loader2 size={12} className="inline animate-spin" /> : 'Save Rule'}
           </button>
         </div>
+        {/* Helper text */}
+        <p className="px-4 pb-3 text-center text-[10px]" style={{ color: 'rgba(139,151,195,.5)' }}>
+          Apply once — no rule saved. Save Rule — auto-applies to future transactions.
+        </p>
       </div>
     </div>
   )
