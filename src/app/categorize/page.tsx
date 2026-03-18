@@ -371,7 +371,11 @@ function RuleAskModal({
   totalRemaining?: number
 }) {
   const { apiFetch } = useApi()
-  const [matchType, setMatchType] = useState<RuleMatchType>('vendor_exact_amount')
+  // Default to vendor-only when this merchant has multiple price points;
+  // default to exact-amount when it always charges the same price.
+  const [matchType, setMatchType] = useState<RuleMatchType>(
+    allVendorAmounts.length > 1 ? 'vendor_exact' : 'vendor_exact_amount'
+  )
   const vendor     = state.tx.merchantNormalized
   const amountExact = Math.abs(Math.round(state.tx.amount * 100))
   const totalInQueue = (totalRemaining ?? 0) + 1
@@ -1241,6 +1245,11 @@ export default function CategorizePage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rules'] })
+      // Auto-backfill: apply the new rule to any already-committed uncategorized transactions
+      void apiFetch('/api/transactions/apply-rules', { method: 'POST' }).then(() => {
+        void qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+        invalidateDashboard()
+      })
     },
   })
 

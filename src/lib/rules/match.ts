@@ -16,6 +16,7 @@
 
 import { CategoryRule } from '@prisma/client'
 import prisma from '@/lib/db'
+import { normalizeForRule } from '@/lib/ingestion/vendor-normalize'
 
 export type MatchResult =
   | { matched: true;  rule: CategoryRule; reason: string }
@@ -70,10 +71,15 @@ export async function matchRules(
       ...(accountId ? [{ scopeAccountId: accountId }] : []),
     ],
   }
+  // Re-normalize the incoming vendorKey with the same function used at rule-creation
+  // time so that rules always match regardless of which normalizer produced vendorKey
+  // (e.g. upload route strips bank prefixes + hyphens differently from normalizeForRule).
+  const queryKey = normalizeForRule(vendorKey)
+
   const [keyRules, valueRules] = await Promise.all([
-    prisma.categoryRule.findMany({ where: { ...baseWhere, vendorKey: vendorKey } }),
+    prisma.categoryRule.findMany({ where: { ...baseWhere, vendorKey: queryKey } }),
     // Backward-compat: vendor_exact rules stored with vendorKey='' use matchValue instead
-    prisma.categoryRule.findMany({ where: { ...baseWhere, matchType: 'vendor_exact', matchValue: vendorKey, vendorKey: '' } }),
+    prisma.categoryRule.findMany({ where: { ...baseWhere, matchType: 'vendor_exact', matchValue: queryKey, vendorKey: '' } }),
   ])
   const seen = new Set<string>()
   const allRules: typeof keyRules = []
@@ -83,7 +89,7 @@ export async function matchRules(
 
   // Step 2: Filter to rules whose vendorKey (or matchValue for legacy) matches
   let candidates = allRules.filter(rule =>
-    rule.vendorKey ? rule.vendorKey === vendorKey : rule.matchValue === vendorKey
+    rule.vendorKey ? rule.vendorKey === queryKey : rule.matchValue === queryKey
   )
 
   // Step 3: Filter by appliesTo direction
