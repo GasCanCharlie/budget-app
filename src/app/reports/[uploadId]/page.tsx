@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { Layers, TrendingUp, Target, Activity, Zap, Brain, BarChart3, type LucideIcon } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -143,7 +144,7 @@ function EmptyState({ text }: { text: string }) {
 
 interface Personality {
   type:     string
-  emoji:    string
+  icon:     LucideIcon
   tagline:  string
   vibe:     string
   accent:   string
@@ -158,49 +159,49 @@ function getPersonality(totals: ScanReport['totals'], findings: ScanReport['find
 
   if (subCount >= 5) return {
     type: 'The Subscription Collector',
-    emoji: '📦',
+    icon: Layers,
     tagline: 'Your subscriptions are stacking up. A quick audit could pay off.',
     vibe: 'You love your services — just make sure they all still spark joy.',
     accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
   }
   if (spendRatio < 0.5 && net > 0) return {
     type: 'The Low-Key Saver',
-    emoji: '🏦',
+    icon: TrendingUp,
     tagline: 'You keep more than half of what you earn. Quietly winning.',
     vibe: 'Steady hands, healthy balance. Keep it up.',
     accent: '#22C55E', accentBg: 'rgba(34,197,94,0.08)',
   }
   if (topCatPct > 50) return {
     type: 'The Big Ticket Player',
-    emoji: '🎯',
+    icon: Target,
     tagline: 'One category dominates your spending this period.',
     vibe: 'Intentional move, or worth a second look — you decide.',
     accent: '#F59E0B', accentBg: 'rgba(245,158,11,0.08)',
   }
   if (income > 5000 && spendRatio > 0.85) return {
     type: 'The Flow Master',
-    emoji: '🌊',
+    icon: Activity,
     tagline: 'Money moves freely — in and out. You live with confidence.',
     vibe: "You're in full flow. Just watch the current.",
     accent: '#06B6D4', accentBg: 'rgba(6,182,212,0.08)',
   }
   if (net > 0 && findings.anomalies.count === 0 && spendRatio < 0.8) return {
     type: 'The Smooth Operator',
-    emoji: '✨',
+    icon: Zap,
     tagline: 'Controlled spending, zero surprises. You make it look easy.',
     vibe: 'Strong, steady, and under control.',
     accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
   }
   if (net > 0 && findings.categoryBreakdown.length >= 4 && spendRatio < 0.9) return {
     type: 'The Smart Spender',
-    emoji: '🧠',
+    icon: Brain,
     tagline: 'Balanced across categories, with room to grow.',
     vibe: "You're in a healthy financial position this month.",
     accent: '#4F46E5', accentBg: 'rgba(79,70,229,0.08)',
   }
   return {
     type: 'The Steady Builder',
-    emoji: '🏗️',
+    icon: BarChart3,
     tagline: 'Consistent, controlled, and building toward something.',
     vibe: "You're running a tight ship this month.",
     accent: '#6366F1', accentBg: 'rgba(99,102,241,0.08)',
@@ -264,16 +265,16 @@ function MoneyPersonality({ report }: { report: ScanReport }) {
         </button>
       </div>
 
-      {/* Hero: emoji icon + type name + tagline */}
+      {/* Hero: icon + type name + tagline */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 22 }}>
         <div style={{
-          width: 60, height: 60, flexShrink: 0, borderRadius: 16,
+          width: 56, height: 56, flexShrink: 0, borderRadius: 14,
           background: p.accentBg,
-          border: `1px solid ${p.accent}28`,
+          border: `1px solid ${p.accent}30`,
+          boxShadow: `0 2px 12px ${p.accent}18`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 28, lineHeight: 1,
         }}>
-          {p.emoji}
+          <p.icon size={24} strokeWidth={1.75} color={p.accent} />
         </div>
         <div>
           <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', marginBottom: 3, letterSpacing: '0.01em' }}>
