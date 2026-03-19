@@ -246,7 +246,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
                       'bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 transition',
                       active ? 'active' : '',
                     )}
-                    style={{ fontSize: 12, opacity: active ? 1 : 0.55 }}
+                    style={{ fontSize: 12 }}
                   >
                     <Icon className="h-3.5 w-3.5" />
                     {label}
