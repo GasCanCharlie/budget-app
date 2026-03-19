@@ -139,6 +139,179 @@ function EmptyState({ text }: { text: string }) {
   )
 }
 
+// ─── Money Personality ────────────────────────────────────────────────────────
+
+interface Personality {
+  type:     string
+  emoji:    string
+  tagline:  string
+  vibe:     string
+  accent:   string
+  accentBg: string
+}
+
+function getPersonality(totals: ScanReport['totals'], findings: ScanReport['findings']): Personality {
+  const { income, spending, net } = totals
+  const spendRatio = income > 0 ? spending / income : 1
+  const subCount   = findings.subscriptions.count
+  const topCatPct  = findings.categoryBreakdown[0]?.pct ?? 0
+
+  if (subCount >= 5) return {
+    type: 'The Subscription Collector',
+    emoji: '📦',
+    tagline: 'Your subscriptions are stacking up. A quick audit could pay off.',
+    vibe: 'You love your services — just make sure they all still spark joy.',
+    accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
+  }
+  if (spendRatio < 0.5 && net > 0) return {
+    type: 'The Low-Key Saver',
+    emoji: '🏦',
+    tagline: 'You keep more than half of what you earn. Quietly winning.',
+    vibe: 'Steady hands, healthy balance. Keep it up.',
+    accent: '#22C55E', accentBg: 'rgba(34,197,94,0.08)',
+  }
+  if (topCatPct > 50) return {
+    type: 'The Big Ticket Player',
+    emoji: '🎯',
+    tagline: 'One category dominates your spending this period.',
+    vibe: 'Intentional move, or worth a second look — you decide.',
+    accent: '#F59E0B', accentBg: 'rgba(245,158,11,0.08)',
+  }
+  if (income > 5000 && spendRatio > 0.85) return {
+    type: 'The Flow Master',
+    emoji: '🌊',
+    tagline: 'Money moves freely — in and out. You live with confidence.',
+    vibe: "You're in full flow. Just watch the current.",
+    accent: '#06B6D4', accentBg: 'rgba(6,182,212,0.08)',
+  }
+  if (net > 0 && findings.anomalies.count === 0 && spendRatio < 0.8) return {
+    type: 'The Smooth Operator',
+    emoji: '✨',
+    tagline: 'Controlled spending, zero surprises. You make it look easy.',
+    vibe: 'Strong, steady, and under control.',
+    accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
+  }
+  if (net > 0 && findings.categoryBreakdown.length >= 4 && spendRatio < 0.9) return {
+    type: 'The Smart Spender',
+    emoji: '🧠',
+    tagline: 'Balanced across categories, with room to grow.',
+    vibe: "You're in a healthy financial position this month.",
+    accent: '#4F46E5', accentBg: 'rgba(79,70,229,0.08)',
+  }
+  return {
+    type: 'The Steady Builder',
+    emoji: '🏗️',
+    tagline: 'Consistent, controlled, and building toward something.',
+    vibe: "You're running a tight ship this month.",
+    accent: '#6366F1', accentBg: 'rgba(99,102,241,0.08)',
+  }
+}
+
+function buildInsights(totals: ScanReport['totals'], findings: ScanReport['findings']): string[] {
+  const lines: string[] = []
+  if (totals.income > 0) {
+    const pct = Math.round((totals.spending / totals.income) * 100)
+    lines.push(totals.net >= 0
+      ? `You spent ${pct}% of your income — net positive`
+      : `You spent ${pct}% of your income this period`)
+  }
+  const topCat = findings.categoryBreakdown[0]
+  if (topCat) lines.push(`Biggest category: ${topCat.category} (${Math.round(topCat.pct)}%)`)
+  lines.push(findings.anomalies.count === 0
+    ? 'No unusual activity detected'
+    : `${findings.anomalies.count} unusual transaction${findings.anomalies.count !== 1 ? 's' : ''} flagged`)
+  lines.push(findings.subscriptions.count === 0
+    ? 'No recurring subscriptions found'
+    : `${findings.subscriptions.count} recurring subscription${findings.subscriptions.count !== 1 ? 's' : ''} · ${fmt(findings.subscriptions.monthlyTotal)}/mo`)
+  if (findings.duplicates.count > 0)
+    lines.push(`${findings.duplicates.count} possible duplicate${findings.duplicates.count !== 1 ? 's' : ''} flagged for review`)
+  return lines.slice(0, 5)
+}
+
+function MoneyPersonality({ report }: { report: ScanReport }) {
+  const p        = getPersonality(report.totals, report.findings)
+  const insights = buildInsights(report.totals, report.findings)
+
+  return (
+    <div style={{
+      ...card,
+      background: `radial-gradient(ellipse at 8% 8%, ${p.accentBg}, transparent 55%), var(--card)`,
+      padding: '24px 26px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+
+      {/* Section label + share hook */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--accent)' }}>
+          Your Money Personality
+        </span>
+        <button
+          disabled
+          title="Coming soon"
+          aria-label="Share your money personality (coming soon)"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontSize: 11, fontWeight: 600,
+            color: p.accent,
+            background: p.accentBg,
+            border: `1px solid ${p.accent}30`,
+            borderRadius: 999, padding: '4px 11px',
+            cursor: 'default', opacity: 0.72,
+            letterSpacing: '0.01em',
+          }}>
+          ↗ Share personality
+        </button>
+      </div>
+
+      {/* Hero: emoji icon + type name + tagline */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 22 }}>
+        <div style={{
+          width: 60, height: 60, flexShrink: 0, borderRadius: 16,
+          background: p.accentBg,
+          border: `1px solid ${p.accent}28`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 28, lineHeight: 1,
+        }}>
+          {p.emoji}
+        </div>
+        <div>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', marginBottom: 3, letterSpacing: '0.01em' }}>
+            You&apos;re a
+          </p>
+          <p style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--text)' }}>
+            {p.type}
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
+            {p.tagline}
+          </p>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: 1, background: 'var(--border)', margin: '0 0 18px' }} />
+
+      {/* Structured insights */}
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {insights.map((line, i) => (
+          <li key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+            <span style={{ fontSize: 12, color: p.accent, flexShrink: 0, fontWeight: 700, lineHeight: 1.5 }}>✓</span>
+            <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.4 }}>{line}</span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Divider */}
+      <div style={{ height: 1, background: 'var(--border)', margin: '18px 0 16px' }} />
+
+      {/* Human summary vibe line */}
+      <p style={{ margin: 0, fontSize: 14, fontStyle: 'italic', color: 'var(--text)', lineHeight: 1.5, fontWeight: 500 }}>
+        &ldquo;{p.vibe}&rdquo;
+      </p>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ScanReportPage() {
@@ -305,19 +478,8 @@ export default function ScanReportPage() {
       {/* ── Content ────────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* ── Summary card ─────────────────────────────────────────────────── */}
-        <div style={{
-          ...card,
-          background: 'radial-gradient(ellipse at 0% 0%, rgba(124,137,255,0.12), transparent 60%), var(--card)',
-          padding: '20px 22px',
-        }}>
-          <p style={{ margin: 0, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 10 }}>
-            AI Summary
-          </p>
-          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.65, color: 'var(--text)' }}>
-            {report.summary}
-          </p>
-        </div>
+        {/* ── Money Personality card ───────────────────────────────────────── */}
+        <MoneyPersonality report={report} />
 
         {/* ── Next step banner ─────────────────────────────────────────────── */}
         <div style={{
