@@ -36,8 +36,6 @@
   --shadow-soft:  0 10px 30px rgba(0,0,0,0.35);
   --ring:         0 0 0 3px rgba(99,102,241,0.28);
   /* Alias tokens */
-  --text-primary:   rgba(255,255,255,0.92);
-  --text-secondary: rgba(255,255,255,0.60);
   --track:          rgba(255,255,255,0.10);
   --warning:        var(--warn);
   --tile:           rgba(255,255,255,0.09);
@@ -115,7 +113,7 @@
   --warn:         #F59E0B;
   --warn-muted:   rgba(217,119,6,0.12);
   --danger:       #EF4444;
-  --sidebar-bg:   linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --sidebar-bg:   linear-gradient(180deg, #f0f4ff 0%, #e8edf8 100%);
   --sidebar:      #ffffff;
   /* Layout & shadow tokens */
   --radius-lg:    18px;
@@ -891,3 +889,39 @@ h3 { letter-spacing: -0.01em; }
 }
 .category-item:hover .cat-grip { opacity: 0.4; }
 .cat-grip:hover { opacity: 0.8 !important; }
+
+/* ─── Monthly Briefing card — light mode overrides ──────────────────────── */
+[data-theme="light"] .storyline-card {
+  background: #ffffff !important;
+  border-color: rgba(17,24,39,0.08) !important;
+  box-shadow: 0 2px 8px rgba(17,24,39,0.06), 0 16px 40px rgba(17,24,39,0.04) !important;
+}
+[data-theme="light"] .storyline-month-badge {
+  background: rgba(17,24,39,0.05) !important;
+  border-color: rgba(17,24,39,0.10) !important;
+  color: #64748b !important;
+}
+[data-theme="light"] .storyline-chip {
+  background: #f1f5f9 !important;
+  border-color: rgba(17,24,39,0.08) !important;
+}
+[data-theme="light"] .storyline-suggestion {
+  background: #f8fafc !important;
+  border-color: rgba(17,24,39,0.08) !important;
+}
+[data-theme="light"] .storyline-cta {
+  color: #4f46e5 !important;
+  background: rgba(79,70,229,0.08) !important;
+  border-color: rgba(79,70,229,0.18) !important;
+}
+
+/* ─── Error / 404 page card ──────────────────────────────────────────────── */
+.error-page-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.10);
+}
+[data-theme="light"] .error-page-card {
+  background: #ffffff !important;
+  border-color: rgba(17,24,39,0.10) !important;
+  box-shadow: 0 2px 8px rgba(17,24,39,0.06), 0 12px 32px rgba(17,24,39,0.04) !important;
+}

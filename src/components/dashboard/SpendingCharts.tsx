@@ -92,12 +92,12 @@ export function SpendingCharts({ categories }: Props) {
   }))
 
   const tooltipStyle = {
-    background: '#0F172A',
-    border: '1px solid rgba(255,255,255,0.10)',
+    background: 'var(--card)',
+    border: '1px solid var(--border-soft)',
     borderRadius: 10,
     fontSize: 12,
-    color: '#E5E7EB',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.50)',
+    color: 'var(--text)',
+    boxShadow: 'var(--shadow)',
     padding: '8px 12px',
   }
 
@@ -110,7 +110,7 @@ export function SpendingCharts({ categories }: Props) {
         borderRadius: 12,
         boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
       }}>
-        <p className="mb-4 text-sm font-semibold" style={{ color: '#E5E7EB' }}>
+        <p className="mb-4 text-sm font-semibold" style={{ color: 'var(--text)' }}>
           Spending by Category
         </p>
         {isEmpty ? (
@@ -160,7 +160,7 @@ export function SpendingCharts({ categories }: Props) {
         borderRadius: 12,
         boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
       }}>
-        <p className="mb-4 text-sm font-semibold" style={{ color: '#E5E7EB' }}>Breakdown</p>
+        <p className="mb-4 text-sm font-semibold" style={{ color: 'var(--text)' }}>Breakdown</p>
         {isEmpty ? (
           <EmptyState />
         ) : (

@@ -12,7 +12,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg, #0b1020)',
+      background: 'var(--bg)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -24,12 +24,10 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#6c7cff,#8794ff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <LogoMark size={22} />
         </div>
-        <span style={{ fontSize: '15px', fontWeight: 700, color: '#e5e7eb' }}>BudgetLens</span>
+        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>BudgetLens</span>
       </Link>
 
-      <div style={{
-        background: 'rgba(255,255,255,.04)',
-        border: '1px solid rgba(255,255,255,.10)',
+      <div className="error-page-card" style={{
         borderRadius: '20px',
         padding: '48px 40px',
         maxWidth: '440px',
@@ -38,10 +36,10 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         backdropFilter: 'blur(12px)',
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px', lineHeight: 1 }}>⚠️</div>
-        <h1 style={{ margin: '0 0 10px', fontSize: '22px', fontWeight: 800, color: '#e5e7eb' }}>
+        <h1 style={{ margin: '0 0 10px', fontSize: '22px', fontWeight: 800, color: 'var(--text)' }}>
           Something went wrong
         </h1>
-        <p style={{ margin: '0 0 28px', fontSize: '14px', color: '#9ca3af', lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 28px', fontSize: '14px', color: 'var(--text2)', lineHeight: 1.6 }}>
           An unexpected error occurred. Try refreshing the page — if it keeps happening, contact support at support@budgetlens.app
         </p>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -57,7 +55,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           </button>
           <Link href="/dashboard" style={{
             padding: '10px 20px', borderRadius: '10px',
-            border: '1px solid rgba(255,255,255,.15)', color: '#9ca3af',
+            border: '1px solid var(--border)', color: 'var(--text2)',
             fontSize: '14px', fontWeight: 600, textDecoration: 'none',
           }}>
             Dashboard

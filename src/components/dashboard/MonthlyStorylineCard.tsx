@@ -29,7 +29,7 @@ function splitNarrative(summary: string): { body: string; suggestion: string } {
 
 function StorylineSkeleton() {
   return (
-    <div style={{
+    <div className="storyline-card" style={{
       background: 'linear-gradient(135deg, #0F172A 0%, #0B1220 100%)',
       border: '1px solid rgba(255,255,255,0.07)',
       borderRadius: 20,
@@ -55,7 +55,7 @@ function StorylineSkeleton() {
 
 function StorylineEmpty() {
   return (
-    <div style={{
+    <div className="storyline-card" style={{
       background: 'linear-gradient(135deg, #0F172A 0%, #0B1220 100%)',
       border: '1px solid rgba(255,255,255,0.07)',
       borderRadius: 20,
@@ -64,17 +64,17 @@ function StorylineEmpty() {
     }}>
       <div style={{
         width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-        background: 'rgba(99,102,241,0.12)',
+        background: 'var(--accent-muted)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <BookOpen size={18} style={{ color: '#818CF8' }} />
+        <BookOpen size={18} style={{ color: 'var(--accent2)' }} />
       </div>
       <div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#E5E7EB', marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
           Your Month in Plain English
         </div>
-        <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>
-          Click <strong style={{ color: '#9CA3AF' }}>Run Autopsy</strong> below to generate your financial briefing.
+        <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.5 }}>
+          Click <strong style={{ color: 'var(--text2)' }}>Run Autopsy</strong> below to generate your financial briefing.
         </div>
       </div>
     </div>
@@ -104,7 +104,7 @@ export function MonthlyStorylineCard({ cards, loading }: Props) {
   const sentimentBg = net >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)'
 
   return (
-    <div style={{
+    <div className="storyline-card" style={{
       background: 'linear-gradient(150deg, #0F172A 0%, #0D1528 60%, #0B1220 100%)',
       border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 20,
@@ -135,13 +135,13 @@ export function MonthlyStorylineCard({ cards, loading }: Props) {
           <div>
             <div style={{
               fontSize: 10, fontWeight: 700, letterSpacing: '0.09em',
-              textTransform: 'uppercase', color: '#6366F1', marginBottom: 3,
+              textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 3,
             }}>
               Monthly Briefing
             </div>
             <div style={{
               fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em',
-              color: '#E5E7EB', lineHeight: 1.1,
+              color: 'var(--text)', lineHeight: 1.1,
             }}>
               Your Month in Plain English
             </div>
@@ -149,7 +149,7 @@ export function MonthlyStorylineCard({ cards, loading }: Props) {
         </div>
 
         {/* Month badge */}
-        <div style={{
+        <div className="storyline-month-badge" style={{
           fontSize: 11, fontWeight: 600, color: '#6B7280',
           background: 'rgba(255,255,255,0.05)',
           border: '1px solid rgba(255,255,255,0.08)',
@@ -164,7 +164,7 @@ export function MonthlyStorylineCard({ cards, loading }: Props) {
       <p style={{
         fontSize: 15,
         lineHeight: 1.75,
-        color: '#CBD5E1',
+        color: 'var(--text2)',
         margin: '0 0 20px 0',
         fontWeight: 400,
         maxWidth: 760,
@@ -176,16 +176,16 @@ export function MonthlyStorylineCard({ cards, loading }: Props) {
       {keyNums.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
           {keyNums.map(n => (
-            <div key={n.field} style={{
+            <div key={n.field} className="storyline-chip" style={{
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 8, padding: '5px 10px',
             }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 {n.label}
               </span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
                 {n.value}
               </span>
             </div>
@@ -195,7 +195,7 @@ export function MonthlyStorylineCard({ cards, loading }: Props) {
 
       {/* ── Suggestion sub-panel ────────────────────────────────────────────── */}
       {suggestion && (
-        <div style={{
+        <div className="storyline-suggestion" style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 12,
@@ -206,19 +206,19 @@ export function MonthlyStorylineCard({ cards, loading }: Props) {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1 }}>
             <div style={{
               width: 28, height: 28, borderRadius: 8, flexShrink: 0, marginTop: 1,
-              background: 'rgba(245,158,11,0.12)',
+              background: 'var(--warn-muted)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Lightbulb size={13} style={{ color: '#F59E0B' }} />
+              <Lightbulb size={13} style={{ color: 'var(--warn)' }} />
             </div>
             <div>
               <div style={{
                 fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.08em', color: '#F59E0B', marginBottom: 4,
+                letterSpacing: '0.08em', color: 'var(--warn)', marginBottom: 4,
               }}>
                 Recommended action
               </div>
-              <p style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.55, margin: 0, fontWeight: 400 }}>
+              <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55, margin: 0, fontWeight: 400 }}>
                 {suggestion}
               </p>
             </div>
@@ -228,6 +228,7 @@ export function MonthlyStorylineCard({ cards, loading }: Props) {
           {ctaAction?.href && (
             <Link
               href={ctaAction.href}
+              className="storyline-cta"
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 fontSize: 12, fontWeight: 600, color: '#818CF8',
