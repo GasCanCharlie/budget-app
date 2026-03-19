@@ -233,6 +233,19 @@ function MoneyPersonality({ report }: { report: ScanReport }) {
   const p        = getPersonality(report.totals, report.findings)
   const insights = buildInsights(report.totals, report.findings)
 
+  function handleShare() {
+    const params = new URLSearchParams({
+      type:   p.type,
+      vibe:   p.vibe,
+      income: String(report.totals.income),
+      spend:  String(report.totals.spending),
+      net:    String(report.totals.net),
+    })
+    const topCat = report.findings.categoryBreakdown[0]?.category
+    if (topCat) params.set('topCat', topCat)
+    window.open(`/api/share/personality?${params.toString()}`, '_blank')
+  }
+
   return (
     <div style={{
       ...card,
@@ -248,9 +261,8 @@ function MoneyPersonality({ report }: { report: ScanReport }) {
           Your Money Personality
         </span>
         <button
-          disabled
-          title="Coming soon"
-          aria-label="Share your money personality (coming soon)"
+          onClick={handleShare}
+          aria-label="Share your money personality card"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
             fontSize: 11, fontWeight: 600,
@@ -258,10 +270,14 @@ function MoneyPersonality({ report }: { report: ScanReport }) {
             background: p.accentBg,
             border: `1px solid ${p.accent}30`,
             borderRadius: 999, padding: '4px 11px',
-            cursor: 'default', opacity: 0.72,
+            cursor: 'pointer',
             letterSpacing: '0.01em',
-          }}>
-          ↗ Share personality
+            transition: 'opacity 150ms ease',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
+          ↗ Share card
         </button>
       </div>
 
