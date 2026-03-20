@@ -318,14 +318,6 @@ export default function InsightsPage() {
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="space-y-6 pb-24">
 
-        {/* ── Financial Autopsy ───────────────────────────────────────── */}
-        <FinancialAutopsyPanel
-          cards={insightsData?.cards ?? []}
-          year={year}
-          month={month}
-          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
-        />
-
         {/* ── Q&A section ─────────────────────────────────────────────── */}
         <div>
           {/* Section header */}
@@ -429,15 +421,6 @@ export default function InsightsPage() {
                 </div>
               ))}
 
-              {/* Context strip */}
-              {summary && dashboardState === 'analysis_unlocked' && (
-                <div style={{ padding: '7px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--surface2)', border: '1px solid var(--border2)', fontSize: 11, color: 'var(--text2)', lineHeight: 1.6 }}>
-                  <span style={{ color: 'var(--text)', fontWeight: 600 }}>{monthLabel}:</span>
-                  {' '}Income {fmtCurrency(summary.totalIncome)} · Spending {fmtCurrency(summary.totalSpending)} · Net{' '}
-                  <span style={{ color: summary.net >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmtCurrency(summary.net)}</span>
-                </div>
-              )}
-
               <div ref={messagesEndRef} />
             </div>
 
@@ -481,6 +464,14 @@ export default function InsightsPage() {
 
         {/* ── Insights panel ──────────────────────────────────────────── */}
         <AiInsightsPanel year={year} month={month} />
+
+        {/* ── Financial Autopsy ───────────────────────────────────────── */}
+        <FinancialAutopsyPanel
+          cards={insightsData?.cards ?? []}
+          year={year}
+          month={month}
+          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
+        />
 
       </div>
 
