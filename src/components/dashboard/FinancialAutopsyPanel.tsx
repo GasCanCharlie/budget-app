@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   Coins, Target, RefreshCw, TrendingUp, Gauge,
-  ChevronDown, ChevronRight, Loader2, Lightbulb,
+  ChevronDown, ChevronRight, Loader2, Lightbulb, Stethoscope,
   Layers, Activity, Zap, Brain, BarChart3, type LucideIcon,
 } from 'lucide-react'
 import type { InsightCard } from '@/lib/insights/types'
@@ -86,55 +86,95 @@ function getPersonality(p: PersonalityInput): Personality {
 }
 
 function PersonalityCard({ data }: { data: PersonalityInput }) {
-  const p = getPersonality(data)
+  const p    = getPersonality(data)
   const Icon = p.icon
+  // Split "The " off for typographic hierarchy
+  const name = p.type.startsWith('The ') ? p.type.slice(4) : p.type
 
   return (
     <div style={{
-      background: `radial-gradient(ellipse at 8% 8%, ${p.accentBg}, transparent 60%), var(--card2, #0F1623)`,
-      border: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
-      borderRadius: 14,
-      padding: '20px 20px 18px',
-      marginBottom: 12,
+      position: 'relative',
+      background: `radial-gradient(ellipse at 12% 30%, ${p.accent}22 0%, transparent 60%),
+                   radial-gradient(ellipse at 88% 80%, ${p.accent}10 0%, transparent 50%),
+                   var(--card2, #0F1623)`,
+      border: `1px solid ${p.accent}35`,
+      borderRadius: 18,
+      padding: '26px 24px 22px',
+      marginBottom: 14,
+      overflow: 'hidden',
+      boxShadow: `0 8px 32px ${p.accent}18, 0 1px 0 ${p.accent}12 inset`,
     }}>
-      {/* Label */}
-      <span style={{
-        fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-        letterSpacing: '0.09em', color: p.accent,
-        display: 'block', marginBottom: 14,
-      }}>
-        Your Money Personality
-      </span>
 
-      {/* Hero */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
+      {/* Top bar: label + "this month" chip */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: '0.10em', color: p.accent,
+        }}>
+          Your Money Personality
+        </span>
+        <span style={{
+          fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase',
+          color: 'var(--text-faint, #6B7280)',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 6, padding: '3px 8px',
+        }}>
+          This month
+        </span>
+      </div>
+
+      {/* Hero row: icon + name block */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 18 }}>
+
+        {/* Icon with layered glow */}
         <div style={{
-          width: 48, height: 48, flexShrink: 0, borderRadius: 12,
-          background: p.accentBg,
-          border: `1px solid ${p.accent}30`,
-          boxShadow: `0 2px 10px ${p.accent}18`,
+          width: 68, height: 68, flexShrink: 0, borderRadius: 20,
+          background: `radial-gradient(circle at 35% 35%, ${p.accent}28, ${p.accent}10)`,
+          border: `1.5px solid ${p.accent}50`,
+          boxShadow: `0 0 0 5px ${p.accent}12, 0 6px 24px ${p.accent}35`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Icon size={22} strokeWidth={1.75} color={p.accent} />
+          <Icon size={30} strokeWidth={1.5} color={p.accent} />
         </div>
-        <div>
-          <p style={{ margin: '0 0 2px', fontSize: 11, color: 'var(--text-faint, #6B7280)' }}>
-            You&apos;re a
+
+        {/* Name block */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{
+            margin: '0 0 3px',
+            fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.15em', color: p.accent,
+          }}>
+            The
           </p>
-          <p style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.15, color: 'var(--text-primary, #e5e7eb)' }}>
-            {p.type}
-          </p>
-          <p style={{ margin: '5px 0 0', fontSize: 12, color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.5 }}>
-            {p.tagline}
+          <p style={{
+            margin: 0,
+            fontSize: 30, fontWeight: 800,
+            letterSpacing: '-0.04em', lineHeight: 1.05,
+            color: 'var(--text-primary, #e5e7eb)',
+          }}>
+            {name}
           </p>
         </div>
       </div>
 
+      {/* Tagline */}
+      <p style={{
+        margin: '0 0 16px',
+        fontSize: 13, color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.6,
+      }}>
+        {p.tagline}
+      </p>
+
       {/* Divider */}
-      <div style={{ height: 1, background: 'var(--border-soft, rgba(255,255,255,0.06))', margin: '0 0 12px' }} />
+      <div style={{ height: 1, background: `${p.accent}20`, margin: '0 0 14px' }} />
 
       {/* Vibe */}
-      <p style={{ margin: 0, fontSize: 13, fontStyle: 'italic', color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.5 }}>
+      <p style={{
+        margin: 0,
+        fontSize: 13, fontStyle: 'italic',
+        color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.55,
+      }}>
         &ldquo;{p.vibe}&rdquo;
       </p>
     </div>
@@ -367,15 +407,15 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
 
       {/* ── Section header ─────────────────────────────────────────────────── */}
       <style>{`
-        @keyframes bl-bulb-pulse {
-          0%, 100% { box-shadow: 0 0 6px 1px rgba(129,140,248,0.35), 0 0 14px 3px rgba(129,140,248,0.15); }
-          50%       { box-shadow: 0 0 10px 3px rgba(129,140,248,0.55), 0 0 24px 6px rgba(129,140,248,0.22); }
+        @keyframes bl-scope-pulse {
+          0%, 100% { box-shadow: 0 0 5px 1px rgba(129,140,248,0.30), 0 0 12px 2px rgba(129,140,248,0.12); }
+          50%       { box-shadow: 0 0 9px 3px rgba(129,140,248,0.50), 0 0 22px 5px rgba(129,140,248,0.20); }
         }
-        .bl-bulb-glow { animation: bl-bulb-pulse 2.8s ease-in-out infinite; }
+        .bl-scope-glow { animation: bl-scope-pulse 2.8s ease-in-out infinite; }
       `}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div
-          className="bl-bulb-glow"
+          className="bl-scope-glow"
           style={{
             width: 28, height: 28, borderRadius: 8,
             background: 'rgba(129,140,248,0.14)',
@@ -383,7 +423,7 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
             flexShrink: 0,
           }}
         >
-          <Lightbulb size={14} style={{ color: '#818CF8' }} />
+          <Stethoscope size={14} style={{ color: '#818CF8' }} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary, #e5e7eb)', letterSpacing: '0.01em' }}>
