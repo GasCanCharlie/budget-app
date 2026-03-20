@@ -66,6 +66,129 @@ const STARTER_PROMPTS = [
   'Show my top 5 merchants',
 ]
 
+// ─── Topic clusters for dynamic follow-up prompts ─────────────────────────────
+
+const PROMPT_CLUSTERS: { keywords: string[]; prompts: string[] }[] = [
+  {
+    keywords: ['food', 'eat', 'eating', 'dining', 'restaurant', 'grocery', 'groceries', 'meal', 'lunch', 'dinner', 'breakfast', 'coffee', 'cafe'],
+    prompts: [
+      'Which restaurant did I visit most?',
+      'How much did I spend on groceries?',
+      'How does my food spending compare to last month?',
+      'Am I over my food budget?',
+      'How many coffee runs did I make?',
+      'What did I spend on delivery apps?',
+    ],
+  },
+  {
+    keywords: ['subscription', 'recurring', 'trial', 'netflix', 'spotify', 'streaming', 'saas', 'monthly charge', 'auto-renew'],
+    prompts: [
+      'Which subscriptions did I add this month?',
+      'How much am I paying for subscriptions total?',
+      'Any trials about to convert to paid?',
+      'Which subscription costs the most?',
+      'Which subscriptions have I not used?',
+      'How did my subscription spend change vs last month?',
+    ],
+  },
+  {
+    keywords: ['save', 'saving', 'savings', 'cut', 'reduce', 'budget', 'limit', 'overspend', 'over budget', '$300', '$200', '$500'],
+    prompts: [
+      "What's my savings rate this month?",
+      'Which category could I reduce most easily?',
+      "What's my fixed cost baseline?",
+      'Where are my biggest non-essential expenses?',
+      'What would happen if I cut dining by half?',
+      'How much did I save vs last month?',
+    ],
+  },
+  {
+    keywords: ['merchant', 'vendor', 'store', 'shop', 'amazon', 'walmart', 'target', 'top', 'most frequent', 'biggest'],
+    prompts: [
+      'Which vendor do I spend the most with?',
+      "What's my most frequent purchase location?",
+      'Any unusual merchant charges?',
+      'Show my top 3 merchants this month',
+      'How often did I shop at my top merchant?',
+      'Which merchant increased the most vs last month?',
+    ],
+  },
+  {
+    keywords: ['income', 'earn', 'salary', 'deposit', 'paycheck', 'payroll', 'how much did i make'],
+    prompts: [
+      'How much of my income did I spend?',
+      "What's my income vs last month?",
+      'What percentage goes to essentials?',
+      "What's my effective savings rate?",
+      'How does my income cover my fixed costs?',
+      'Did my income change this month?',
+    ],
+  },
+  {
+    keywords: ['compare', 'last month', 'trend', 'change', 'changed', 'vs', 'track', 'better', 'worse', 'improve'],
+    prompts: [
+      'Which category increased the most?',
+      'What improved vs last month?',
+      'Am I trending better or worse overall?',
+      'Which month was my best financially?',
+      'What stayed the same vs last month?',
+      'Show me my biggest month-over-month change',
+    ],
+  },
+  {
+    keywords: ['transport', 'gas', 'fuel', 'uber', 'lyft', 'car', 'transit', 'commute', 'rideshare'],
+    prompts: [
+      'How much did I spend on rideshare vs driving?',
+      'Is my transport cost going up or down?',
+      'How does my commute cost compare to last month?',
+      'What percentage of spending is transport?',
+      'How many Uber/Lyft rides did I take?',
+    ],
+  },
+  {
+    keywords: ['health', 'gym', 'fitness', 'medical', 'pharmacy', 'doctor', 'wellness', 'supplement'],
+    prompts: [
+      'How much did I spend on health this month?',
+      'Is my gym membership still being used?',
+      'What health costs are recurring vs one-off?',
+      'How does my health spend compare to last month?',
+    ],
+  },
+  {
+    keywords: ['entertainment', 'fun', 'movies', 'concert', 'event', 'bar', 'night out', 'weekend'],
+    prompts: [
+      'How much did I spend on nights out?',
+      'What was my biggest entertainment expense?',
+      'How does my fun spending compare to last month?',
+      'Am I overspending on entertainment?',
+      'What events or concerts did I spend on?',
+    ],
+  },
+]
+
+function getRelatedPrompts(lastMessage: string, asked: Set<string>): string[] {
+  const lower = lastMessage.toLowerCase()
+  const scored = PROMPT_CLUSTERS.map(cluster => ({
+    prompts: cluster.prompts,
+    score:   cluster.keywords.filter(kw => lower.includes(kw)).length,
+  })).filter(m => m.score > 0).sort((a, b) => b.score - a.score)
+
+  if (scored.length === 0) {
+    // No topic match — rotate through starters not yet asked
+    return STARTER_PROMPTS.filter(p => !asked.has(p)).slice(0, 6)
+  }
+
+  // Merge top cluster(s), dedupe, filter asked
+  const pool = scored.flatMap(m => m.prompts)
+  const unique = [...new Set(pool)].filter(p => !asked.has(p))
+  // Pad with starters if fewer than 4 results
+  if (unique.length < 4) {
+    const extras = STARTER_PROMPTS.filter(p => !asked.has(p) && !unique.includes(p))
+    return [...unique, ...extras].slice(0, 6)
+  }
+  return unique.slice(0, 6)
+}
+
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
 
@@ -170,6 +293,8 @@ export default function InsightsPage() {
   const [apiUnavailable, setApiUnavailable] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [showStarters, setShowStarters] = useState(true)
+  const [currentPrompts, setCurrentPrompts] = useState<string[]>(STARTER_PROMPTS)
+  const askedPromptsRef = useRef<Set<string>>(new Set())
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -220,6 +345,8 @@ export default function InsightsPage() {
     setShowStarters(true)
     setApiUnavailable(false)
     setApiError(null)
+    setCurrentPrompts(STARTER_PROMPTS)
+    askedPromptsRef.current = new Set()
   }, [year, month, monthLabel])
 
   const handleMonthChange = useCallback((y: number, m: number) => {
@@ -233,9 +360,12 @@ export default function InsightsPage() {
     if (!trimmed || isStreaming || messages.length >= MAX_MESSAGES) return
 
     setInputText('')
-    setShowStarters(false)
+    setShowStarters(true)
     setApiUnavailable(false)
     setApiError(null)
+    // Track asked question and update related prompts
+    askedPromptsRef.current.add(trimmed)
+    setCurrentPrompts(getRelatedPrompts(trimmed, askedPromptsRef.current))
 
     const withUser = [...messages, { role: 'user' as const, content: trimmed }]
     setMessages([...withUser, { role: 'assistant', content: '', streaming: true }])
@@ -335,7 +465,7 @@ export default function InsightsPage() {
                 <div style={{ textAlign: 'center', padding: '4px 0' }}>
                   <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>Start a new conversation to keep chatting.</p>
                   <button
-                    onClick={() => { setMessages([]); setShowStarters(true) }}
+                    onClick={() => { setMessages([]); setShowStarters(true); setCurrentPrompts(STARTER_PROMPTS); askedPromptsRef.current = new Set() }}
                     className="btn-secondary"
                   >
                     New conversation
@@ -364,10 +494,10 @@ export default function InsightsPage() {
                 </div>
               )}
 
-              {/* Starter prompts — shown below input when no messages yet */}
-              {showStarters && messages.length === 0 && dashboardState !== 'categorization_required' && (
+              {/* Prompts — always visible, update to related topics after each question */}
+              {showStarters && dashboardState !== 'categorization_required' && (
                 <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                  {STARTER_PROMPTS.map(prompt => (
+                  {currentPrompts.map(prompt => (
                     <button
                       key={prompt}
                       onClick={() => sendMessage(prompt)}
