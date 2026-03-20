@@ -14,17 +14,19 @@ function CaduceusIcon({ size = 16, color = 'currentColor' }: { size?: number; co
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
       stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       {/* Staff */}
-      <line x1="12" y1="4.5" x2="12" y2="22" />
+      <line x1="12" y1="3.5" x2="12" y2="22" />
       {/* Orb */}
-      <circle cx="12" cy="3" r="1.3" fill={color} stroke="none" />
-      {/* Left wing */}
-      <path d="M12 8 C9.5 7.2 6 6.8 3.5 8.2 C5 5.8 8.5 5.6 12 7" />
-      {/* Right wing */}
-      <path d="M12 8 C14.5 7.2 18 6.8 20.5 8.2 C19 5.8 15.5 5.6 12 7" />
+      <circle cx="12" cy="2" r="1.3" fill={color} stroke="none" />
+      {/* Left wing — sweeps outward and upward from staff */}
+      <path d="M12 7 C9 5.5 5.5 4 2.5 4.5" />
+      <path d="M2.5 4.5 C4.5 2.5 9 4 12 6" />
+      {/* Right wing — sweeps outward and upward from staff */}
+      <path d="M12 7 C15 5.5 18.5 4 21.5 4.5" />
+      <path d="M21.5 4.5 C19.5 2.5 15 4 12 6" />
       {/* Snake 1 — wraps left → right → left */}
-      <path d="M12 6 C8 8.2 8 10.5 12 11.5 C16 12.5 16 15 12 16 C8 17 8 19.5 12 21.5" />
+      <path d="M12 5.5 C8 7.5 8 10 12 11 C16 12 16 14.5 12 15.5 C8 16.5 8 19 12 20.5" />
       {/* Snake 2 — wraps right → left → right */}
-      <path d="M12 6 C16 8.2 16 10.5 12 11.5 C8 12.5 8 15 12 16 C16 17 16 19.5 12 21.5" />
+      <path d="M12 5.5 C16 7.5 16 10 12 11 C8 12 8 14.5 12 15.5 C16 16.5 16 19 12 20.5" />
     </svg>
   )
 }

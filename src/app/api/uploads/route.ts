@@ -20,6 +20,7 @@ import { parseOfx, parseOfxDate, type OfxTransaction } from '@/lib/ingestion/par
 import { runReconciliation } from '@/lib/ingestion/stage4-reconcile'
 import { computeCanonicalRowHash, type ImportReport } from '@/lib/ingestion/import-report'
 import type { CsvXlsxSourceLocator } from '@/types/ingestion'
+import { dryRunRules } from '@/lib/rules/dry-run'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -844,6 +845,58 @@ export async function POST(req: NextRequest) {
           }
         })
       })
+    }
+
+    // ── Auto-apply rules to staging transactions ──────────────────────────────
+    // Mirror the logic in POST /api/staging/[uploadId]/apply-rules so that
+    // existing rules are applied immediately on upload without user intervention.
+    try {
+      const dryRun = await dryRunRules(stagingUpload.id, payload.userId, upload.accountId ?? undefined)
+      let autoApplied = 0
+      let autoReview  = 0
+
+      for (const match of dryRun.matches) {
+        if (match.status === 'auto') {
+          await prisma.stagingTransaction.update({
+            where: { id: match.stagingTxId },
+            data: {
+              ruleId:         match.ruleId,
+              ruleReason:     match.ruleReason,
+              categoryId:     match.categoryId,
+              categorySource: 'rule',
+              status:         'categorized',
+            },
+          })
+          if (match.ruleId) {
+            await prisma.ruleHit.create({
+              data: {
+                ruleId:      match.ruleId,
+                stagingTxId: match.stagingTxId,
+                uploadId:    upload.id,
+                wasAccepted: null,
+              },
+            })
+          }
+          autoApplied++
+        } else if (match.status === 'needs_review') {
+          await prisma.stagingTransaction.update({
+            where: { id: match.stagingTxId },
+            data: {
+              status:     'needs_review',
+              ...(match.ruleId     ? { ruleId:     match.ruleId }     : {}),
+              ...(match.ruleReason ? { ruleReason: match.ruleReason } : {}),
+            },
+          })
+          autoReview++
+        }
+      }
+
+      await prisma.stagingUpload.update({
+        where: { id: stagingUpload.id },
+        data: { autoCount: autoApplied, reviewCount: autoReview },
+      })
+    } catch {
+      // Non-fatal: rules auto-apply failure should not block the upload response
     }
 
     // ── Cross-account transfer pairing ───────────────────────────────────────
