@@ -6,7 +6,7 @@ import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { FileText, Upload, Trash2, Loader2, AlertCircle, ChevronRight, Tags, ArrowRight, CheckCircle, ShieldCheck, X } from 'lucide-react'
+import { FileText, Upload, Trash2, Loader2, AlertCircle, ChevronRight, Tags, ArrowRight, CheckCircle } from 'lucide-react'
 import { ReconciliationShield } from '@/components/ReconciliationShield'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
@@ -119,18 +119,6 @@ export default function StatementsPage() {
     onSuccess:  () => qc.invalidateQueries({ queryKey: ['uploads'] }),
   })
 
-  async function handleVerify(id: string, data: { openingBalance: string; closingBalance: string; totalCredits: string; totalDebits: string }) {
-    await apiFetch(`/api/uploads/${id}/reconcile`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        openingBalance:  data.openingBalance  || null,
-        closingBalance:  data.closingBalance  || null,
-        totalCredits:    data.totalCredits    || null,
-        totalDebits:     data.totalDebits     || null,
-      }),
-    })
-    qc.invalidateQueries({ queryKey: ['uploads'] })
-  }
 
   // Advance pipeline stage indicators while upload is in flight
   useEffect(() => {
@@ -382,7 +370,6 @@ export default function StatementsPage() {
                 <StatementRow key={u.id} upload={u} isLast={i === uploads.length - 1}
                   onDelete={handleDelete}
                   onNavigate={() => router.push(`/upload/${u.id}`)}
-                  onVerify={handleVerify}
                   fmtDate={fmtDate}
                 />
               ))}
@@ -402,122 +389,36 @@ interface RowProps {
   isLast: boolean
   onDelete:   (e: React.MouseEvent, id: string) => void
   onNavigate: () => void
-  onVerify:   (id: string, data: { openingBalance: string; closingBalance: string; totalCredits: string; totalDebits: string }) => Promise<void>
   fmtDate:    (iso: string) => string
 }
 
-function StatementRow({ upload: u, isLast, onDelete, onNavigate, onVerify, fmtDate }: RowProps) {
+function StatementRow({ upload: u, isLast, onDelete, onNavigate, fmtDate }: RowProps) {
   const [hov, setHov] = useState(false)
-  const [showVerify, setShowVerify] = useState(false)
-  const [verifying, setVerifying] = useState(false)
-  const [openingBalance, setOpeningBalance] = useState('')
-  const [closingBalance, setClosingBalance] = useState('')
-  const [totalCredits, setTotalCredits] = useState('')
-  const [totalDebits, setTotalDebits] = useState('')
-
-  const isUnverifiable = u.reconciliationStatus === 'UNVERIFIABLE' && u.status === 'complete'
-
-  async function handleSubmitVerify(e: React.FormEvent) {
-    e.stopPropagation()
-    e.preventDefault()
-    setVerifying(true)
-    try {
-      await onVerify(u.id, { openingBalance, closingBalance, totalCredits, totalDebits })
-      setShowVerify(false)
-    } finally {
-      setVerifying(false)
-    }
-  }
-
   return (
-    <li style={{ borderBottom: isLast && !showVerify ? 'none' : '1px solid var(--border)' }}>
-      {/* Main row */}
-      <div
-        onClick={onNavigate}
-        onMouseEnter={() => setHov(true)}
-        onMouseLeave={() => setHov(false)}
-        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', background: hov ? 'var(--surface2)' : 'transparent', transition: 'background .12s' }}
-      >
-        <FileText size={18} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+    <li onClick={onNavigate} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: isLast ? 'none' : '1px solid var(--border)', cursor: 'pointer', background: hov ? 'var(--surface2)' : 'transparent', transition: 'background .12s' }}
+    >
+      <FileText size={18} style={{ color: 'var(--muted)', flexShrink: 0 }} />
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.filename}</div>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{u.account?.name}</div>
-        </div>
-
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{fmtDate(u.createdAt)}</div>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{u.rowCountAccepted} rows</div>
-        </div>
-
-        {u.reconciliationStatus && u.status === 'complete' && (
-          <div style={{ flexShrink: 0 }}><ReconciliationShield status={u.reconciliationStatus} size="sm" /></div>
-        )}
-
-        {/* "Verify" button — only for UNVERIFIABLE uploads */}
-        {isUnverifiable && (
-          <button
-            onClick={e => { e.stopPropagation(); setShowVerify(v => !v) }}
-            title="Add statement totals to verify"
-            style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(96,165,250,0.35)', background: showVerify ? 'rgba(96,165,250,0.18)' : 'rgba(96,165,250,0.08)', color: '#60A5FA', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'background .12s' }}
-          >
-            <ShieldCheck size={11} />
-            Verify
-          </button>
-        )}
-
-        <button onClick={e => onDelete(e, u.id)} style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: hov ? 'var(--danger)' : 'var(--border)', padding: 4, display: 'flex', alignItems: 'center', transition: 'color .12s' }}>
-          <Trash2 size={15} />
-        </button>
-
-        <ChevronRight size={15} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.filename}</div>
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>{u.account?.name}</div>
       </div>
 
-      {/* Inline verify form */}
-      {showVerify && (
-        <form
-          onSubmit={handleSubmitVerify}
-          onClick={e => e.stopPropagation()}
-          style={{ padding: '14px 16px 16px', background: 'rgba(96,165,250,0.05)', borderTop: '1px solid rgba(96,165,250,0.15)' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#60A5FA' }}>Enter statement totals to verify</span>
-            <button type="button" onClick={e => { e.stopPropagation(); setShowVerify(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex', padding: 2 }}>
-              <X size={14} />
-            </button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Opening Balance</span>
-              <input value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} placeholder="e.g. 1234.56" style={{ ...S.input, fontSize: 13 }} />
-            </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Closing Balance</span>
-              <input value={closingBalance} onChange={e => setClosingBalance(e.target.value)} placeholder="e.g. 987.65" style={{ ...S.input, fontSize: 13 }} />
-            </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Total Credits</span>
-              <input value={totalCredits} onChange={e => setTotalCredits(e.target.value)} placeholder="optional" style={{ ...S.input, fontSize: 13 }} />
-            </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Total Debits</span>
-              <input value={totalDebits} onChange={e => setTotalDebits(e.target.value)} placeholder="optional" style={{ ...S.input, fontSize: 13 }} />
-            </label>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              type="submit"
-              disabled={verifying || (!openingBalance && !closingBalance && !totalCredits && !totalDebits)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 7, border: '1px solid rgba(96,165,250,0.4)', background: 'rgba(96,165,250,0.18)', color: '#60A5FA', fontSize: 12, fontWeight: 700, cursor: verifying ? 'not-allowed' : 'pointer', opacity: verifying ? 0.6 : 1 }}
-            >
-              {verifying ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Verifying…</> : <><ShieldCheck size={12} /> Run Verification</>}
-            </button>
-            <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0, alignSelf: 'center', lineHeight: 1.4 }}>
-              Enter the totals shown on your bank statement. Opening + Closing balance is most common.
-            </p>
-          </div>
-        </form>
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>{fmtDate(u.createdAt)}</div>
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>{u.rowCountAccepted} rows</div>
+      </div>
+
+      {u.reconciliationStatus && u.status === 'complete' && (
+        <div style={{ flexShrink: 0 }}><ReconciliationShield status={u.reconciliationStatus} size="sm" /></div>
       )}
+
+      <button onClick={e => onDelete(e, u.id)} style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: hov ? 'var(--danger)' : 'var(--border)', padding: 4, display: 'flex', alignItems: 'center', transition: 'color .12s' }}>
+        <Trash2 size={15} />
+      </button>
+
+      <ChevronRight size={15} style={{ color: 'var(--muted)', flexShrink: 0 }} />
     </li>
   )
 }

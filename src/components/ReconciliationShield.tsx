@@ -34,7 +34,7 @@ const CONFIG: Record<string, {
     Icon: ShieldOff,
     color: 'text-slate-500 bg-slate-100 border-slate-200',
     label: 'Unverified',
-    tooltip: 'Bank format has no verification totals',
+    tooltip: 'This export has no running balance column or statement totals — automatic verification isn\'t possible for this file format',
   },
   PENDING: {
     Icon: Shield,
