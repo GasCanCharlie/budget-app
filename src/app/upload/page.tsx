@@ -369,7 +369,6 @@ export default function StatementsPage() {
                 <StatementRow key={u.id} upload={u} isLast={i === uploads.length - 1}
                   onDelete={handleDelete}
                   onNavigate={() => router.push(`/upload/${u.id}`)}
-                  onReport={e => { e.stopPropagation(); router.push(`/reports/${u.id}`) }}
                   fmtDate={fmtDate}
                 />
               ))}
@@ -389,11 +388,10 @@ interface RowProps {
   isLast: boolean
   onDelete:   (e: React.MouseEvent, id: string) => void
   onNavigate: () => void
-  onReport:   (e: React.MouseEvent) => void
   fmtDate:    (iso: string) => string
 }
 
-function StatementRow({ upload: u, isLast, onDelete, onNavigate, onReport, fmtDate }: RowProps) {
+function StatementRow({ upload: u, isLast, onDelete, onNavigate, fmtDate }: RowProps) {
   const [hov, setHov] = useState(false)
   return (
     <li onClick={onNavigate} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
@@ -414,10 +412,6 @@ function StatementRow({ upload: u, isLast, onDelete, onNavigate, onReport, fmtDa
       {u.reconciliationStatus && u.status === 'complete' && (
         <div style={{ flexShrink: 0 }}><ReconciliationShield status={u.reconciliationStatus} size="sm" /></div>
       )}
-
-      <button onClick={onReport} style={{ flexShrink: 0, background: 'var(--accent-muted)', border: '1px solid rgba(124,137,255,0.25)', color: 'var(--accent)', fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-        Scan Report
-      </button>
 
       <button onClick={e => onDelete(e, u.id)} style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: hov ? 'var(--danger)' : 'var(--border)', padding: 4, display: 'flex', alignItems: 'center', transition: 'color .12s' }}>
         <Trash2 size={15} />
