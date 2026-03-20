@@ -321,6 +321,24 @@ export default function DashboardPage() {
           loading={!insightsData && !!user}
         />
 
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* FINANCIAL INSIGHTS — personality + pattern analysis               */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        <FinancialAutopsyPanel
+          cards={insightsData?.cards ?? []}
+          year={year}
+          month={month}
+          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
+          personality={personalityResult}
+          personalitySignals={{
+            income:     summary.totalIncome as number,
+            spending:   summary.totalSpending as number,
+            net:        summary.net as number,
+            topCatName: spendingCategories[0]?.categoryName,
+          }}
+        />
+
         {/* Partial month data notice */}
         {!!summary.isPartialMonth && (
           <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
@@ -346,24 +364,6 @@ export default function DashboardPage() {
           month={month}
           prevCategories={prevSpendingCategories}
           budgets={budgetsData?.budgets ?? []}
-        />
-
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* FINANCIAL INSIGHTS — personality + pattern analysis               */}
-        {/* ════════════════════════════════════════════════════════════════════ */}
-
-        <FinancialAutopsyPanel
-          cards={insightsData?.cards ?? []}
-          year={year}
-          month={month}
-          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
-          personality={personalityResult}
-          personalitySignals={{
-            income:     summary.totalIncome as number,
-            spending:   summary.totalSpending as number,
-            net:        summary.net as number,
-            topCatName: spendingCategories[0]?.categoryName,
-          }}
         />
 
         {/* ════════════════════════════════════════════════════════════════════ */}
