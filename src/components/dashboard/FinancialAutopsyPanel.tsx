@@ -3,9 +3,31 @@
 import { useState } from 'react'
 import {
   Coins, Target, RefreshCw, TrendingUp, Gauge,
-  ChevronDown, ChevronRight, Loader2, Lightbulb, Dna,
+  ChevronDown, ChevronRight, Loader2, Lightbulb,
   Layers, Activity, Zap, Brain, BarChart3, type LucideIcon,
 } from 'lucide-react'
+
+// ─── Caduceus icon (custom SVG — not in lucide) ───────────────────────────────
+
+function CaduceusIcon({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      {/* Staff */}
+      <line x1="12" y1="4.5" x2="12" y2="22" />
+      {/* Orb */}
+      <circle cx="12" cy="3" r="1.3" fill={color} stroke="none" />
+      {/* Left wing */}
+      <path d="M12 8 C9.5 7.2 6 6.8 3.5 8.2 C5 5.8 8.5 5.6 12 7" />
+      {/* Right wing */}
+      <path d="M12 8 C14.5 7.2 18 6.8 20.5 8.2 C19 5.8 15.5 5.6 12 7" />
+      {/* Snake 1 — wraps left → right → left */}
+      <path d="M12 6 C8 8.2 8 10.5 12 11.5 C16 12.5 16 15 12 16 C8 17 8 19.5 12 21.5" />
+      {/* Snake 2 — wraps right → left → right */}
+      <path d="M12 6 C16 8.2 16 10.5 12 11.5 C8 12.5 8 15 12 16 C16 17 16 19.5 12 21.5" />
+    </svg>
+  )
+}
 import type { InsightCard } from '@/lib/insights/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -414,13 +436,13 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
         <div
           className="bl-scope-glow"
           style={{
-            width: 28, height: 28, borderRadius: 8,
+            width: 32, height: 32, borderRadius: 9,
             background: 'rgba(129,140,248,0.14)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}
         >
-          <Dna size={14} style={{ color: '#818CF8' }} />
+          <CaduceusIcon size={18} color="#818CF8" />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary, #e5e7eb)', letterSpacing: '0.01em' }}>
