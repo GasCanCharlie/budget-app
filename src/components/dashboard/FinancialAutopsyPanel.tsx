@@ -612,6 +612,13 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
         </button>
       </div>
 
+      {/* ── Money Personality ──────────────────────────────────────────────── */}
+      {personality && (
+        <div style={{ marginBottom: 18 }}>
+          <PersonalityCard result={personality} signals={personalitySignals} />
+        </div>
+      )}
+
       {/* Error */}
       {genError && (
         <div style={{
@@ -644,13 +651,6 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
           {insightCards.map((card, i) => (
             <InsightCard key={card.id} card={card} prominent={i === 0} />
           ))}
-        </div>
-      )}
-
-      {/* ── Money Personality ──────────────────────────────────────────────── */}
-      {personality && (
-        <div style={{ marginTop: 16 }}>
-          <PersonalityCard result={personality} signals={personalitySignals} />
         </div>
       )}
     </div>
