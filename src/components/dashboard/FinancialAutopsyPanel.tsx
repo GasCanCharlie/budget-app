@@ -41,6 +41,7 @@ export interface PersonalityInput {
   topCatPct:    number
   subCount:     number
   anomalyCount: number
+  topCatName?:  string
 }
 
 interface Props {
@@ -129,7 +130,7 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
       boxShadow: `0 8px 32px ${p.accent}18, 0 1px 0 ${p.accent}12 inset`,
     }}>
 
-      {/* Top bar: label + "this month" chip */}
+      {/* Top bar: label + share button */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
         <span style={{
           fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
@@ -137,15 +138,34 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
         }}>
           Your Money Personality
         </span>
-        <span style={{
-          fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase',
-          color: 'var(--text-faint, #6B7280)',
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 6, padding: '3px 8px',
-        }}>
-          This month
-        </span>
+        <button
+          onClick={() => {
+            const params = new URLSearchParams({
+              type:   p.type,
+              vibe:   p.vibe,
+              income: String(data.income),
+              spend:  String(data.spending),
+              net:    String(data.net),
+            })
+            if (data.topCatName) params.set('topCat', data.topCatName)
+            window.open(`/api/share/personality?${params.toString()}`, '_blank')
+          }}
+          aria-label="Share your money personality card"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontSize: 11, fontWeight: 600,
+            color: p.accent,
+            background: p.accentBg,
+            border: `1px solid ${p.accent}35`,
+            borderRadius: 999, padding: '4px 12px',
+            cursor: 'pointer', letterSpacing: '0.01em',
+            transition: 'opacity 150ms ease',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
+          ↗ Share card
+        </button>
       </div>
 
       {/* Hero row: icon + name block */}
@@ -424,33 +444,41 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
   }
 
   return (
-    <div style={{ marginBottom: 8 }}>
+    <div style={{
+      background: 'linear-gradient(145deg, rgba(129,140,248,0.07) 0%, rgba(99,102,241,0.03) 100%)',
+      border: '1px solid rgba(129,140,248,0.22)',
+      borderRadius: 22,
+      padding: '22px 20px 18px',
+      boxShadow: '0 0 0 1px rgba(129,140,248,0.06), 0 20px 60px rgba(0,0,0,0.22)',
+      marginBottom: 8,
+    }}>
 
       {/* ── Section header ─────────────────────────────────────────────────── */}
       <style>{`
         @keyframes bl-scope-pulse {
-          0%, 100% { box-shadow: 0 0 5px 1px rgba(129,140,248,0.30), 0 0 12px 2px rgba(129,140,248,0.12); }
-          50%       { box-shadow: 0 0 9px 3px rgba(129,140,248,0.50), 0 0 22px 5px rgba(129,140,248,0.20); }
+          0%, 100% { box-shadow: 0 0 7px 2px rgba(129,140,248,0.38), 0 0 18px 4px rgba(129,140,248,0.14); }
+          50%       { box-shadow: 0 0 14px 4px rgba(129,140,248,0.58), 0 0 32px 8px rgba(129,140,248,0.22); }
         }
         .bl-scope-glow { animation: bl-scope-pulse 2.8s ease-in-out infinite; }
       `}</style>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
         <div
           className="bl-scope-glow"
           style={{
-            width: 32, height: 32, borderRadius: 9,
-            background: 'rgba(129,140,248,0.14)',
+            width: 44, height: 44, borderRadius: 13,
+            background: 'rgba(129,140,248,0.16)',
+            border: '1px solid rgba(129,140,248,0.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}
         >
-          <CaduceusIcon size={18} color="#818CF8" />
+          <CaduceusIcon size={24} color="#818CF8" />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary, #e5e7eb)', letterSpacing: '0.01em' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary, #e5e7eb)', letterSpacing: '-0.01em' }}>
             Financial Autopsy
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-faint, #6B7280)', marginTop: 1 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-faint, #6B7280)', marginTop: 2 }}>
             {insightCards.length === 0
               ? 'Deep-dive analysis of your spending patterns'
               : `${insightCards.length} finding${insightCards.length !== 1 ? 's' : ''} this month`
@@ -465,9 +493,9 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             fontSize: 12, fontWeight: 700,
-            padding: '6px 14px', borderRadius: 8,
-            border: '1px solid rgba(129,140,248,0.3)',
-            background: generating ? 'rgba(129,140,248,0.05)' : 'rgba(129,140,248,0.10)',
+            padding: '8px 16px', borderRadius: 10,
+            border: '1px solid rgba(129,140,248,0.35)',
+            background: generating ? 'rgba(129,140,248,0.05)' : 'rgba(129,140,248,0.14)',
             color: generating ? '#6B7280' : '#a5b4fc',
             cursor: generating ? 'not-allowed' : 'pointer',
             transition: 'opacity 0.15s',
