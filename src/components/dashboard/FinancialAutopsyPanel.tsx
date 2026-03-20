@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   Coins, Target, RefreshCw, TrendingUp, Gauge,
-  ChevronDown, ChevronRight, Loader2, Lightbulb, Stethoscope,
+  ChevronDown, ChevronRight, Loader2, Lightbulb, Dna,
   Layers, Activity, Zap, Brain, BarChart3, type LucideIcon,
 } from 'lucide-react'
 import type { InsightCard } from '@/lib/insights/types'
@@ -423,7 +423,7 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
             flexShrink: 0,
           }}
         >
-          <Stethoscope size={14} style={{ color: '#818CF8' }} />
+          <Dna size={14} style={{ color: '#818CF8' }} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary, #e5e7eb)', letterSpacing: '0.01em' }}>
