@@ -216,10 +216,7 @@ export default function InsightsPage() {
 
   // Reset chat when month changes
   useEffect(() => {
-    setMessages([{
-      role: 'assistant',
-      content: `Ask me anything about your budget for ${monthLabel}.`,
-    }])
+    setMessages([])
     setShowStarters(true)
     setApiUnavailable(false)
     setApiError(null)
@@ -332,105 +329,13 @@ export default function InsightsPage() {
           {/* Chat card */}
           <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-soft)' }}>
 
-            {/* Messages */}
-            <div style={{ maxHeight: 520, overflowY: 'auto', padding: '18px 18px 8px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-              {/* Categorization gate */}
-              {dashboardState === 'categorization_required' && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center', padding: '32px 20px' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--warn-muted)', border: '1px solid var(--warn)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <MessageCircle size={18} style={{ color: 'var(--warn)' }} />
-                  </div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', margin: 0 }}>Categorization required</p>
-                  <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, maxWidth: 320 }}>
-                    Finish categorizing your transactions to unlock Q&amp;A for this month.
-                  </p>
-                </div>
-              )}
-
-              {/* Error banner */}
-              {apiUnavailable && (
-                <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)', fontSize: 13, color: 'var(--danger)', textAlign: 'center' }}>
-                  {apiError ?? 'Chat is not available right now.'}
-                </div>
-              )}
-
-              {/* Messages */}
-              {dashboardState !== 'categorization_required' && messages.map((msg, i) => (
-                <div key={i}>
-                  {msg.role === 'assistant' ? (
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent-muted)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                        <MessageCircle size={12} style={{ color: 'var(--accent)' }} />
-                      </div>
-                      <div style={{ maxWidth: 'calc(100% - 44px)', padding: '10px 14px', borderRadius: '4px 14px 14px 14px', background: 'var(--surface2)', border: '1px solid var(--border2)', fontSize: 14, lineHeight: 1.6, color: 'var(--text)' }}>
-                        {msg.streaming && msg.content.length === 0 ? <TypingDots /> : <MessageContent content={msg.content} />}
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, alignItems: 'flex-start' }}>
-                      <div style={{ maxWidth: '72%', padding: '10px 14px', borderRadius: '14px 4px 14px 14px', background: 'var(--accent-muted)', border: '1px solid var(--border2)', fontSize: 14, lineHeight: 1.6, color: 'var(--text)' }}>
-                        {msg.content}
-                      </div>
-                      <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--surface2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, fontSize: 9, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.02em' }}>
-                        You
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Number chips */}
-                  {msg.role === 'assistant' && !msg.streaming && (msg.numbersUsed?.length ?? 0) > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6, paddingLeft: 36 }}>
-                      {msg.numbersUsed!.map((n, ni) => (
-                        <span key={ni} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 9999, background: 'var(--accent-muted)', border: '1px solid var(--border2)', color: 'var(--muted)' }}>
-                          {n.label}: <strong style={{ color: 'var(--text)' }}>{n.value}</strong>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* View transactions link */}
-                  {msg.role === 'assistant' && !msg.streaming && msg.filters && Object.keys(msg.filters).length > 0 && (
-                    <button
-                      onClick={() => { const p = new URLSearchParams(msg.filters as Record<string, string>); router.push(`/transactions?${p.toString()}`) }}
-                      style={{ marginTop: 6, marginLeft: 36, fontSize: 11, padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--accent-muted)', border: '1px solid var(--border2)', color: 'var(--accent)', cursor: 'pointer', display: 'inline-block' }}
-                    >
-                      View transactions →
-                    </button>
-                  )}
-
-                  {/* Starter prompts after first message */}
-                  {i === 0 && showStarters && msg.role === 'assistant' && (
-                    <div style={{ marginTop: 12, paddingLeft: 36 }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                        {STARTER_PROMPTS.map(prompt => (
-                          <button
-                            key={prompt}
-                            onClick={() => sendMessage(prompt)}
-                            disabled={isStreaming}
-                            style={{ padding: '5px 11px', borderRadius: 20, background: 'var(--accent-muted)', border: '1px solid var(--border2)', color: 'var(--accent)', fontSize: 12, cursor: 'pointer', fontWeight: 500, transition: 'opacity 0.15s' }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.7' }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '1' }}
-                          >
-                            {prompt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* ── Input area ──────────────────────────────────────────── */}
-            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
+            {/* ── Input area — top ────────────────────────────────────── */}
+            <div style={{ padding: '12px 16px', borderBottom: messages.length > 0 ? '1px solid var(--border)' : 'none', background: 'var(--bg2)', flexShrink: 0 }}>
               {atLimit ? (
                 <div style={{ textAlign: 'center', padding: '4px 0' }}>
                   <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>Start a new conversation to keep chatting.</p>
                   <button
-                    onClick={() => { setMessages([{ role: 'assistant', content: `Ask me anything about your budget for ${monthLabel}.` }]); setShowStarters(true) }}
+                    onClick={() => { setMessages([]); setShowStarters(true) }}
                     className="btn-secondary"
                   >
                     New conversation
@@ -443,7 +348,7 @@ export default function InsightsPage() {
                     value={inputText}
                     onChange={e => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={dashboardState === 'categorization_required' ? 'Categorize transactions to unlock Q&A…' : 'Ask about your budget…'}
+                    placeholder={dashboardState === 'categorization_required' ? 'Categorize transactions to unlock Q&A…' : `Ask me anything about your budget for ${monthLabel}…`}
                     rows={2}
                     disabled={isStreaming || dashboardState === 'categorization_required'}
                     style={{ flex: 1, background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: 14, color: 'var(--text)', resize: 'none', outline: 'none', lineHeight: 1.5, fontFamily: 'inherit' }}
@@ -458,7 +363,99 @@ export default function InsightsPage() {
                   </button>
                 </div>
               )}
+
+              {/* Starter prompts — shown below input when no messages yet */}
+              {showStarters && messages.length === 0 && dashboardState !== 'categorization_required' && (
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  {STARTER_PROMPTS.map(prompt => (
+                    <button
+                      key={prompt}
+                      onClick={() => sendMessage(prompt)}
+                      disabled={isStreaming}
+                      style={{ padding: '5px 11px', borderRadius: 20, background: 'var(--accent-muted)', border: '1px solid var(--border2)', color: 'var(--accent)', fontSize: 12, cursor: 'pointer', fontWeight: 500, transition: 'opacity 0.15s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.7' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '1' }}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* ── Messages ────────────────────────────────────────────── */}
+            {(messages.length > 0 || dashboardState === 'categorization_required' || apiUnavailable) && (
+              <div style={{ maxHeight: 520, overflowY: 'auto', padding: '18px 18px 8px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+                {/* Categorization gate */}
+                {dashboardState === 'categorization_required' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center', padding: '32px 20px' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--warn-muted)', border: '1px solid var(--warn)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <MessageCircle size={18} style={{ color: 'var(--warn)' }} />
+                    </div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', margin: 0 }}>Categorization required</p>
+                    <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, maxWidth: 320 }}>
+                      Finish categorizing your transactions to unlock Q&amp;A for this month.
+                    </p>
+                  </div>
+                )}
+
+                {/* Error banner */}
+                {apiUnavailable && (
+                  <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)', fontSize: 13, color: 'var(--danger)', textAlign: 'center' }}>
+                    {apiError ?? 'Chat is not available right now.'}
+                  </div>
+                )}
+
+                {/* Messages */}
+                {dashboardState !== 'categorization_required' && messages.map((msg, i) => (
+                  <div key={i}>
+                    {msg.role === 'assistant' ? (
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent-muted)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                          <MessageCircle size={12} style={{ color: 'var(--accent)' }} />
+                        </div>
+                        <div style={{ maxWidth: 'calc(100% - 44px)', padding: '10px 14px', borderRadius: '4px 14px 14px 14px', background: 'var(--surface2)', border: '1px solid var(--border2)', fontSize: 14, lineHeight: 1.6, color: 'var(--text)' }}>
+                          {msg.streaming && msg.content.length === 0 ? <TypingDots /> : <MessageContent content={msg.content} />}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, alignItems: 'flex-start' }}>
+                        <div style={{ maxWidth: '72%', padding: '10px 14px', borderRadius: '14px 4px 14px 14px', background: 'var(--accent-muted)', border: '1px solid var(--border2)', fontSize: 14, lineHeight: 1.6, color: 'var(--text)' }}>
+                          {msg.content}
+                        </div>
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--surface2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, fontSize: 9, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.02em' }}>
+                          You
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Number chips */}
+                    {msg.role === 'assistant' && !msg.streaming && (msg.numbersUsed?.length ?? 0) > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6, paddingLeft: 36 }}>
+                        {msg.numbersUsed!.map((n, ni) => (
+                          <span key={ni} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 9999, background: 'var(--accent-muted)', border: '1px solid var(--border2)', color: 'var(--muted)' }}>
+                            {n.label}: <strong style={{ color: 'var(--text)' }}>{n.value}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* View transactions link */}
+                    {msg.role === 'assistant' && !msg.streaming && msg.filters && Object.keys(msg.filters).length > 0 && (
+                      <button
+                        onClick={() => { const p = new URLSearchParams(msg.filters as Record<string, string>); router.push(`/transactions?${p.toString()}`) }}
+                        style={{ marginTop: 6, marginLeft: 36, fontSize: 11, padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--accent-muted)', border: '1px solid var(--border2)', color: 'var(--accent)', cursor: 'pointer', display: 'inline-block' }}
+                      >
+                        View transactions →
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                <div ref={messagesEndRef} />
+              </div>
+            )}
           </div>
         </div>
 
