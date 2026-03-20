@@ -298,10 +298,27 @@ export default function DashboardPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* MONEY PERSONALITY — first thing you see                           */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        <FinancialAutopsyPanel
+          cards={insightsData?.cards ?? []}
+          year={year}
+          month={month}
+          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
+          personality={personalityResult}
+          personalitySignals={{
+            income:     summary.totalIncome as number,
+            spending:   summary.totalSpending as number,
+            net:        summary.net as number,
+            topCatName: spendingCategories[0]?.categoryName,
+          }}
+        />
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
         {/* HERO — what happened this month                                    */}
         {/* ════════════════════════════════════════════════════════════════════ */}
 
-        {/* Primary metrics anchor */}
         <FinancialSummaryHeader
           month={month}
           year={year}
@@ -319,24 +336,6 @@ export default function DashboardPage() {
         <MonthlyStorylineCard
           cards={insightsData?.cards ?? []}
           loading={!insightsData && !!user}
-        />
-
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* FINANCIAL INSIGHTS — personality + pattern analysis               */}
-        {/* ════════════════════════════════════════════════════════════════════ */}
-
-        <FinancialAutopsyPanel
-          cards={insightsData?.cards ?? []}
-          year={year}
-          month={month}
-          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
-          personality={personalityResult}
-          personalitySignals={{
-            income:     summary.totalIncome as number,
-            spending:   summary.totalSpending as number,
-            net:        summary.net as number,
-            topCatName: spendingCategories[0]?.categoryName,
-          }}
         />
 
         {/* Partial month data notice */}
