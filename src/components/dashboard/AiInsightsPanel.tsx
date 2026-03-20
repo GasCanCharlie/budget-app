@@ -154,7 +154,8 @@ export function AiInsightsPanel({ year, month }: AiInsightsPanelProps) {
   }
 
   // ── Derived state ──────────────────────────────────────────────────────────
-  const cards = data?.cards ?? []
+  // Exclude autopsy cards — those are surfaced in the Financial Autopsy section
+  const cards = (data?.cards ?? []).filter(c => !c.card_type.startsWith('autopsy_'))
   // Rotate which cards surface first; step = ~¼ of total cards (min 1)
   const rotationStep = Math.max(1, Math.floor(cards.length / MAX_ROTATIONS))
   const rotatedCards = rotateArray(cards, rotation * rotationStep)

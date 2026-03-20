@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import {
   LayoutDashboard, FileText, ArrowLeftRight, Tags, Layers,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, Lightbulb, Settings,
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, FlaskConical, Settings,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
@@ -30,7 +30,7 @@ const primaryNavItems = [
   { href: '/upload',       label: 'Uploads',      icon: FileText },
   { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/categorize',   label: 'Categorize',   icon: Tags },
-  { href: '/insights',     label: 'Insights Q&A', icon: Lightbulb },
+  { href: '/insights',     label: 'Autopsy & Q&A', icon: FlaskConical },
 ]
 
 // Management utilities — desktop sidebar only, visually de-emphasized

@@ -19,7 +19,7 @@ import { SubscriptionPanel } from '@/components/dashboard/SubscriptionPanel'
 import { UpcomingChargesPanel } from '@/components/dashboard/UpcomingChargesPanel'
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard'
 import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome'
-import { FinancialAutopsyPanel, PersonalityCard } from '@/components/dashboard/FinancialAutopsyPanel'
+import { PersonalityCard } from '@/components/dashboard/FinancialAutopsyPanel'
 import { MonthlyStorylineCard } from '@/components/dashboard/MonthlyStorylineCard'
 import type { InsightCard } from '@/lib/insights/types'
 import { computeSignals } from '@/lib/personality/signals'
@@ -311,16 +311,6 @@ export default function DashboardPage() {
           }}
         />
 
-        {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* FINANCIAL AUTOPSY — just below personality                        */}
-        {/* ════════════════════════════════════════════════════════════════════ */}
-
-        <FinancialAutopsyPanel
-          cards={insightsData?.cards ?? []}
-          year={year}
-          month={month}
-          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
-        />
 
         {/* ════════════════════════════════════════════════════════════════════ */}
         {/* HERO — what happened this month                                    */}

@@ -8,7 +8,10 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import { AiInsightsPanel } from '@/components/dashboard/AiInsightsPanel'
+import { FinancialAutopsyPanel } from '@/components/dashboard/FinancialAutopsyPanel'
+import { useQueryClient } from '@tanstack/react-query'
 import { MessageCircle, Send, Loader2 } from 'lucide-react'
+import type { InsightCard } from '@/lib/insights/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -172,6 +175,14 @@ export default function InsightsPage() {
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const { unlocked, loading: unlockLoading } = useInsightsUnlock()
+  const queryClient = useQueryClient()
+
+  const { data: insightsData } = useQuery<{ cards: InsightCard[]; isStale: boolean }>({
+    queryKey: ['insights', year, month],
+    queryFn:  () => apiFetch(`/api/insights?year=${year}&month=${month}`),
+    enabled:  !!user && !!year && !!month,
+    staleTime: 5 * 60_000,
+  })
 
   useEffect(() => { if (!user) router.replace('/login') }, [user, router])
   useEffect(() => {
@@ -306,6 +317,14 @@ export default function InsightsPage() {
   return (
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="space-y-6 pb-24">
+
+        {/* ── Financial Autopsy ───────────────────────────────────────── */}
+        <FinancialAutopsyPanel
+          cards={insightsData?.cards ?? []}
+          year={year}
+          month={month}
+          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
+        />
 
         {/* ── Q&A section ─────────────────────────────────────────────── */}
         <div>
