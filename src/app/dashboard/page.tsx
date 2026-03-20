@@ -347,7 +347,8 @@ export default function DashboardPage() {
             topCatPct:    spendingCategories[0]?.pctOfSpending ?? 0,
             subCount:     subsData?.subscriptions?.length ?? 0,
             anomalyCount: summary.alerts?.length ?? 0,
-            topCatName:   spendingCategories[0]?.categoryName,
+            topCatName:     spendingCategories[0]?.categoryName,
+            subscriptions:  subsData?.subscriptions?.map(s => s.merchantNormalized) ?? [],
           }}
         />
 
