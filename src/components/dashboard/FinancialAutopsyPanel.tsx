@@ -109,20 +109,32 @@ function PersonalityCard({ result, signals }: { result: PersonalityResult; signa
 
   const Icon = getPersonalityIcon(core.id as string)
 
-  // ── Subscription Collector — full illustration card ─────────────────────
-  if (core.id === 'subscription_collector') {
+  // ── Illustration card (shared by personalities with custom art) ─────────
+  const ILLUSTRATION_CARDS: Partial<Record<string, { src: string; dotColor: string; btnColor: string; btnBorder: string }>> = {
+    subscription_collector: {
+      src: '/personalities/subscription-collector.webp',
+      dotColor: '#FBBF24', btnColor: 'rgba(251,191,36,0.22)', btnBorder: 'rgba(251,191,36,0.45)',
+    },
+    wire_dancer: {
+      src: '/personalities/wire-dancer.webp',
+      dotColor: '#2DD4BF', btnColor: 'rgba(45,212,191,0.22)', btnBorder: 'rgba(45,212,191,0.45)',
+    },
+  }
+
+  const illus = ILLUSTRATION_CARDS[core.id as string]
+  if (illus) {
     return (
       <div style={{
         position: 'relative',
         borderRadius: 18, overflow: 'hidden',
         marginBottom: 14,
         boxShadow: '0 12px 48px rgba(0,0,0,0.45)',
-        border: '1px solid rgba(251,191,36,0.25)',
+        border: `1px solid ${illus.dotColor}40`,
       }}>
-        {/* Illustration — let it display at natural aspect ratio */}
+        {/* Illustration — natural aspect ratio */}
         <img
-          src="/personalities/subscription-collector.webp"
-          alt="The Subscription Collector"
+          src={illus.src}
+          alt={core.name}
           style={{ width: '100%', height: 'auto', display: 'block' }}
         />
 
@@ -149,7 +161,7 @@ function PersonalityCard({ result, signals }: { result: PersonalityResult; signa
           border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: 999, padding: '4px 10px',
         }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#FBBF24' }} />
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: illus.dotColor }} />
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.85)' }}>
             Money Personality
           </span>
@@ -177,9 +189,9 @@ function PersonalityCard({ result, signals }: { result: PersonalityResult; signa
               flexShrink: 0,
               display: 'inline-flex', alignItems: 'center', gap: 6,
               fontSize: 12, fontWeight: 700, color: '#fff',
-              background: 'rgba(251,191,36,0.22)',
+              background: illus.btnColor,
               backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(251,191,36,0.45)',
+              border: `1px solid ${illus.btnBorder}`,
               borderRadius: 999, padding: '7px 16px',
               cursor: 'pointer', transition: 'opacity 150ms ease',
               pointerEvents: 'all',

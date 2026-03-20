@@ -180,12 +180,24 @@ export async function GET(req: NextRequest) {
   const topCat = searchParams.get('topCat') ?? ''
   const trait  = searchParams.get('trait')  ?? ''
 
-  // ── Subscription Collector — illustration-based share card ────────────────
-  if (type === 'The Subscription Collector') {
+  // ── Illustration-based share cards ───────────────────────────────────────
+  const ILLUSTRATION_MAP: Record<string, { src: string; pillColor: string; pillBorder: string; dotColor: string }> = {
+    'The Subscription Collector': {
+      src: `${origin}/personalities/subscription-collector.webp`,
+      pillColor: 'rgba(251,191,36,0.18)', pillBorder: 'rgba(251,191,36,0.45)', dotColor: '#FBBF24',
+    },
+    'The Wire Dancer': {
+      src: `${origin}/personalities/wire-dancer.webp`,
+      pillColor: 'rgba(45,212,191,0.18)', pillBorder: 'rgba(45,212,191,0.45)', dotColor: '#2DD4BF',
+    },
+  }
+
+  if (type in ILLUSTRATION_MAP) {
+    const illus = ILLUSTRATION_MAP[type]
     const netColor  = net >= 0 ? '#4ADE80' : '#F87171'
     const netPrefix = net >= 0 ? '+' : '−'
     const netFmt    = `${netPrefix}${fmt(Math.abs(net))}`
-    const imgSrc    = `${origin}/personalities/subscription-collector.webp`
+    const imgSrc    = illus.src
 
     return new ImageResponse(
       (
@@ -232,12 +244,12 @@ export async function GET(req: NextRequest) {
             </div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: 'rgba(251,191,36,0.18)',
-              border: '1.5px solid rgba(251,191,36,0.45)',
+              background: illus.pillColor,
+              border: `1.5px solid ${illus.pillBorder}`,
               borderRadius: 999, padding: '8px 18px',
             }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#FBBF24', display: 'flex' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#FBBF24', letterSpacing: '0.09em', textTransform: 'uppercase' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: illus.dotColor, display: 'flex' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: illus.dotColor, letterSpacing: '0.09em', textTransform: 'uppercase' }}>
                 Money Personality
               </span>
             </div>
