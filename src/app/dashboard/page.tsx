@@ -22,6 +22,9 @@ import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome'
 import { FinancialAutopsyPanel } from '@/components/dashboard/FinancialAutopsyPanel'
 import { MonthlyStorylineCard } from '@/components/dashboard/MonthlyStorylineCard'
 import type { InsightCard } from '@/lib/insights/types'
+import { computeSignals } from '@/lib/personality/signals'
+import { detectPersonality } from '@/lib/personality/detect'
+import type { PersonalityResult } from '@/lib/personality/types'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
 const SpendingCharts = dynamic(
@@ -253,6 +256,20 @@ export default function DashboardPage() {
   const topTransactions        = summary.topTransactions ?? []
   const prevSpendingCategories = (prevSummaryData?.summary?.categoryTotals ?? []).filter(c => !c.isIncome)
 
+  const personalityResult: PersonalityResult = detectPersonality(computeSignals({
+    income:        summary.totalIncome as number,
+    spending:      summary.totalSpending as number,
+    net:           summary.net as number,
+    categories:    spendingCategories.map(c => ({
+      name:          c.categoryName,
+      pctOfSpending: c.pctOfSpending as number,
+    })),
+    subCount:      subsData?.subscriptions?.length ?? 0,
+    anomalyCount:  summary.alerts?.length ?? 0,
+    statementType: (summary as any).statementType ?? 'unknown',
+    interestDetected: (summary as any).interestDetected ?? false,
+  }))
+
   const prevMonthYear  = month === 1 ? year - 1 : year
   const prevMonthMonth = month === 1 ? 12 : month - 1
   const prevMonthData  = (trendMonths as { year: number; month: number; totalSpending: number | null; net: number | null; hasData: boolean }[])
@@ -340,15 +357,7 @@ export default function DashboardPage() {
           year={year}
           month={month}
           onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
-          personality={{
-            income:       summary.totalIncome as number,
-            spending:     summary.totalSpending as number,
-            net:          summary.net as number,
-            topCatPct:    spendingCategories[0]?.pctOfSpending ?? 0,
-            subCount:     subsData?.subscriptions?.length ?? 0,
-            anomalyCount: summary.alerts?.length ?? 0,
-            topCatName:   spendingCategories[0]?.categoryName,
-          }}
+          personality={personalityResult}
         />
 
         {/* ════════════════════════════════════════════════════════════════════ */}

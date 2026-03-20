@@ -5,7 +5,11 @@ import {
   Coins, Target, RefreshCw, TrendingUp, Gauge,
   ChevronDown, ChevronRight, Loader2, Lightbulb,
   Layers, Activity, Zap, Brain, BarChart3, type LucideIcon,
+  Star, Shield, Shuffle, Minus, ArrowLeftRight, Crown, CreditCard,
+  AlertTriangle,
 } from 'lucide-react'
+import type { PersonalityResult, PersonalityMeta } from '@/lib/personality/types'
+import type { CorePersonalityId, PremiumPersonalityId } from '@/lib/personality/types'
 
 // ─── Caduceus icon (custom SVG — not in lucide) ───────────────────────────────
 
@@ -34,98 +38,77 @@ import type { InsightCard } from '@/lib/insights/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface PersonalityInput {
-  income:       number
-  spending:     number
-  net:          number
-  topCatPct:    number
-  subCount:     number
-  anomalyCount: number
-  topCatName?:  string
-}
-
 interface Props {
   cards:        InsightCard[]
   year:         number
   month:        number
   onGenerated?: () => void
-  personality?: PersonalityInput
+  personality?: PersonalityResult
 }
 
-// ─── Money Personality ────────────────────────────────────────────────────────
+// ─── Icon map by CorePersonalityId / PremiumPersonalityId ─────────────────────
 
-interface Personality {
-  type:     string
-  icon:     LucideIcon
-  tagline:  string
-  vibe:     string
-  accent:   string
-  accentBg: string
+type AnyPersonalityId = CorePersonalityId | PremiumPersonalityId
+
+const PERSONALITY_ICON_MAP: Record<AnyPersonalityId, LucideIcon> = {
+  full_send:              Zap,
+  wire_dancer:            Activity,
+  breakeven_poet:         Minus,
+  adrenaline_accountant:  Gauge,
+  chaos_controller:       Shuffle,
+  big_ticket_player:      Target,
+  subscription_collector: Layers,
+  low_key_saver:          TrendingUp,
+  safety_buffer:          Shield,
+  smooth_operator:        Zap,
+  flow_master:            Activity,
+  savvy_spender:          Brain,
+  steady_builder:         BarChart3,
+  direct_depositor:       RefreshCw,
+  cash_keeper:            Coins,
+  overdraft_artist:       AlertTriangle,
+  revolving_door:         RefreshCw,
+  points_chaser:          Star,
+  minimum_payer:          AlertTriangle,
+  cashback_architect:     BarChart3,
+  one_card_wonder:        CreditCard,
+  utilization_king:       Gauge,
+  balance_transfer:       ArrowLeftRight,
+  quiet_millionaire:      Crown,
+  strategic_deployer:     Target,
+  compounding_machine:    TrendingUp,
 }
 
-function getPersonality(p: PersonalityInput): Personality {
-  const spendRatio = p.income > 0 ? p.spending / p.income : 1
-
-  if (p.subCount >= 5) return {
-    type: 'The Subscription Collector', icon: Layers,
-    tagline: 'Your subscriptions are stacking up. A quick audit could pay off.',
-    vibe: 'You love your services — just make sure they all still spark joy.',
-    accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
-  }
-  if (spendRatio < 0.5 && p.net > 0) return {
-    type: 'The Low-Key Saver', icon: TrendingUp,
-    tagline: 'You keep more than half of what you earn. Quietly winning.',
-    vibe: 'Steady hands, healthy balance. Keep it up.',
-    accent: '#22C55E', accentBg: 'rgba(34,197,94,0.08)',
-  }
-  if (p.topCatPct > 50) return {
-    type: 'The Big Ticket Player', icon: Target,
-    tagline: 'One category dominates your spending this period.',
-    vibe: 'Intentional move, or worth a second look — you decide.',
-    accent: '#F59E0B', accentBg: 'rgba(245,158,11,0.08)',
-  }
-  if (p.income > 5000 && spendRatio > 0.85) return {
-    type: 'The Flow Master', icon: Activity,
-    tagline: 'Money moves freely — in and out. You live with confidence.',
-    vibe: "You're in full flow. Just watch the current.",
-    accent: '#06B6D4', accentBg: 'rgba(6,182,212,0.08)',
-  }
-  if (p.net > 0 && p.anomalyCount === 0 && spendRatio < 0.8) return {
-    type: 'The Smooth Operator', icon: Zap,
-    tagline: 'Controlled spending, zero surprises. You make it look easy.',
-    vibe: 'Strong, steady, and under control.',
-    accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
-  }
-  if (p.net > 0 && spendRatio < 0.9) return {
-    type: 'The Smart Spender', icon: Brain,
-    tagline: 'Balanced spending with room to grow.',
-    vibe: "You're in a healthy financial position this month.",
-    accent: '#4F46E5', accentBg: 'rgba(79,70,229,0.08)',
-  }
-  return {
-    type: 'The Steady Builder', icon: BarChart3,
-    tagline: 'Consistent, controlled, and building toward something.',
-    vibe: "You're running a tight ship this month.",
-    accent: '#6366F1', accentBg: 'rgba(99,102,241,0.08)',
-  }
+function getPersonalityIcon(id: string): LucideIcon {
+  return (PERSONALITY_ICON_MAP as Record<string, LucideIcon>)[id] ?? BarChart3
 }
 
-function shareParams(p: Personality, data: PersonalityInput): string {
+// ─── shareParams ──────────────────────────────────────────────────────────────
+
+function shareParams(result: PersonalityResult): string {
+  const p = result.core
   const params = new URLSearchParams({
-    type: p.type, vibe: p.vibe,
-    income: String(data.income), spend: String(data.spending), net: String(data.net),
+    type:   p.name,
+    vibe:   p.vibe,
+    income: '0',
+    spend:  '0',
+    net:    '0',
   })
-  if (data.topCatName) params.set('topCat', data.topCatName)
   return params.toString()
 }
 
-function PersonalityCard({ data }: { data: PersonalityInput }) {
-  const p    = getPersonality(data)
-  const Icon = p.icon
-  const name = p.type.startsWith('The ') ? p.type.slice(4) : p.type
+// ─── PersonalityCard ──────────────────────────────────────────────────────────
+
+function PersonalityCard({ result }: { result: PersonalityResult }) {
+  const core  = result.core
+  const trait = result.trait
+  const soft  = result.softTrait
+  const name  = core.name.startsWith('The ') ? core.name.slice(4) : core.name
+
+  const Icon = getPersonalityIcon(core.id as string)
 
   // ── Subscription Collector — full illustration card ─────────────────────
-  if (p.type === 'The Subscription Collector') {
+  if (core.id === 'subscription_collector') {
     return (
       <div style={{
         position: 'relative',
@@ -183,10 +166,10 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
             letterSpacing: '0.01em', lineHeight: 1.4,
             pointerEvents: 'none',
           }}>
-            &ldquo;{p.vibe}&rdquo;
+            &ldquo;{core.vibe}&rdquo;
           </p>
           <button
-            onClick={() => window.open(`/api/share/personality?${shareParams(p, data)}`, '_blank')}
+            onClick={() => window.open(`/api/share/personality?${shareParams(result)}`, '_blank')}
             aria-label="Share your money personality card"
             style={{
               flexShrink: 0,
@@ -210,36 +193,49 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
   }
 
   // ── All other personalities — standard card ──────────────────────────────
+  const accent   = core.accent
+  const accentBg = core.accentBg
+  const isCaution = core.isCaution
+
+  // Icon background color: caution → amber, normal → core accent
+  const iconBgColor = isCaution ? '#FB923C' : accent
+
+  // Effective vibe: use trait.vibe if trait exists (more personal), else core.vibe
+  const vibeText = trait ? trait.vibe : core.vibe
+
+  // Label text: "Heads up" for caution, "Your Money Personality" otherwise
+  const labelText = isCaution ? 'Heads up' : 'Your Money Personality'
+
   return (
     <div style={{
       position: 'relative',
-      background: `radial-gradient(ellipse at 12% 30%, ${p.accent}22 0%, transparent 60%),
-                   radial-gradient(ellipse at 88% 80%, ${p.accent}10 0%, transparent 50%),
+      background: `radial-gradient(ellipse at 12% 30%, ${accent}22 0%, transparent 60%),
+                   radial-gradient(ellipse at 88% 80%, ${accent}10 0%, transparent 50%),
                    var(--card2, #0F1623)`,
-      border: `1px solid ${p.accent}35`,
+      border: `1px solid ${accent}35`,
       borderRadius: 18,
       padding: '26px 24px 22px',
       marginBottom: 14,
       overflow: 'hidden',
-      boxShadow: `0 8px 32px ${p.accent}18, 0 1px 0 ${p.accent}12 inset`,
+      boxShadow: `0 8px 32px ${accent}18, 0 1px 0 ${accent}12 inset`,
     }}>
 
       {/* Top bar: label + share button */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
         <span style={{
           fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-          letterSpacing: '0.10em', color: p.accent,
+          letterSpacing: '0.10em', color: isCaution ? '#FB923C' : accent,
         }}>
-          Your Money Personality
+          {labelText}
         </span>
         <button
-          onClick={() => window.open(`/api/share/personality?${shareParams(p, data)}`, '_blank')}
+          onClick={() => window.open(`/api/share/personality?${shareParams(result)}`, '_blank')}
           aria-label="Share your money personality card"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
             fontSize: 11, fontWeight: 600,
-            color: p.accent, background: p.accentBg,
-            border: `1px solid ${p.accent}35`,
+            color: accent, background: accentBg,
+            border: `1px solid ${accent}35`,
             borderRadius: 999, padding: '4px 12px',
             cursor: 'pointer', letterSpacing: '0.01em',
             transition: 'opacity 150ms ease',
@@ -255,17 +251,19 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 18 }}>
         <div style={{
           width: 68, height: 68, flexShrink: 0, borderRadius: 20,
-          background: `radial-gradient(circle at 35% 35%, ${p.accent}28, ${p.accent}10)`,
-          border: `1.5px solid ${p.accent}50`,
-          boxShadow: `0 0 0 5px ${p.accent}12, 0 6px 24px ${p.accent}35`,
+          background: isCaution
+            ? 'radial-gradient(circle at 35% 35%, rgba(251,146,60,0.28), rgba(251,146,60,0.10))'
+            : `radial-gradient(circle at 35% 35%, ${accent}28, ${accent}10)`,
+          border: `1.5px solid ${iconBgColor}50`,
+          boxShadow: `0 0 0 5px ${iconBgColor}12, 0 6px 24px ${iconBgColor}35`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Icon size={30} strokeWidth={1.5} color={p.accent} />
+          <Icon size={30} strokeWidth={1.5} color={iconBgColor} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
             margin: '0 0 3px', fontSize: 10, fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.15em', color: p.accent,
+            textTransform: 'uppercase', letterSpacing: '0.15em', color: accent,
           }}>The</p>
           <p style={{
             margin: 0, fontSize: 30, fontWeight: 800,
@@ -274,26 +272,47 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
           }}>
             {name}
           </p>
+          {/* Trait display */}
+          {trait && (
+            <p style={{
+              margin: '4px 0 0', fontSize: 13, fontWeight: 600,
+              color: trait.accent,
+              lineHeight: 1.2,
+            }}>
+              · {trait.name}
+            </p>
+          )}
+          {/* Soft trait display (no strong trait, faded) */}
+          {!trait && soft && (
+            <p style={{
+              margin: '4px 0 0', fontSize: 11, fontWeight: 500,
+              color: soft.accent,
+              opacity: 0.45,
+              lineHeight: 1.2,
+            }}>
+              · {soft.name}
+            </p>
+          )}
         </div>
       </div>
 
       {/* Tagline */}
       <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.6 }}>
-        {p.tagline}
+        {core.tagline}
       </p>
 
       {/* Divider */}
-      <div style={{ height: 1, background: `${p.accent}20`, margin: '0 0 14px' }} />
+      <div style={{ height: 1, background: `${accent}20`, margin: '0 0 14px' }} />
 
       {/* Vibe */}
       <p style={{ margin: 0, fontSize: 13, fontStyle: 'italic', color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.55 }}>
-        &ldquo;{p.vibe}&rdquo;
+        &ldquo;{vibeText}&rdquo;
       </p>
     </div>
   )
 }
 
-// ─── Icon map ─────────────────────────────────────────────────────────────────
+// ─── Icon map for insight cards ───────────────────────────────────────────────
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Coins,
@@ -617,7 +636,7 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
       {/* ── Money Personality ──────────────────────────────────────────────── */}
       {personality && (
         <div style={{ marginTop: 16 }}>
-          <PersonalityCard data={personality} />
+          <PersonalityCard result={personality} />
         </div>
       )}
     </div>
