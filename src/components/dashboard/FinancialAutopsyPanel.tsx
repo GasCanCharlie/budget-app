@@ -124,95 +124,71 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
   const Icon = p.icon
   const name = p.type.startsWith('The ') ? p.type.slice(4) : p.type
 
-  // ── Subscription Collector — cinematic image card ────────────────────────
+  // ── Subscription Collector — full illustration card ─────────────────────
   if (p.type === 'The Subscription Collector') {
     return (
       <div style={{
         position: 'relative',
         borderRadius: 18, overflow: 'hidden',
-        marginBottom: 14, minHeight: 260,
+        marginBottom: 14,
         boxShadow: '0 12px 48px rgba(0,0,0,0.45)',
         border: '1px solid rgba(251,191,36,0.25)',
       }}>
-        {/* Photo background */}
+        {/* Illustration — let it display at natural aspect ratio */}
         <img
           src="/personalities/subscription-collector.webp"
-          alt=""
-          style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
-            objectFit: 'cover', objectPosition: 'center top',
-          }}
+          alt="The Subscription Collector"
+          style={{ width: '100%', height: 'auto', display: 'block' }}
         />
 
-        {/* Gradient overlay — dark vignette so text pops */}
+        {/* Thin top gradient for badge readability only */}
         <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.30) 40%, rgba(0,0,0,0.78) 100%)',
+          position: 'absolute', top: 0, left: 0, right: 0, height: 64,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%)',
+          pointerEvents: 'none',
         }} />
 
-        {/* Content */}
-        <div style={{ position: 'relative', padding: '22px 22px 20px', display: 'flex', flexDirection: 'column', minHeight: 260 }}>
+        {/* Bottom gradient for share button */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 72,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.70) 0%, transparent 100%)',
+          pointerEvents: 'none',
+        }} />
 
-          {/* Top bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'auto' }}>
-            <span style={{
-              fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.10em', color: 'rgba(255,255,255,0.75)',
-            }}>
-              Your Money Personality
-            </span>
-            <button
-              onClick={() => window.open(`/api/share/personality?${shareParams(p, data)}`, '_blank')}
-              aria-label="Share your money personality card"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                fontSize: 11, fontWeight: 600, color: '#fff',
-                background: 'rgba(255,255,255,0.12)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255,255,255,0.22)',
-                borderRadius: 999, padding: '4px 12px',
-                cursor: 'pointer', transition: 'opacity 150ms ease',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-            >
-              ↗ Share card
-            </button>
-          </div>
-
-          {/* Bottom content — name + vibe */}
-          <div style={{ marginTop: 'auto' }}>
-            <p style={{
-              margin: '0 0 2px',
-              fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.14em', color: '#FBBF24',
-            }}>
-              The
-            </p>
-            <p style={{
-              margin: '0 0 6px',
-              fontSize: 32, fontWeight: 900,
-              letterSpacing: '-0.03em', lineHeight: 1.0,
-              color: '#FDE68A',
-              textShadow: '0 2px 12px rgba(0,0,0,0.6)',
-            }}>
-              {name}
-            </p>
-            <p style={{
-              margin: '0 0 14px',
-              fontSize: 13, fontStyle: 'italic',
-              color: 'rgba(255,255,255,0.80)',
-              textShadow: '0 1px 6px rgba(0,0,0,0.5)',
-            }}>
-              &ldquo;{p.vibe}&rdquo;
-            </p>
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', margin: '0 0 12px' }} />
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.5 }}>
-              {p.tagline}
-            </p>
-          </div>
+        {/* Top-left badge */}
+        <div style={{
+          position: 'absolute', top: 14, left: 16,
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: 999, padding: '4px 10px',
+        }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#FBBF24' }} />
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.85)' }}>
+            Money Personality
+          </span>
         </div>
+
+        {/* Bottom-right share button */}
+        <button
+          onClick={() => window.open(`/api/share/personality?${shareParams(p, data)}`, '_blank')}
+          aria-label="Share your money personality card"
+          style={{
+            position: 'absolute', bottom: 14, right: 16,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 12, fontWeight: 700, color: '#fff',
+            background: 'rgba(251,191,36,0.22)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(251,191,36,0.45)',
+            borderRadius: 999, padding: '7px 16px',
+            cursor: 'pointer', transition: 'opacity 150ms ease',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
+          ↗ Share your card
+        </button>
       </div>
     )
   }
