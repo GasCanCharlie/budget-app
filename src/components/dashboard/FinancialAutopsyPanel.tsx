@@ -110,12 +110,114 @@ function getPersonality(p: PersonalityInput): Personality {
   }
 }
 
+function shareParams(p: Personality, data: PersonalityInput): string {
+  const params = new URLSearchParams({
+    type: p.type, vibe: p.vibe,
+    income: String(data.income), spend: String(data.spending), net: String(data.net),
+  })
+  if (data.topCatName) params.set('topCat', data.topCatName)
+  return params.toString()
+}
+
 function PersonalityCard({ data }: { data: PersonalityInput }) {
   const p    = getPersonality(data)
   const Icon = p.icon
-  // Split "The " off for typographic hierarchy
   const name = p.type.startsWith('The ') ? p.type.slice(4) : p.type
 
+  // ── Subscription Collector — cinematic image card ────────────────────────
+  if (p.type === 'The Subscription Collector') {
+    return (
+      <div style={{
+        position: 'relative',
+        borderRadius: 18, overflow: 'hidden',
+        marginBottom: 14, minHeight: 260,
+        boxShadow: '0 12px 48px rgba(0,0,0,0.45)',
+        border: '1px solid rgba(251,191,36,0.25)',
+      }}>
+        {/* Photo background */}
+        <img
+          src="/personalities/subscription-collector.webp"
+          alt=""
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center top',
+          }}
+        />
+
+        {/* Gradient overlay — dark vignette so text pops */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.30) 40%, rgba(0,0,0,0.78) 100%)',
+        }} />
+
+        {/* Content */}
+        <div style={{ position: 'relative', padding: '22px 22px 20px', display: 'flex', flexDirection: 'column', minHeight: 260 }}>
+
+          {/* Top bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'auto' }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.10em', color: 'rgba(255,255,255,0.75)',
+            }}>
+              Your Money Personality
+            </span>
+            <button
+              onClick={() => window.open(`/api/share/personality?${shareParams(p, data)}`, '_blank')}
+              aria-label="Share your money personality card"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                fontSize: 11, fontWeight: 600, color: '#fff',
+                background: 'rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.22)',
+                borderRadius: 999, padding: '4px 12px',
+                cursor: 'pointer', transition: 'opacity 150ms ease',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              ↗ Share card
+            </button>
+          </div>
+
+          {/* Bottom content — name + vibe */}
+          <div style={{ marginTop: 'auto' }}>
+            <p style={{
+              margin: '0 0 2px',
+              fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.14em', color: '#FBBF24',
+            }}>
+              The
+            </p>
+            <p style={{
+              margin: '0 0 6px',
+              fontSize: 32, fontWeight: 900,
+              letterSpacing: '-0.03em', lineHeight: 1.0,
+              color: '#FDE68A',
+              textShadow: '0 2px 12px rgba(0,0,0,0.6)',
+            }}>
+              {name}
+            </p>
+            <p style={{
+              margin: '0 0 14px',
+              fontSize: 13, fontStyle: 'italic',
+              color: 'rgba(255,255,255,0.80)',
+              textShadow: '0 1px 6px rgba(0,0,0,0.5)',
+            }}>
+              &ldquo;{p.vibe}&rdquo;
+            </p>
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', margin: '0 0 12px' }} />
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.5 }}>
+              {p.tagline}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── All other personalities — standard card ──────────────────────────────
   return (
     <div style={{
       position: 'relative',
@@ -139,23 +241,12 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
           Your Money Personality
         </span>
         <button
-          onClick={() => {
-            const params = new URLSearchParams({
-              type:   p.type,
-              vibe:   p.vibe,
-              income: String(data.income),
-              spend:  String(data.spending),
-              net:    String(data.net),
-            })
-            if (data.topCatName) params.set('topCat', data.topCatName)
-            window.open(`/api/share/personality?${params.toString()}`, '_blank')
-          }}
+          onClick={() => window.open(`/api/share/personality?${shareParams(p, data)}`, '_blank')}
           aria-label="Share your money personality card"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
             fontSize: 11, fontWeight: 600,
-            color: p.accent,
-            background: p.accentBg,
+            color: p.accent, background: p.accentBg,
             border: `1px solid ${p.accent}35`,
             borderRadius: 999, padding: '4px 12px',
             cursor: 'pointer', letterSpacing: '0.01em',
@@ -170,8 +261,6 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
 
       {/* Hero row: icon + name block */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 18 }}>
-
-        {/* Icon with layered glow */}
         <div style={{
           width: 68, height: 68, flexShrink: 0, borderRadius: 20,
           background: `radial-gradient(circle at 35% 35%, ${p.accent}28, ${p.accent}10)`,
@@ -181,19 +270,13 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
         }}>
           <Icon size={30} strokeWidth={1.5} color={p.accent} />
         </div>
-
-        {/* Name block */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
-            margin: '0 0 3px',
-            fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.15em', color: p.accent,
-          }}>
-            The
-          </p>
+            margin: '0 0 3px', fontSize: 10, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.15em', color: p.accent,
+          }}>The</p>
           <p style={{
-            margin: 0,
-            fontSize: 30, fontWeight: 800,
+            margin: 0, fontSize: 30, fontWeight: 800,
             letterSpacing: '-0.04em', lineHeight: 1.05,
             color: 'var(--text-primary, #e5e7eb)',
           }}>
@@ -203,10 +286,7 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
       </div>
 
       {/* Tagline */}
-      <p style={{
-        margin: '0 0 16px',
-        fontSize: 13, color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.6,
-      }}>
+      <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.6 }}>
         {p.tagline}
       </p>
 
@@ -214,11 +294,7 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
       <div style={{ height: 1, background: `${p.accent}20`, margin: '0 0 14px' }} />
 
       {/* Vibe */}
-      <p style={{
-        margin: 0,
-        fontSize: 13, fontStyle: 'italic',
-        color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.55,
-      }}>
+      <p style={{ margin: 0, fontSize: 13, fontStyle: 'italic', color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.55 }}>
         &ldquo;{p.vibe}&rdquo;
       </p>
     </div>
