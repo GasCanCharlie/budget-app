@@ -41,6 +41,11 @@ export interface MonthlySummary {
     categoryIcon: string
   }[]
   alerts: AnomalyAlert[]
+  // Personality detection signals
+  secondCatName: string
+  secondCatPct: number
+  statementType: 'bank' | 'credit' | 'unknown'
+  interestDetected: boolean
 }
 
 export interface AnomalyAlert {
@@ -148,6 +153,10 @@ export async function computeMonthSummary(
       isPartialMonth: false,
       dateRangeStart: null, dateRangeEnd: null,
       categoryTotals: [], topTransactions: [], alerts: [],
+      secondCatName: '',
+      secondCatPct: 0,
+      statementType: 'unknown',
+      interestDetected: false,
     }
   }
 
@@ -246,6 +255,29 @@ export async function computeMonthSummary(
       }
     })
 
+  // ── Personality detection signals ─────────────────────────────────────────
+  // Second highest spending category (index 1 in the sorted, spending-only view)
+  const spendingCats = categoryTotals.filter(ct => !ct.isIncome)
+  const secondCatName = spendingCats[1]?.categoryName ?? ''
+  const secondCatPct  = spendingCats[1]?.pctOfSpending ?? 0
+
+  // Statement type detection — scan all transaction descriptions
+  const CREDIT_KEYWORDS = /credit card payment|card payment|visa payment|mastercard|amex payment/i
+  const INTEREST_KEYWORDS = /interest charge|finance charge|interest fee/i
+
+  let statementType: 'bank' | 'credit' | 'unknown' = 'unknown'
+  let interestDetected = false
+
+  for (const tx of transactions) {
+    const desc = tx.description ?? ''
+    if (CREDIT_KEYWORDS.test(desc)) {
+      statementType = 'credit'
+    }
+    if (INTEREST_KEYWORDS.test(desc)) {
+      interestDetected = true
+    }
+  }
+
   // Anomaly detection (requires history)
   const alerts: AnomalyAlert[] = await detectAnomalies(userId, year, month, categoryTotals, transactions)
 
@@ -280,6 +312,7 @@ export async function computeMonthSummary(
     incomeTxCount,
     isPartialMonth, dateRangeStart, dateRangeEnd,
     categoryTotals, topTransactions, alerts,
+    secondCatName, secondCatPct, statementType, interestDetected,
   }
 }
 
