@@ -148,10 +148,10 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
           pointerEvents: 'none',
         }} />
 
-        {/* Bottom gradient for share button */}
+        {/* Bottom gradient for vibe + share button */}
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: 72,
-          background: 'linear-gradient(to top, rgba(0,0,0,0.70) 0%, transparent 100%)',
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 90,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%)',
           pointerEvents: 'none',
         }} />
 
@@ -170,25 +170,41 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
           </span>
         </div>
 
-        {/* Bottom-right share button */}
-        <button
-          onClick={() => window.open(`/api/share/personality?${shareParams(p, data)}`, '_blank')}
-          aria-label="Share your money personality card"
-          style={{
-            position: 'absolute', bottom: 14, right: 16,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontSize: 12, fontWeight: 700, color: '#fff',
-            background: 'rgba(251,191,36,0.22)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(251,191,36,0.45)',
-            borderRadius: 999, padding: '7px 16px',
-            cursor: 'pointer', transition: 'opacity 150ms ease',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          ↗ Share your card
-        </button>
+        {/* Bottom: vibe saying (left) + share button (right) */}
+        <div style={{
+          position: 'absolute', bottom: 14, left: 16, right: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          pointerEvents: 'none',
+        }}>
+          <p style={{
+            margin: 0,
+            fontSize: 11, fontStyle: 'italic', fontWeight: 500,
+            color: 'rgba(255,255,255,0.70)',
+            letterSpacing: '0.01em', lineHeight: 1.4,
+            pointerEvents: 'none',
+          }}>
+            &ldquo;{p.vibe}&rdquo;
+          </p>
+          <button
+            onClick={() => window.open(`/api/share/personality?${shareParams(p, data)}`, '_blank')}
+            aria-label="Share your money personality card"
+            style={{
+              flexShrink: 0,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 12, fontWeight: 700, color: '#fff',
+              background: 'rgba(251,191,36,0.22)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(251,191,36,0.45)',
+              borderRadius: 999, padding: '7px 16px',
+              cursor: 'pointer', transition: 'opacity 150ms ease',
+              pointerEvents: 'all',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            ↗ Share your card
+          </button>
+        </div>
       </div>
     )
   }
