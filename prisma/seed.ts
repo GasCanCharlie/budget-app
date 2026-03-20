@@ -3,28 +3,28 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 const SYSTEM_CATEGORIES = [
-  { name: 'Food & Dining',        color: '#f97316', icon: 'UtensilsCrossed', isIncome: false, sortOrder: 1  },
-  { name: 'Groceries',            color: '#fb923c', icon: 'ShoppingCart',    isIncome: false, sortOrder: 2  },
-  { name: 'Housing',              color: '#6366f1', icon: 'Home',            isIncome: false, sortOrder: 3  },
-  { name: 'Transport',            color: '#3b82f6', icon: 'Car',             isIncome: false, sortOrder: 4  },
-  { name: 'Entertainment',        color: '#ec4899', icon: 'Film',            isIncome: false, sortOrder: 5  },
-  { name: 'Shopping',             color: '#a855f7', icon: 'ShoppingBag',     isIncome: false, sortOrder: 6  },
-  { name: 'Health',               color: '#10b981', icon: 'HeartPulse',      isIncome: false, sortOrder: 7  },
-  { name: 'Utilities',            color: '#14b8a6', icon: 'Zap',             isIncome: false, sortOrder: 8  },
-  { name: 'Subscriptions',        color: '#f43f5e', icon: 'CreditCard',      isIncome: false, sortOrder: 9  },
-  { name: 'Personal Care',        color: '#8b5cf6', icon: 'Scissors',        isIncome: false, sortOrder: 10 },
-  { name: 'Education',            color: '#0ea5e9', icon: 'BookOpen',        isIncome: false, sortOrder: 11 },
-  { name: 'Travel',               color: '#f59e0b', icon: 'Plane',           isIncome: false, sortOrder: 12 },
-  { name: 'Insurance',            color: '#64748b', icon: 'Shield',          isIncome: false, sortOrder: 13 },
-  { name: 'Pets',                 color: '#84cc16', icon: 'PawPrint',        isIncome: false, sortOrder: 14 },
-  { name: 'Gifts & Charity',      color: '#ef4444', icon: 'Gift',            isIncome: false, sortOrder: 15 },
-  { name: 'Fees & Charges',       color: '#94a3b8', icon: 'DollarSign',      isIncome: false, sortOrder: 16 },
-  { name: 'Income',               color: '#22c55e', icon: 'TrendingUp',      isIncome: true,  sortOrder: 17 },
-  { name: 'Fast Food',            color: '#ef4444', icon: 'Utensils',        isIncome: false, sortOrder: 2  },
-  { name: 'Alcohol',              color: '#8b5cf6', icon: 'Wine',            isIncome: false, sortOrder: 20 },
-  { name: 'Cigarettes & Tobacco', color: '#78716c', icon: 'Ban',             isIncome: false, sortOrder: 21 },
-  { name: 'Transfer',             color: '#78716c', icon: 'ArrowLeftRight',  isIncome: false, isTransfer: true, sortOrder: 22 },
-  { name: 'Other',                color: '#94a3b8', icon: 'Package',         isIncome: false, sortOrder: 23 },
+  { name: 'Food & Dining',        color: '#f97316', icon: 'UtensilsCrossed', isIncome: false, sortOrder: 1,  masterKey: 'FOOD'         },
+  { name: 'Groceries',            color: '#fb923c', icon: 'ShoppingCart',    isIncome: false, sortOrder: 2,  masterKey: 'FOOD'         },
+  { name: 'Housing',              color: '#6366f1', icon: 'Home',            isIncome: false, sortOrder: 3,  masterKey: 'HOME'         },
+  { name: 'Transport',            color: '#3b82f6', icon: 'Car',             isIncome: false, sortOrder: 4,  masterKey: 'TRANSPORT'    },
+  { name: 'Entertainment',        color: '#ec4899', icon: 'Film',            isIncome: false, sortOrder: 5,  masterKey: 'ENTERTAINMENT'},
+  { name: 'Shopping',             color: '#a855f7', icon: 'ShoppingBag',     isIncome: false, sortOrder: 6,  masterKey: 'SHOPPING'     },
+  { name: 'Health',               color: '#10b981', icon: 'HeartPulse',      isIncome: false, sortOrder: 7,  masterKey: 'HEALTH'       },
+  { name: 'Utilities',            color: '#14b8a6', icon: 'Zap',             isIncome: false, sortOrder: 8,  masterKey: 'HOME'         },
+  { name: 'Subscriptions',        color: '#f43f5e', icon: 'CreditCard',      isIncome: false, sortOrder: 9,  masterKey: 'DIGITAL'      },
+  { name: 'Personal Care',        color: '#8b5cf6', icon: 'Scissors',        isIncome: false, sortOrder: 10, masterKey: 'PERSONAL_CARE'},
+  { name: 'Education',            color: '#0ea5e9', icon: 'BookOpen',        isIncome: false, sortOrder: 11, masterKey: 'EDUCATION'    },
+  { name: 'Travel',               color: '#f59e0b', icon: 'Plane',           isIncome: false, sortOrder: 12, masterKey: 'TRAVEL'       },
+  { name: 'Insurance',            color: '#64748b', icon: 'Shield',          isIncome: false, sortOrder: 13, masterKey: 'FINANCIAL'    },
+  { name: 'Pets',                 color: '#84cc16', icon: 'PawPrint',        isIncome: false, sortOrder: 14, masterKey: 'LIFESTYLE'    },
+  { name: 'Gifts & Charity',      color: '#ef4444', icon: 'Gift',            isIncome: false, sortOrder: 15, masterKey: 'SOCIAL'       },
+  { name: 'Fees & Charges',       color: '#94a3b8', icon: 'DollarSign',      isIncome: false, sortOrder: 16, masterKey: 'FINANCIAL'    },
+  { name: 'Income',               color: '#22c55e', icon: 'TrendingUp',      isIncome: true,  sortOrder: 17, masterKey: null           },
+  { name: 'Fast Food',            color: '#ef4444', icon: 'Utensils',        isIncome: false, sortOrder: 2,  masterKey: 'FOOD'         },
+  { name: 'Alcohol',              color: '#8b5cf6', icon: 'Wine',            isIncome: false, sortOrder: 20, masterKey: 'FOOD'         },
+  { name: 'Cigarettes & Tobacco', color: '#78716c', icon: 'Ban',             isIncome: false, sortOrder: 21, masterKey: 'LIFESTYLE'    },
+  { name: 'Transfer',             color: '#78716c', icon: 'ArrowLeftRight',  isIncome: false, isTransfer: true, sortOrder: 22, masterKey: null },
+  { name: 'Other',                color: '#94a3b8', icon: 'Package',         isIncome: false, sortOrder: 23, masterKey: null           },
 ]
 
 type CategoryRuleInput = {
@@ -452,7 +452,7 @@ async function main() {
   for (const cat of SYSTEM_CATEGORIES) {
     await prisma.category.updateMany({
       where: { name: cat.name, isSystem: true, userId: null },
-      data: { icon: cat.icon, color: cat.color },
+      data: { icon: cat.icon, color: cat.color, masterKey: cat.masterKey ?? null },
     })
   }
   console.log('  Updated existing system category icons to Lucide names')
@@ -477,6 +477,7 @@ async function main() {
         isTransfer: (cat as any).isTransfer ?? false,
         isSystem: true,
         sortOrder: cat.sortOrder,
+        masterKey: cat.masterKey ?? null,
         userId: null,
       }
     })

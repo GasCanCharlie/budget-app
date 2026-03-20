@@ -346,6 +346,7 @@ model Category {
   isTransfer Boolean   @default(false)
   isSystem   Boolean   @default(true)
   sortOrder  Int       @default(0)
+  masterKey  String?   // normalized master category key (e.g. 'FOOD', 'TRANSPORT')
 
   user              User?            @relation(fields: [userId], references: [id])
   rules             CategoryRule[]
