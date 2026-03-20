@@ -551,6 +551,14 @@ export default function ScanReportPage() {
           <StatCard label="Transactions" value={String(totals.transactionCount)} />
         </div>
 
+        {/* ── Financial Insights section header ────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 4 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)' }}>
+            Financial Insights
+          </span>
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+        </div>
+
         {/* ── Findings grid ────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}
           className="max-[720px]:!grid-cols-1">
@@ -685,32 +693,41 @@ export default function ScanReportPage() {
           {/* Duplicates */}
           <div style={card}>
             <div style={{ ...cardHdr, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={hdrTitle}>Possible Duplicates</p>
+              <p style={hdrTitle}>Duplicate Transactions</p>
               <span style={{
                 ...badge,
-                background: findings.duplicates.count > 0 ? 'rgba(248,113,113,0.15)' : 'var(--surface2)',
-                color: findings.duplicates.count > 0 ? 'var(--danger)' : 'var(--muted)',
+                background: 'var(--surface2)',
+                color: 'var(--muted)',
               }}>
-                {findings.duplicates.count}
+                {findings.duplicates.count} {findings.duplicates.count === 1 ? 'flagged' : 'flagged'}
               </span>
             </div>
             <div style={{ padding: '12px 18px' }}>
               {findings.duplicates.items.length === 0 ? (
-                <EmptyState text="No possible duplicates detected." />
+                <EmptyState text="No duplicate transactions detected." />
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {findings.duplicates.items.map((dup, i) => (
-                    <div key={i} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div key={i} style={{
+                      padding: '11px 13px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--card2)',
+                      border: '1px solid var(--border)',
+                      borderLeft: i === 0 ? '3px solid var(--accent)' : '3px solid var(--border)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
                         <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {dup.merchant}
                         </span>
-                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--danger)', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap' }}>
                           {fmt(dup.amount)}
                         </span>
                       </div>
-                      <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted)' }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 11, color: 'var(--muted)' }}>
                         {dup.dates.join(' · ')}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'var(--subtle)', fontStyle: 'italic' }}>
+                        These transactions appear similar — confirm both are intentional.
                       </p>
                     </div>
                   ))}
@@ -722,24 +739,37 @@ export default function ScanReportPage() {
           {/* Anomalies */}
           <div style={card}>
             <div style={{ ...cardHdr, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={hdrTitle}>Anomaly Alerts</p>
+              <p style={hdrTitle}>Unusual Activity</p>
               <span style={{
                 ...badge,
-                background: findings.anomalies.count > 0 ? 'rgba(251,191,36,0.15)' : 'var(--surface2)',
-                color: findings.anomalies.count > 0 ? 'var(--warn)' : 'var(--muted)',
+                background: 'var(--surface2)',
+                color: 'var(--muted)',
               }}>
-                {findings.anomalies.count}
+                {findings.anomalies.count} {findings.anomalies.count === 1 ? 'noticed' : 'noticed'}
               </span>
             </div>
             <div style={{ padding: '12px 18px' }}>
               {findings.anomalies.items.length === 0 ? (
-                <EmptyState text="No anomalies detected." />
+                <EmptyState text="No unusual activity detected." />
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {findings.anomalies.items.slice(0, 8).map((a, i) => (
-                    <div key={i} style={{ padding: '9px 11px', borderRadius: 10, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.18)' }}>
-                      <p style={{ margin: 0, fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>{a.message}</p>
-                      <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--subtle)' }}>{a.type}</p>
+                    <div key={i} style={{
+                      padding: '11px 13px',
+                      borderRadius: 10,
+                      background: 'var(--card2)',
+                      border: '1px solid var(--border)',
+                      borderLeft: i === 0 ? '3px solid var(--accent)' : '3px solid var(--border)',
+                    }}>
+                      <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: 'var(--text)', lineHeight: 1.45 }}>
+                        {a.message}
+                      </p>
+                      <p style={{ margin: '0 0 4px', fontSize: 11, color: 'var(--muted)', textTransform: 'capitalize' }}>
+                        {a.type}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'var(--subtle)', fontStyle: 'italic' }}>
+                        This may be intentional — or worth a closer look.
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -747,33 +777,41 @@ export default function ScanReportPage() {
             </div>
           </div>
 
-          {/* Balance & Ingestion Issues */}
+          {/* Statement Quality */}
           <div style={card}>
             <div style={cardHdr}>
-              <p style={hdrTitle}>Balance &amp; Ingestion Issues</p>
+              <p style={hdrTitle}>Statement Quality</p>
             </div>
-            <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {/* Balance chain */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 10, background: 'var(--card2)', border: '1px solid var(--border)' }}>
-                <span style={{ fontSize: 13, color: 'var(--text)' }}>Balance chain breaks</span>
+                <div>
+                  <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>Balance continuity</span>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--subtle)', fontStyle: 'italic' }}>
+                    {findings.balanceIssues === 0 ? 'All running balances check out.' : 'Some gaps in the balance chain — may indicate missing transactions.'}
+                  </p>
+                </div>
                 <span style={{
                   ...badge,
-                  background: findings.balanceIssues > 0 ? 'rgba(248,113,113,0.12)' : 'rgba(34,197,94,0.12)',
-                  color: findings.balanceIssues > 0 ? 'var(--danger)' : 'var(--success)',
+                  background: findings.balanceIssues > 0 ? 'var(--accent-muted)' : 'rgba(34,197,94,0.12)',
+                  color: findings.balanceIssues > 0 ? 'var(--accent)' : 'var(--success)',
                 }}>
-                  {findings.balanceIssues}
+                  {findings.balanceIssues === 0 ? 'Clean' : findings.balanceIssues}
                 </span>
               </div>
 
               {/* Ingestion issues breakdown */}
               {[
-                { label: 'High severity', count: findings.ingestionIssues.high, color: 'var(--danger)', bg: 'rgba(248,113,113,0.12)' },
-                { label: 'Medium severity', count: findings.ingestionIssues.medium, color: 'var(--warn)', bg: 'rgba(251,191,36,0.12)' },
-                { label: 'Low severity', count: findings.ingestionIssues.low, color: 'var(--muted)', bg: 'var(--surface2)' },
-              ].map(({ label, count, color, bg }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 10, background: 'var(--card2)', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 13, color: 'var(--text)' }}>{label}</span>
-                  <span style={{ ...badge, background: bg, color }}>
+                { label: 'High impact', sublabel: 'Rows that may affect your totals', count: findings.ingestionIssues.high,   color: 'var(--accent)',  bg: 'var(--accent-muted)' },
+                { label: 'Medium impact', sublabel: 'Minor formatting or parsing issues', count: findings.ingestionIssues.medium, color: 'var(--warn)',    bg: 'rgba(245,158,11,0.10)' },
+                { label: 'Low impact', sublabel: 'Informational notes only',         count: findings.ingestionIssues.low,    color: 'var(--muted)',   bg: 'var(--surface2)' },
+              ].map(({ label, sublabel, count, color, bg }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 10, background: 'var(--card2)', border: '1px solid var(--border)' }}>
+                  <div>
+                    <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{label}</span>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--subtle)', fontStyle: 'italic' }}>{sublabel}</p>
+                  </div>
+                  <span style={{ ...badge, background: bg, color, flexShrink: 0 }}>
                     {count}
                   </span>
                 </div>
