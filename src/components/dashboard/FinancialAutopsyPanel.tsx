@@ -402,9 +402,6 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
   return (
     <div style={{ marginBottom: 8 }}>
 
-      {/* ── Money Personality ──────────────────────────────────────────────── */}
-      {personality && <PersonalityCard data={personality} />}
-
       {/* ── Section header ─────────────────────────────────────────────────── */}
       <style>{`
         @keyframes bl-scope-pulse {
@@ -494,6 +491,13 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
           {insightCards.map((card, i) => (
             <InsightCard key={card.id} card={card} prominent={i === 0} />
           ))}
+        </div>
+      )}
+
+      {/* ── Money Personality ──────────────────────────────────────────────── */}
+      {personality && (
+        <div style={{ marginTop: 16 }}>
+          <PersonalityCard data={personality} />
         </div>
       )}
     </div>
