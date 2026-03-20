@@ -44,6 +44,7 @@ interface Props {
   month:        number
   onGenerated?: () => void
   personality?: PersonalityResult
+  personalitySignals?: { income: number; spending: number; net: number; topCatName?: string }
 }
 
 // ─── Icon map by CorePersonalityId / PremiumPersonalityId ─────────────────────
@@ -85,21 +86,22 @@ function getPersonalityIcon(id: string): LucideIcon {
 
 // ─── shareParams ──────────────────────────────────────────────────────────────
 
-function shareParams(result: PersonalityResult): string {
-  const p = result.core
+function shareParams(result: PersonalityResult, signals?: { income: number; spending: number; net: number; topCatName?: string }): string {
   const params = new URLSearchParams({
-    type:   p.name,
-    vibe:   p.vibe,
-    income: '0',
-    spend:  '0',
-    net:    '0',
+    type:   result.core.name,
+    vibe:   result.core.vibe,
+    income: String(signals?.income ?? 0),
+    spend:  String(signals?.spending ?? 0),
+    net:    String(signals?.net ?? 0),
   })
+  if (result.trait) params.set('trait', result.trait.name)
+  if (signals?.topCatName) params.set('topCat', signals.topCatName)
   return params.toString()
 }
 
 // ─── PersonalityCard ──────────────────────────────────────────────────────────
 
-function PersonalityCard({ result }: { result: PersonalityResult }) {
+function PersonalityCard({ result, signals }: { result: PersonalityResult; signals?: { income: number; spending: number; net: number; topCatName?: string } }) {
   const core  = result.core
   const trait = result.trait
   const soft  = result.softTrait
@@ -169,7 +171,7 @@ function PersonalityCard({ result }: { result: PersonalityResult }) {
             &ldquo;{core.vibe}&rdquo;
           </p>
           <button
-            onClick={() => window.open(`/api/share/personality?${shareParams(result)}`, '_blank')}
+            onClick={() => window.open(`/api/share/personality?${shareParams(result, signals)}`, '_blank')}
             aria-label="Share your money personality card"
             style={{
               flexShrink: 0,
@@ -504,7 +506,7 @@ function InsightCard({ card, prominent }: { card: InsightCard; prominent?: boole
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
-export function FinancialAutopsyPanel({ cards, year, month, onGenerated, personality }: Props) {
+export function FinancialAutopsyPanel({ cards, year, month, onGenerated, personality, personalitySignals }: Props) {
   const [generating, setGenerating] = useState(false)
   const [genError,   setGenError]   = useState<string | null>(null)
 
@@ -636,7 +638,7 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
       {/* ── Money Personality ──────────────────────────────────────────────── */}
       {personality && (
         <div style={{ marginTop: 16 }}>
-          <PersonalityCard result={personality} />
+          <PersonalityCard result={personality} signals={personalitySignals} />
         </div>
       )}
     </div>

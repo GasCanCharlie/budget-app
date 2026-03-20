@@ -358,6 +358,12 @@ export default function DashboardPage() {
           month={month}
           onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
           personality={personalityResult}
+          personalitySignals={{
+            income:     summary.totalIncome as number,
+            spending:   summary.totalSpending as number,
+            net:        summary.net as number,
+            topCatName: spendingCategories[0]?.categoryName,
+          }}
         />
 
         {/* ════════════════════════════════════════════════════════════════════ */}

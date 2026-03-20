@@ -53,6 +53,110 @@ const THEMES: Record<string, PersonalityTheme> = {
     gradient: 'linear-gradient(140deg, #07101f 0%, #0d1832 55%, #0a0e24 100%)',
     blob: { top: 85, left: -10, width: 525, height: 460, br: '58% 42% 52% 48% / 42% 58% 48% 52%' },
   },
+  // ── Core Universal additions ─────────────────────────────────────
+  'The Full Send': {
+    accent: '#F97316',
+    gradient: 'linear-gradient(135deg, #1a0800 0%, #221000 55%, #150500 100%)',
+    blob: { top: 80, left: -40, width: 550, height: 440, br: '62% 38% 58% 42% / 45% 58% 42% 55%' },
+  },
+  'The Wire Dancer': {
+    accent: '#2DD4BF',
+    gradient: 'linear-gradient(148deg, #031414 0%, #041c1c 55%, #021010 100%)',
+    blob: { top: 60, left: 700, width: 520, height: 460, br: '44% 56% 38% 62% / 60% 40% 62% 38%' },
+  },
+  'The Breakeven Poet': {
+    accent: '#C084FC',
+    gradient: 'linear-gradient(142deg, #0e0818 0%, #150e24 55%, #0b0714 100%)',
+    blob: { top: 110, left: -30, width: 540, height: 450, br: '50% 50% 60% 40% / 38% 62% 50% 50%' },
+  },
+  'The Adrenaline Accountant': {
+    accent: '#F43F5E',
+    gradient: 'linear-gradient(138deg, #1a0308 0%, #220510 55%, #14020a 100%)',
+    blob: { top: 90, left: 710, width: 530, height: 470, br: '56% 44% 42% 58% / 44% 56% 58% 42%' },
+  },
+  'The Chaos Controller': {
+    accent: '#FB923C',
+    gradient: 'linear-gradient(130deg, #180900 0%, #201200 55%, #130700 100%)',
+    blob: { top: 120, left: 10, width: 560, height: 430, br: '48% 52% 66% 34% / 52% 48% 34% 66%' },
+  },
+  'The Savvy Spender': {
+    accent: '#818CF8',
+    gradient: 'linear-gradient(135deg, #07081e 0%, #0b0f2a 55%, #090c1e 100%)',
+    blob: { top: 105, left: 720, width: 510, height: 465, br: '48% 52% 56% 44% / 60% 40% 48% 52%' },
+  },
+  'The Safety Buffer': {
+    accent: '#60A5FA',
+    gradient: 'linear-gradient(145deg, #050d1a 0%, #091528 55%, #060e1c 100%)',
+    blob: { top: 75, left: -20, width: 530, height: 455, br: '54% 46% 48% 52% / 46% 54% 52% 48%' },
+  },
+  // ── Bank specific ────────────────────────────────────────────────
+  'The Overdraft Artist': {
+    accent: '#FB923C',
+    gradient: 'linear-gradient(140deg, #160800 0%, #1c1000 55%, #110600 100%)',
+    blob: { top: 95, left: 680, width: 515, height: 460, br: '60% 40% 44% 56% / 40% 60% 56% 44%' },
+  },
+  'The Cash Keeper': {
+    accent: '#34D399',
+    gradient: 'linear-gradient(155deg, #031408 0%, #061c0c 55%, #041008 100%)',
+    blob: { top: 70, left: -50, width: 545, height: 470, br: '52% 48% 62% 38% / 58% 42% 46% 54%' },
+  },
+  'The Direct Depositor': {
+    accent: '#38BDF8',
+    gradient: 'linear-gradient(148deg, #030f18 0%, #06161e 55%, #030c14 100%)',
+    blob: { top: 100, left: 730, width: 505, height: 450, br: '46% 54% 52% 48% / 62% 38% 50% 50%' },
+  },
+  // ── Credit specific ──────────────────────────────────────────────
+  'The Revolving Door': {
+    accent: '#FB923C',
+    gradient: 'linear-gradient(135deg, #160a00 0%, #1e1200 55%, #120800 100%)',
+    blob: { top: 85, left: -35, width: 535, height: 445, br: '58% 42% 56% 44% / 42% 58% 44% 56%' },
+  },
+  'The Points Chaser': {
+    accent: '#FBBF24',
+    gradient: 'linear-gradient(128deg, #181000 0%, #1e1600 55%, #120e00 100%)',
+    blob: { top: 65, left: 720, width: 520, height: 480, br: '44% 56% 36% 64% / 64% 36% 58% 42%' },
+  },
+  'The Minimum Payer': {
+    accent: '#FB923C',
+    gradient: 'linear-gradient(140deg, #160a00 0%, #1c1000 55%, #110800 100%)',
+    blob: { top: 115, left: -25, width: 550, height: 435, br: '56% 44% 62% 38% / 44% 56% 38% 62%' },
+  },
+  'The Cashback Architect': {
+    accent: '#818CF8',
+    gradient: 'linear-gradient(145deg, #070a1e 0%, #0c1030 55%, #080c20 100%)',
+    blob: { top: 80, left: 740, width: 510, height: 460, br: '50% 50% 44% 56% / 56% 44% 60% 40%' },
+  },
+  'The One Card Wonder': {
+    accent: '#94A3B8',
+    gradient: 'linear-gradient(138deg, #090c12 0%, #0e1420 55%, #070a10 100%)',
+    blob: { top: 100, left: -15, width: 525, height: 450, br: '52% 48% 58% 42% / 48% 52% 42% 58%' },
+  },
+  'The Utilization King': {
+    accent: '#FB923C',
+    gradient: 'linear-gradient(132deg, #180900 0%, #201200 55%, #140700 100%)',
+    blob: { top: 70, left: 710, width: 530, height: 470, br: '60% 40% 48% 52% / 40% 60% 54% 46%' },
+  },
+  'The Balance Transfer': {
+    accent: '#FBBF24',
+    gradient: 'linear-gradient(142deg, #160e00 0%, #1e1600 55%, #120a00 100%)',
+    blob: { top: 90, left: -45, width: 540, height: 455, br: '46% 54% 60% 40% / 54% 46% 40% 60%' },
+  },
+  // ── Premium ──────────────────────────────────────────────────────
+  'The Quiet Millionaire': {
+    accent: '#F59E0B',
+    gradient: 'linear-gradient(145deg, #0f0a00 0%, #181200 55%, #0c0800 100%)',
+    blob: { top: 60, left: -60, width: 580, height: 490, br: '55% 45% 50% 50% / 45% 55% 50% 50%' },
+  },
+  'The Strategic Deployer': {
+    accent: '#818CF8',
+    gradient: 'linear-gradient(140deg, #06081c 0%, #0a0e2c 55%, #070920 100%)',
+    blob: { top: 95, left: 730, width: 515, height: 465, br: '48% 52% 54% 46% / 58% 42% 46% 54%' },
+  },
+  'The Compounding Machine': {
+    accent: '#34D399',
+    gradient: 'linear-gradient(155deg, #031208 0%, #051a0e 55%, #030e08 100%)',
+    blob: { top: 75, left: -30, width: 535, height: 460, br: '54% 46% 44% 56% / 44% 56% 58% 42%' },
+  },
 }
 
 const FALLBACK = THEMES['The Steady Builder']
@@ -74,6 +178,7 @@ export async function GET(req: NextRequest) {
   const spend  = Number(searchParams.get('spend')  ?? 0)
   const net    = Number(searchParams.get('net')    ?? 0)
   const topCat = searchParams.get('topCat') ?? ''
+  const trait  = searchParams.get('trait')  ?? ''
 
   // ── Subscription Collector — illustration-based share card ────────────────
   if (type === 'The Subscription Collector') {
@@ -323,6 +428,16 @@ export async function GET(req: NextRequest) {
             }}>
               {name}
             </span>
+
+            {trait ? (
+              <span style={{
+                fontSize: 28, fontWeight: 700, color: `${accent}99`,
+                letterSpacing: '-0.03em', lineHeight: 1.1,
+                marginTop: 8, display: 'flex',
+              }}>
+                · {trait}
+              </span>
+            ) : null}
 
             {/* Vibe — italic, muted */}
             {vibe ? (
