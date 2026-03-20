@@ -307,9 +307,6 @@ export default function InsightsPage() {
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="space-y-6 pb-24">
 
-        {/* ── Insights panel ──────────────────────────────────────────── */}
-        <AiInsightsPanel year={year} month={month} />
-
         {/* ── Q&A section ─────────────────────────────────────────────── */}
         <div>
           {/* Section header */}
@@ -462,6 +459,10 @@ export default function InsightsPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Insights panel ──────────────────────────────────────────── */}
+        <AiInsightsPanel year={year} month={month} />
+
       </div>
 
       <style>{`
