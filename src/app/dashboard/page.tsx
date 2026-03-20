@@ -19,7 +19,7 @@ import { SubscriptionPanel } from '@/components/dashboard/SubscriptionPanel'
 import { UpcomingChargesPanel } from '@/components/dashboard/UpcomingChargesPanel'
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard'
 import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome'
-import { FinancialAutopsyPanel } from '@/components/dashboard/FinancialAutopsyPanel'
+import { FinancialAutopsyPanel, PersonalityCard } from '@/components/dashboard/FinancialAutopsyPanel'
 import { MonthlyStorylineCard } from '@/components/dashboard/MonthlyStorylineCard'
 import type { InsightCard } from '@/lib/insights/types'
 import { computeSignals } from '@/lib/personality/signals'
@@ -301,18 +301,25 @@ export default function DashboardPage() {
         {/* MONEY PERSONALITY — first thing you see                           */}
         {/* ════════════════════════════════════════════════════════════════════ */}
 
-        <FinancialAutopsyPanel
-          cards={insightsData?.cards ?? []}
-          year={year}
-          month={month}
-          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
-          personality={personalityResult}
-          personalitySignals={{
+        <PersonalityCard
+          result={personalityResult}
+          signals={{
             income:     summary.totalIncome as number,
             spending:   summary.totalSpending as number,
             net:        summary.net as number,
             topCatName: spendingCategories[0]?.categoryName,
           }}
+        />
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* FINANCIAL AUTOPSY — just below personality                        */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        <FinancialAutopsyPanel
+          cards={insightsData?.cards ?? []}
+          year={year}
+          month={month}
+          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
         />
 
         {/* ════════════════════════════════════════════════════════════════════ */}

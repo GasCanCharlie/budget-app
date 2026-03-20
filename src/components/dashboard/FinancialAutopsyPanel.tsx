@@ -101,7 +101,7 @@ function shareParams(result: PersonalityResult, signals?: { income: number; spen
 
 // ─── PersonalityCard ──────────────────────────────────────────────────────────
 
-function PersonalityCard({ result, signals }: { result: PersonalityResult; signals?: { income: number; spending: number; net: number; topCatName?: string } }) {
+export function PersonalityCard({ result, signals }: { result: PersonalityResult; signals?: { income: number; spending: number; net: number; topCatName?: string } }) {
   const core  = result.core
   const trait = result.trait
   const soft  = result.softTrait
@@ -611,13 +611,6 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
           }
         </button>
       </div>
-
-      {/* ── Money Personality ──────────────────────────────────────────────── */}
-      {personality && (
-        <div style={{ marginBottom: 18 }}>
-          <PersonalityCard result={personality} signals={personalitySignals} />
-        </div>
-      )}
 
       {/* Error */}
       {genError && (
