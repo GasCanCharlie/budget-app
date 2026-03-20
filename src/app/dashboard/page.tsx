@@ -332,18 +332,22 @@ export default function DashboardPage() {
         />
 
         {/* ════════════════════════════════════════════════════════════════════ */}
-        {/* DIAGNOSTICS — what to investigate                                  */}
+        {/* FINANCIAL INSIGHTS — personality + pattern analysis               */}
         {/* ════════════════════════════════════════════════════════════════════ */}
-
-        <div style={{ paddingTop: 4 }}>
-          <p className="bl-section-label">Financial Autopsy</p>
-        </div>
 
         <FinancialAutopsyPanel
           cards={insightsData?.cards ?? []}
           year={year}
           month={month}
           onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
+          personality={{
+            income:       summary.totalIncome as number,
+            spending:     summary.totalSpending as number,
+            net:          summary.net as number,
+            topCatPct:    spendingCategories[0]?.pctOfSpending ?? 0,
+            subCount:     subsData?.subscriptions?.length ?? 0,
+            anomalyCount: summary.alerts?.length ?? 0,
+          }}
         />
 
         {/* ════════════════════════════════════════════════════════════════════ */}

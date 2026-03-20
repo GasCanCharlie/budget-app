@@ -3,17 +3,142 @@
 import { useState } from 'react'
 import {
   Coins, Target, RefreshCw, TrendingUp, Gauge,
-  ChevronDown, ChevronRight, AlertTriangle, Loader2, type LucideIcon,
+  ChevronDown, ChevronRight, Loader2, Lightbulb,
+  Layers, Activity, Zap, Brain, BarChart3, type LucideIcon,
 } from 'lucide-react'
 import type { InsightCard } from '@/lib/insights/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface PersonalityInput {
+  income:       number
+  spending:     number
+  net:          number
+  topCatPct:    number
+  subCount:     number
+  anomalyCount: number
+}
+
 interface Props {
-  cards: InsightCard[]
-  year: number
-  month: number
+  cards:        InsightCard[]
+  year:         number
+  month:        number
   onGenerated?: () => void
+  personality?: PersonalityInput
+}
+
+// ─── Money Personality ────────────────────────────────────────────────────────
+
+interface Personality {
+  type:     string
+  icon:     LucideIcon
+  tagline:  string
+  vibe:     string
+  accent:   string
+  accentBg: string
+}
+
+function getPersonality(p: PersonalityInput): Personality {
+  const spendRatio = p.income > 0 ? p.spending / p.income : 1
+
+  if (p.subCount >= 5) return {
+    type: 'The Subscription Collector', icon: Layers,
+    tagline: 'Your subscriptions are stacking up. A quick audit could pay off.',
+    vibe: 'You love your services — just make sure they all still spark joy.',
+    accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
+  }
+  if (spendRatio < 0.5 && p.net > 0) return {
+    type: 'The Low-Key Saver', icon: TrendingUp,
+    tagline: 'You keep more than half of what you earn. Quietly winning.',
+    vibe: 'Steady hands, healthy balance. Keep it up.',
+    accent: '#22C55E', accentBg: 'rgba(34,197,94,0.08)',
+  }
+  if (p.topCatPct > 50) return {
+    type: 'The Big Ticket Player', icon: Target,
+    tagline: 'One category dominates your spending this period.',
+    vibe: 'Intentional move, or worth a second look — you decide.',
+    accent: '#F59E0B', accentBg: 'rgba(245,158,11,0.08)',
+  }
+  if (p.income > 5000 && spendRatio > 0.85) return {
+    type: 'The Flow Master', icon: Activity,
+    tagline: 'Money moves freely — in and out. You live with confidence.',
+    vibe: "You're in full flow. Just watch the current.",
+    accent: '#06B6D4', accentBg: 'rgba(6,182,212,0.08)',
+  }
+  if (p.net > 0 && p.anomalyCount === 0 && spendRatio < 0.8) return {
+    type: 'The Smooth Operator', icon: Zap,
+    tagline: 'Controlled spending, zero surprises. You make it look easy.',
+    vibe: 'Strong, steady, and under control.',
+    accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
+  }
+  if (p.net > 0 && spendRatio < 0.9) return {
+    type: 'The Smart Spender', icon: Brain,
+    tagline: 'Balanced spending with room to grow.',
+    vibe: "You're in a healthy financial position this month.",
+    accent: '#4F46E5', accentBg: 'rgba(79,70,229,0.08)',
+  }
+  return {
+    type: 'The Steady Builder', icon: BarChart3,
+    tagline: 'Consistent, controlled, and building toward something.',
+    vibe: "You're running a tight ship this month.",
+    accent: '#6366F1', accentBg: 'rgba(99,102,241,0.08)',
+  }
+}
+
+function PersonalityCard({ data }: { data: PersonalityInput }) {
+  const p = getPersonality(data)
+  const Icon = p.icon
+
+  return (
+    <div style={{
+      background: `radial-gradient(ellipse at 8% 8%, ${p.accentBg}, transparent 60%), var(--card2, #0F1623)`,
+      border: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
+      borderRadius: 14,
+      padding: '20px 20px 18px',
+      marginBottom: 12,
+    }}>
+      {/* Label */}
+      <span style={{
+        fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+        letterSpacing: '0.09em', color: p.accent,
+        display: 'block', marginBottom: 14,
+      }}>
+        Your Money Personality
+      </span>
+
+      {/* Hero */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
+        <div style={{
+          width: 48, height: 48, flexShrink: 0, borderRadius: 12,
+          background: p.accentBg,
+          border: `1px solid ${p.accent}30`,
+          boxShadow: `0 2px 10px ${p.accent}18`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon size={22} strokeWidth={1.75} color={p.accent} />
+        </div>
+        <div>
+          <p style={{ margin: '0 0 2px', fontSize: 11, color: 'var(--text-faint, #6B7280)' }}>
+            You&apos;re a
+          </p>
+          <p style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.15, color: 'var(--text-primary, #e5e7eb)' }}>
+            {p.type}
+          </p>
+          <p style={{ margin: '5px 0 0', fontSize: 12, color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.5 }}>
+            {p.tagline}
+          </p>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: 1, background: 'var(--border-soft, rgba(255,255,255,0.06))', margin: '0 0 12px' }} />
+
+      {/* Vibe */}
+      <p style={{ margin: 0, fontSize: 13, fontStyle: 'italic', color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.5 }}>
+        &ldquo;{p.vibe}&rdquo;
+      </p>
+    </div>
+  )
 }
 
 // ─── Icon map ─────────────────────────────────────────────────────────────────
@@ -24,47 +149,54 @@ const ICON_MAP: Record<string, LucideIcon> = {
   RefreshCw,
   TrendingUp,
   Gauge,
-  AlertTriangle,
+  Lightbulb,
 }
 
-// ─── Severity colors ──────────────────────────────────────────────────────────
+// ─── Impact styling — informational, not alert-driven ─────────────────────────
 
-const CONFIDENCE_COLOR: Record<InsightCard['confidence'], string> = {
-  high: '#EF4444',
-  medium: '#F59E0B',
-  low: '#6C7CFF',
+const IMPACT_COLOR: Record<InsightCard['confidence'], string> = {
+  high:   '#818CF8',   // indigo — priority, not danger
+  medium: '#F59E0B',   // amber  — moderate, informational
+  low:    '#64748B',   // slate  — context
 }
 
-const CONFIDENCE_BG: Record<InsightCard['confidence'], string> = {
-  high: 'rgba(239,68,68,0.12)',
-  medium: 'rgba(245,158,11,0.10)',
-  low: 'rgba(108,124,255,0.10)',
+const IMPACT_BG: Record<InsightCard['confidence'], string> = {
+  high:   'rgba(129,140,248,0.10)',
+  medium: 'rgba(245,158,11,0.08)',
+  low:    'rgba(100,116,139,0.08)',
 }
 
-const CONFIDENCE_LABEL: Record<InsightCard['confidence'], string> = {
-  high: 'High impact',
+const IMPACT_ACCENT: Record<InsightCard['confidence'], string> = {
+  high:   '#818CF8',
+  medium: 'rgba(245,158,11,0.6)',
+  low:    'rgba(100,116,139,0.3)',
+}
+
+const IMPACT_LABEL: Record<InsightCard['confidence'], string> = {
+  high:   'High impact',
   medium: 'Medium impact',
-  low: 'Low impact',
+  low:    'Low impact',
 }
 
-// ─── Single autopsy card ──────────────────────────────────────────────────────
+// ─── Single insight card ──────────────────────────────────────────────────────
 
-function AutopsyCard({ card }: { card: InsightCard }) {
+function InsightCard({ card, prominent }: { card: InsightCard; prominent?: boolean }) {
   const [expanded, setExpanded] = useState(false)
-  const IconComp: LucideIcon = ICON_MAP[card.icon_suggestion] ?? AlertTriangle
-  const color = CONFIDENCE_COLOR[card.confidence]
-  const bg = CONFIDENCE_BG[card.confidence]
+  const IconComp: LucideIcon = ICON_MAP[card.icon_suggestion] ?? Lightbulb
+  const color  = IMPACT_COLOR[card.confidence]
+  const bg     = IMPACT_BG[card.confidence]
+  const accent = IMPACT_ACCENT[card.confidence]
 
   return (
-    <div
-      style={{
-        background: 'var(--card2, #0F1623)',
-        border: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
-        borderRadius: 14,
-        overflow: 'hidden',
-        transition: 'border-color 200ms ease, box-shadow 200ms ease',
-      }}
-    >
+    <div style={{
+      background: prominent ? `radial-gradient(ellipse at 5% 50%, ${bg}, transparent 70%), var(--card2, #0F1623)` : 'var(--card2, #0F1623)',
+      border: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
+      borderLeft: `3px solid ${accent}`,
+      borderRadius: 14,
+      overflow: 'hidden',
+      transition: 'border-color 200ms ease, box-shadow 200ms ease',
+      boxShadow: prominent ? `0 0 0 1px ${bg}` : 'none',
+    }}>
       {/* Header row */}
       <button
         onClick={() => setExpanded(e => !e)}
@@ -73,7 +205,7 @@ function AutopsyCard({ card }: { card: InsightCard }) {
           display: 'flex',
           alignItems: 'center',
           gap: 12,
-          padding: '14px 16px',
+          padding: prominent ? '16px 16px 16px 14px' : '13px 16px 13px 14px',
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
@@ -82,68 +214,73 @@ function AutopsyCard({ card }: { card: InsightCard }) {
       >
         {/* Icon */}
         <div style={{
-          width: 36, height: 36, borderRadius: 10,
+          width: prominent ? 38 : 34, height: prominent ? 38 : 34,
+          borderRadius: prominent ? 11 : 9,
           background: bg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <IconComp size={16} style={{ color }} />
+          <IconComp size={prominent ? 17 : 15} style={{ color }} />
         </div>
 
-        {/* Title + badge */}
+        {/* Title + impact tag */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontSize: 13, fontWeight: 700,
+            fontSize: prominent ? 14 : 13,
+            fontWeight: prominent ? 700 : 600,
             color: 'var(--text-primary, #e5e7eb)',
-            marginBottom: 2,
+            marginBottom: 4,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {card.title}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              fontSize: 10, fontWeight: 700,
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              color, padding: '2px 6px', borderRadius: 4,
-              background: bg,
-            }}>
-              {CONFIDENCE_LABEL[card.confidence]}
-            </span>
-          </div>
+          <span style={{
+            fontSize: 10, fontWeight: 600,
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+            color, padding: '2px 7px', borderRadius: 4,
+            background: bg,
+            display: 'inline-block',
+          }}>
+            {IMPACT_LABEL[card.confidence]}
+          </span>
         </div>
 
         {/* Chevron */}
         <div style={{ color: 'var(--text-faint, #6B7280)', flexShrink: 0 }}>
-          {expanded
-            ? <ChevronDown size={16} />
-            : <ChevronRight size={16} />
-          }
+          {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
         </div>
       </button>
 
       {/* Expanded body */}
       {expanded && (
         <div style={{
-          padding: '0 16px 16px',
+          padding: '0 16px 16px 14px',
           borderTop: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
         }}>
           {/* Summary */}
           <p style={{
             fontSize: 13, color: 'var(--text-secondary, #9ca3af)',
-            lineHeight: 1.55, margin: '12px 0',
+            lineHeight: 1.6, margin: '12px 0',
           }}>
             {card.summary}
           </p>
 
+          {/* Interpretation nudge */}
+          <p style={{
+            fontSize: 11, color: 'var(--text-faint, #6B7280)',
+            lineHeight: 1.55, margin: '0 0 12px',
+            fontStyle: 'italic',
+          }}>
+            This may be worth reviewing — or it could be exactly what you planned.
+          </p>
+
           {/* Numbers */}
           {card.numbers_used.length > 0 && (
-            <div style={{
-              display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12,
-            }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
               {card.numbers_used.map(n => (
                 <div key={n.field} style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)',
                   borderRadius: 8, padding: '6px 10px',
                 }}>
                   <div style={{ fontSize: 10, color: 'var(--text-faint, #6B7280)', fontWeight: 600, marginBottom: 2 }}>
@@ -168,19 +305,21 @@ function AutopsyCard({ card }: { card: InsightCard }) {
                 }}
                 style={{
                   fontSize: 12, fontWeight: 600,
-                  padding: '6px 12px', borderRadius: 7,
+                  padding: '6px 13px', borderRadius: 8,
                   border: action.action_key === 'dismiss'
-                    ? '1px solid rgba(255,255,255,0.1)'
-                    : `1px solid ${color}40`,
+                    ? '1px solid rgba(255,255,255,0.08)'
+                    : `1px solid ${color}35`,
                   background: action.action_key === 'dismiss'
-                    ? 'rgba(255,255,255,0.04)'
+                    ? 'rgba(255,255,255,0.03)'
                     : bg,
                   color: action.action_key === 'dismiss'
-                    ? 'var(--text-secondary, #9ca3af)'
+                    ? 'var(--text-faint, #6B7280)'
                     : color,
                   cursor: 'pointer',
                   transition: 'opacity 0.15s',
                 }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
               >
                 {action.label}
               </button>
@@ -194,11 +333,11 @@ function AutopsyCard({ card }: { card: InsightCard }) {
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
-export function FinancialAutopsyPanel({ cards, year, month, onGenerated }: Props) {
+export function FinancialAutopsyPanel({ cards, year, month, onGenerated, personality }: Props) {
   const [generating, setGenerating] = useState(false)
-  const [genError, setGenError] = useState<string | null>(null)
+  const [genError,   setGenError]   = useState<string | null>(null)
 
-  const autopsyCards = cards
+  const insightCards = cards
     .filter(c => c.card_type.startsWith('autopsy_'))
     .sort((a, b) => a.priority - b.priority)
 
@@ -207,58 +346,48 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated }: Props
     setGenError(null)
     try {
       const res = await fetch('/api/insights/generate', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year, month }),
+        body:    JSON.stringify({ year, month }),
       })
       if (!res.ok) throw new Error(`Server error ${res.status}`)
       onGenerated?.()
     } catch (e) {
-      setGenError(e instanceof Error ? e.message : 'Generation failed')
+      setGenError(e instanceof Error ? e.message : 'Analysis failed')
     } finally {
       setGenerating(false)
     }
   }
 
-  // Count high-impact cards for the section header badge
-  const highCount = autopsyCards.filter(c => c.confidence === 'high').length
-
   return (
     <div style={{ marginBottom: 8 }}>
-      {/* Section header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
-      }}>
+
+      {/* ── Money Personality ──────────────────────────────────────────────── */}
+      {personality && <PersonalityCard data={personality} />}
+
+      {/* ── Section header ─────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{
           width: 28, height: 28, borderRadius: 8,
-          background: 'rgba(239,68,68,0.12)',
+          background: 'rgba(129,140,248,0.12)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <AlertTriangle size={14} style={{ color: '#EF4444' }} />
+          <Lightbulb size={14} style={{ color: '#818CF8' }} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{
-            fontSize: 13, fontWeight: 800,
-            color: 'var(--text-primary, #e5e7eb)',
-            letterSpacing: '0.01em',
-          }}>
-            Financial Autopsy
+          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary, #e5e7eb)', letterSpacing: '0.01em' }}>
+            Financial Insights
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-faint, #6B7280)', marginTop: 1 }}>
-            {autopsyCards.length === 0
-              ? 'Deep-dive analysis of your spending patterns'
-              : `${autopsyCards.length} finding${autopsyCards.length !== 1 ? 's' : ''}`
+            {insightCards.length === 0
+              ? 'Personalized analysis of your spending patterns'
+              : `${insightCards.length} insight${insightCards.length !== 1 ? 's' : ''} for this month`
             }
-            {highCount > 0 && (
-              <span style={{ marginLeft: 6, color: '#EF4444', fontWeight: 700 }}>
-                · {highCount} high impact
-              </span>
-            )}
           </div>
         </div>
 
-        {/* Generate button */}
+        {/* Analyze button */}
         <button
           onClick={handleGenerate}
           disabled={generating}
@@ -266,17 +395,19 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated }: Props
             display: 'flex', alignItems: 'center', gap: 6,
             fontSize: 12, fontWeight: 700,
             padding: '6px 14px', borderRadius: 8,
-            border: '1px solid rgba(108,124,255,0.35)',
-            background: generating ? 'rgba(108,124,255,0.06)' : 'rgba(108,124,255,0.12)',
-            color: generating ? '#9ca3af' : '#a5b4fc',
+            border: '1px solid rgba(129,140,248,0.3)',
+            background: generating ? 'rgba(129,140,248,0.05)' : 'rgba(129,140,248,0.10)',
+            color: generating ? '#6B7280' : '#a5b4fc',
             cursor: generating ? 'not-allowed' : 'pointer',
             transition: 'opacity 0.15s',
             flexShrink: 0,
           }}
+          onMouseEnter={e => { if (!generating) e.currentTarget.style.opacity = '0.75' }}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
         >
           {generating
-            ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Running…</>
-            : autopsyCards.length > 0 ? 'Re-run' : 'Run Autopsy'
+            ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Analyzing…</>
+            : insightCards.length > 0 ? 'Re-analyze' : 'Analyze'
           }
         </button>
       </div>
@@ -284,9 +415,9 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated }: Props
       {/* Error */}
       {genError && (
         <div style={{
-          fontSize: 12, color: '#EF4444',
-          background: 'rgba(239,68,68,0.08)',
-          border: '1px solid rgba(239,68,68,0.2)',
+          fontSize: 12, color: '#9ca3af',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 8, padding: '8px 12px', marginBottom: 10,
         }}>
           {genError}
@@ -294,24 +425,24 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated }: Props
       )}
 
       {/* Empty state */}
-      {autopsyCards.length === 0 && !generating && (
+      {insightCards.length === 0 && !generating && (
         <div style={{
           background: 'var(--card2, #111827)',
           border: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
           borderRadius: 12, padding: '20px 16px',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: 12, color: 'var(--text-faint, #6B7280)' }}>
-            Click <strong style={{ color: 'var(--text-secondary, #9ca3af)' }}>Run Autopsy</strong> to analyze spending patterns for this month.
+          <div style={{ fontSize: 12, color: 'var(--text-faint, #6B7280)', lineHeight: 1.6 }}>
+            Click <strong style={{ color: 'var(--text-secondary, #9ca3af)' }}>Analyze</strong> to generate personalized insights for this month.
           </div>
         </div>
       )}
 
-      {/* Cards */}
-      {autopsyCards.length > 0 && (
+      {/* Insight cards */}
+      {insightCards.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {autopsyCards.map(card => (
-            <AutopsyCard key={card.id} card={card} />
+          {insightCards.map((card, i) => (
+            <InsightCard key={card.id} card={card} prominent={i === 0} />
           ))}
         </div>
       )}
