@@ -30,7 +30,7 @@ const primaryNavItems = [
   { href: '/upload',       label: 'Uploads',      icon: FileText },
   { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/categorize',   label: 'Categorize',   icon: Tags },
-  { href: '/insights',     label: 'Autopsy & Q&A', icon: FlaskConical },
+  { href: '/insights',     label: 'Financial Autopsy', icon: FlaskConical },
 ]
 
 // Management utilities — desktop sidebar only, visually de-emphasized
