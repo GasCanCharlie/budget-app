@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { Layers, TrendingUp, Target, Activity, Zap, Brain, BarChart3, type LucideIcon } from 'lucide-react'
+import { computeSignals } from '@/lib/personality/signals'
+import { detectPersonality } from '@/lib/personality/detect'
+import type { PersonalityResult } from '@/lib/personality/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -142,70 +144,16 @@ function EmptyState({ text }: { text: string }) {
 
 // ─── Money Personality ────────────────────────────────────────────────────────
 
-interface Personality {
-  type:     string
-  icon:     LucideIcon
-  tagline:  string
-  vibe:     string
-  accent:   string
-  accentBg: string
-}
-
-function getPersonality(totals: ScanReport['totals'], findings: ScanReport['findings']): Personality {
-  const { income, spending, net } = totals
-  const spendRatio = income > 0 ? spending / income : 1
-  const subCount   = findings.subscriptions.count
-  const topCatPct  = findings.categoryBreakdown[0]?.pct ?? 0
-
-  if (subCount >= 5) return {
-    type: 'The Subscription Collector',
-    icon: Layers,
-    tagline: 'Your subscriptions are stacking up. A quick audit could pay off.',
-    vibe: 'You love your services — just make sure they all still spark joy.',
-    accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
-  }
-  if (spendRatio < 0.5 && net > 0) return {
-    type: 'The Low-Key Saver',
-    icon: TrendingUp,
-    tagline: 'You keep more than half of what you earn. Quietly winning.',
-    vibe: 'Steady hands, healthy balance. Keep it up.',
-    accent: '#22C55E', accentBg: 'rgba(34,197,94,0.08)',
-  }
-  if (topCatPct > 50) return {
-    type: 'The Big Ticket Player',
-    icon: Target,
-    tagline: 'One category dominates your spending this period.',
-    vibe: 'Intentional move, or worth a second look — you decide.',
-    accent: '#F59E0B', accentBg: 'rgba(245,158,11,0.08)',
-  }
-  if (income > 5000 && spendRatio > 0.85) return {
-    type: 'The Flow Master',
-    icon: Activity,
-    tagline: 'Money moves freely — in and out. You live with confidence.',
-    vibe: "You're in full flow. Just watch the current.",
-    accent: '#06B6D4', accentBg: 'rgba(6,182,212,0.08)',
-  }
-  if (net > 0 && findings.anomalies.count === 0 && spendRatio < 0.8) return {
-    type: 'The Smooth Operator',
-    icon: Zap,
-    tagline: 'Controlled spending, zero surprises. You make it look easy.',
-    vibe: 'Strong, steady, and under control.',
-    accent: '#818CF8', accentBg: 'rgba(129,140,248,0.10)',
-  }
-  if (net > 0 && findings.categoryBreakdown.length >= 4 && spendRatio < 0.9) return {
-    type: 'The Smart Spender',
-    icon: Brain,
-    tagline: 'Balanced across categories, with room to grow.',
-    vibe: "You're in a healthy financial position this month.",
-    accent: '#4F46E5', accentBg: 'rgba(79,70,229,0.08)',
-  }
-  return {
-    type: 'The Steady Builder',
-    icon: BarChart3,
-    tagline: 'Consistent, controlled, and building toward something.',
-    vibe: "You're running a tight ship this month.",
-    accent: '#6366F1', accentBg: 'rgba(99,102,241,0.08)',
-  }
+// Personalities that use illustration cards instead of gradient cards
+const ILLUSTRATION_MAP: Record<string, { src: string; dotColor: string; btnColor: string; btnBorder: string }> = {
+  subscription_collector: {
+    src: '/personalities/subscription-collector.webp',
+    dotColor: '#FBBF24', btnColor: 'rgba(251,191,36,0.22)', btnBorder: 'rgba(251,191,36,0.45)',
+  },
+  wire_dancer: {
+    src: '/personalities/wire-dancer.webp',
+    dotColor: '#2DD4BF', btnColor: 'rgba(45,212,191,0.22)', btnBorder: 'rgba(45,212,191,0.45)',
+  },
 }
 
 function buildInsights(totals: ScanReport['totals'], findings: ScanReport['findings']): string[] {
@@ -230,89 +178,111 @@ function buildInsights(totals: ScanReport['totals'], findings: ScanReport['findi
 }
 
 function MoneyPersonality({ report }: { report: ScanReport }) {
-  const p        = getPersonality(report.totals, report.findings)
+  const result: PersonalityResult = detectPersonality(computeSignals({
+    income:       report.totals.income,
+    spending:     report.totals.spending,
+    net:          report.totals.net,
+    categories:   report.findings.categoryBreakdown.map(c => ({ name: c.category, pctOfSpending: c.pct })),
+    subCount:     report.findings.subscriptions.count,
+    anomalyCount: report.findings.anomalies.count,
+    statementType: 'unknown',
+  }))
+
+  const core    = result.core
+  const trait   = result.trait
   const insights = buildInsights(report.totals, report.findings)
+  const illus   = ILLUSTRATION_MAP[core.id as string]
 
   function handleShare() {
     const params = new URLSearchParams({
-      type:   p.type,
-      vibe:   p.vibe,
+      type:   core.name,
+      vibe:   core.vibe,
       income: String(report.totals.income),
       spend:  String(report.totals.spending),
       net:    String(report.totals.net),
     })
+    if (trait) params.set('trait', trait.name)
     const topCat = report.findings.categoryBreakdown[0]?.category
     if (topCat) params.set('topCat', topCat)
     window.open(`/api/share/personality?${params.toString()}`, '_blank')
   }
 
+  // ── Illustration card ────────────────────────────────────────────────────
+  if (illus) {
+    return (
+      <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', boxShadow: '0 12px 48px rgba(0,0,0,0.45)', border: `1px solid ${illus.dotColor}40` }}>
+        <img src={illus.src} alt={core.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 64, background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 90, background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 14, left: 16, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 999, padding: '4px 10px' }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: illus.dotColor }} />
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.85)' }}>Money Personality</span>
+        </div>
+        <div style={{ position: 'absolute', bottom: 14, left: 16, right: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, pointerEvents: 'none' }}>
+          <p style={{ margin: 0, fontSize: 11, fontStyle: 'italic', fontWeight: 500, color: 'rgba(255,255,255,0.70)', letterSpacing: '0.01em', lineHeight: 1.4, pointerEvents: 'none' }}>
+            &ldquo;{core.vibe}&rdquo;
+          </p>
+          <button onClick={handleShare} aria-label="Share your money personality card" style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#fff', background: illus.btnColor, backdropFilter: 'blur(10px)', border: `1px solid ${illus.btnBorder}`, borderRadius: 999, padding: '7px 16px', cursor: 'pointer', transition: 'opacity 150ms ease', pointerEvents: 'all' }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+            ↗ Share your card
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Standard gradient card ───────────────────────────────────────────────
+  const accent   = core.isCaution ? '#FB923C' : core.accent
+  const accentBg = core.isCaution ? 'rgba(251,146,60,0.08)' : core.accentBg
+  const label    = core.isCaution ? 'Heads up' : 'Your Money Personality'
+
   return (
     <div style={{
       ...card,
-      background: `radial-gradient(ellipse at 8% 8%, ${p.accentBg}, transparent 55%), var(--card)`,
+      background: `radial-gradient(ellipse at 8% 8%, ${accentBg}, transparent 55%), var(--card)`,
       padding: '24px 26px',
       position: 'relative',
       overflow: 'hidden',
     }}>
 
-      {/* Section label + share hook */}
+      {/* Section label + share */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--accent)' }}>
-          Your Money Personality
+        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: accent }}>
+          {label}
         </span>
-        <button
-          onClick={handleShare}
-          aria-label="Share your money personality card"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontSize: 11, fontWeight: 600,
-            color: p.accent,
-            background: p.accentBg,
-            border: `1px solid ${p.accent}30`,
-            borderRadius: 999, padding: '4px 11px',
-            cursor: 'pointer',
-            letterSpacing: '0.01em',
-            transition: 'opacity 150ms ease',
-          }}
+        <button onClick={handleShare} aria-label="Share your money personality card"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: accent, background: accentBg, border: `1px solid ${accent}30`, borderRadius: 999, padding: '4px 11px', cursor: 'pointer', letterSpacing: '0.01em', transition: 'opacity 150ms ease' }}
           onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
           ↗ Share card
         </button>
       </div>
 
-      {/* Hero: icon + type name + tagline */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 22 }}>
-        <div style={{
-          width: 56, height: 56, flexShrink: 0, borderRadius: 14,
-          background: p.accentBg,
-          border: `1px solid ${p.accent}30`,
-          boxShadow: `0 2px 12px ${p.accent}18`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <p.icon size={24} strokeWidth={1.75} color={p.accent} />
-        </div>
-        <div>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', marginBottom: 3, letterSpacing: '0.01em' }}>
-            You&apos;re a
+      {/* Hero */}
+      <div style={{ marginBottom: 22 }}>
+        <p style={{ margin: '0 0 2px', fontSize: 12, color: 'var(--text-muted)', letterSpacing: '0.01em' }}>You&apos;re</p>
+        <p style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--text)' }}>
+          {core.name}
+        </p>
+        {trait && (
+          <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 600, color: trait.accent, letterSpacing: '-0.01em' }}>
+            · {trait.name}
           </p>
-          <p style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--text)' }}>
-            {p.type}
-          </p>
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
-            {p.tagline}
-          </p>
-        </div>
+        )}
+        <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
+          {core.tagline}
+        </p>
       </div>
 
       {/* Divider */}
       <div style={{ height: 1, background: 'var(--border)', margin: '0 0 18px' }} />
 
-      {/* Structured insights */}
+      {/* Insights */}
       <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {insights.map((line, i) => (
           <li key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
-            <span style={{ fontSize: 12, color: p.accent, flexShrink: 0, fontWeight: 700, lineHeight: 1.5 }}>✓</span>
+            <span style={{ fontSize: 12, color: accent, flexShrink: 0, fontWeight: 700, lineHeight: 1.5 }}>✓</span>
             <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.4 }}>{line}</span>
           </li>
         ))}
@@ -321,9 +291,9 @@ function MoneyPersonality({ report }: { report: ScanReport }) {
       {/* Divider */}
       <div style={{ height: 1, background: 'var(--border)', margin: '18px 0 16px' }} />
 
-      {/* Human summary vibe line */}
+      {/* Vibe */}
       <p style={{ margin: 0, fontSize: 14, fontStyle: 'italic', color: 'var(--text)', lineHeight: 1.5, fontWeight: 500 }}>
-        &ldquo;{p.vibe}&rdquo;
+        &ldquo;{trait ? trait.vibe : core.vibe}&rdquo;
       </p>
     </div>
   )
