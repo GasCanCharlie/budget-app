@@ -35,63 +35,13 @@ import type { InsightCard } from '@/lib/insights/types'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface PersonalityInput {
-  income:         number
-  spending:       number
-  net:            number
-  topCatPct:      number
-  subCount:       number
-  anomalyCount:   number
-  topCatName?:    string
-  subscriptions?: string[]   // merchant display names for Subscription Collector card
-}
-
-// ─── Subscription brand map ────────────────────────────────────────────────────
-
-const BRAND_MAP: Array<{ keywords: string[]; color: string; abbr: string }> = [
-  { keywords: ['netflix'],                      color: '#E50914', abbr: 'NF' },
-  { keywords: ['spotify'],                      color: '#1DB954', abbr: 'SP' },
-  { keywords: ['apple', 'icloud', 'itunes'],    color: '#6B6B6B', abbr: 'AP' },
-  { keywords: ['amazon', 'prime'],              color: '#FF9900', abbr: 'AM' },
-  { keywords: ['hulu'],                         color: '#1CE783', abbr: 'HU' },
-  { keywords: ['disney'],                       color: '#113CCF', abbr: 'D+' },
-  { keywords: ['youtube'],                      color: '#FF0000', abbr: 'YT' },
-  { keywords: ['hbo', 'max'],                   color: '#5B2D8E', abbr: 'HB' },
-  { keywords: ['paramount'],                    color: '#0064FF', abbr: 'P+' },
-  { keywords: ['peacock'],                      color: '#F9A825', abbr: 'PK' },
-  { keywords: ['adobe'],                        color: '#FA0F00', abbr: 'AD' },
-  { keywords: ['microsoft', 'xbox', 'office'],  color: '#107C10', abbr: 'MS' },
-  { keywords: ['google', 'gsuite', 'workspace'],color: '#4285F4', abbr: 'GG' },
-  { keywords: ['dropbox'],                      color: '#0061FF', abbr: 'DB' },
-  { keywords: ['slack'],                        color: '#4A154B', abbr: 'SL' },
-  { keywords: ['zoom'],                         color: '#2D8CFF', abbr: 'ZM' },
-  { keywords: ['pandora'],                      color: '#3668FF', abbr: 'PA' },
-  { keywords: ['sirius', 'xm'],                 color: '#0040C1', abbr: 'SX' },
-  { keywords: ['audible'],                      color: '#F08B02', abbr: 'AU' },
-  { keywords: ['linkedin'],                     color: '#0A66C2', abbr: 'LI' },
-  { keywords: ['duolingo'],                     color: '#58CC02', abbr: 'DU' },
-  { keywords: ['nytimes', 'new york times'],    color: '#121212', abbr: 'NY' },
-  { keywords: ['crunchyroll'],                  color: '#F47521', abbr: 'CR' },
-  { keywords: ['twitch'],                       color: '#9146FF', abbr: 'TW' },
-  { keywords: ['github'],                       color: '#238636', abbr: 'GH' },
-  { keywords: ['notion'],                       color: '#000000', abbr: 'NO' },
-  { keywords: ['figma'],                        color: '#F24E1E', abbr: 'FI' },
-  { keywords: ['planet fitness', 'gym', 'fitness'], color: '#7E22CE', abbr: 'GY' },
-  { keywords: ['patreon'],                      color: '#FF424D', abbr: 'PT' },
-  { keywords: ['playstation', 'psn'],           color: '#003791', abbr: 'PS' },
-  { keywords: ['nintendo'],                     color: '#E60012', abbr: 'NI' },
-]
-
-function getBrandInfo(name: string): { color: string; abbr: string } {
-  const lower = name.toLowerCase()
-  for (const brand of BRAND_MAP) {
-    if (brand.keywords.some(k => lower.includes(k))) return { color: brand.color, abbr: brand.abbr }
-  }
-  // Fallback: hash to a consistent hue, use first 2 non-space chars
-  const hash = Array.from(name).reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  return {
-    color: `hsl(${hash % 360}, 60%, 42%)`,
-    abbr: name.replace(/\s+/g, '').slice(0, 2).toUpperCase(),
-  }
+  income:       number
+  spending:     number
+  net:          number
+  topCatPct:    number
+  subCount:     number
+  anomalyCount: number
+  topCatName?:  string
 }
 
 interface Props {
@@ -251,100 +201,6 @@ function PersonalityCard({ data }: { data: PersonalityInput }) {
           </p>
         </div>
       </div>
-
-      {/* Subscription logo cluster — Subscription Collector only */}
-      {p.type === 'The Subscription Collector' && data.subscriptions && data.subscriptions.length > 0 && (() => {
-        const subs  = data.subscriptions!
-        const shown = subs.slice(0, 8)
-        const extra = subs.length - shown.length
-
-        // Scattered background watermark positions (top-right quadrant)
-        const bgPositions = [
-          { top: -12, right: 10,  size: 52, opacity: 0.07, rotate: 12  },
-          { top: 18,  right: 52,  size: 40, opacity: 0.06, rotate: -8  },
-          { top: -8,  right: 80,  size: 44, opacity: 0.05, rotate: 20  },
-          { top: 30,  right: 14,  size: 36, opacity: 0.07, rotate: -15 },
-          { top: 50,  right: 68,  size: 48, opacity: 0.05, rotate: 6   },
-        ]
-
-        return (
-          <>
-            {/* Background scatter */}
-            {shown.slice(0, 5).map((sub, i) => {
-              const brand = getBrandInfo(sub)
-              const pos   = bgPositions[i]
-              return (
-                <div key={`bg-${i}`} style={{
-                  position: 'absolute',
-                  top: pos.top, right: pos.right,
-                  width: pos.size, height: pos.size,
-                  borderRadius: '50%',
-                  background: brand.color,
-                  opacity: pos.opacity,
-                  transform: `rotate(${pos.rotate}deg)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: pos.size * 0.28, fontWeight: 900, color: '#fff',
-                  pointerEvents: 'none',
-                }}>
-                  {brand.abbr}
-                </div>
-              )
-            })}
-
-            {/* Foreground stacked row */}
-            <div style={{ marginBottom: 18 }}>
-              <p style={{
-                fontSize: 10, fontWeight: 600, color: 'var(--text-faint, #6B7280)',
-                textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px',
-              }}>
-                Active subscriptions
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                {shown.map((sub, i) => {
-                  const brand = getBrandInfo(sub)
-                  return (
-                    <div
-                      key={i}
-                      title={sub}
-                      style={{
-                        width: 34, height: 34, borderRadius: '50%',
-                        background: brand.color,
-                        border: '2.5px solid rgba(15,22,35,0.9)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        marginLeft: i === 0 ? 0 : -10,
-                        position: 'relative', zIndex: shown.length - i,
-                        fontSize: 10, fontWeight: 800, color: '#fff',
-                        letterSpacing: '0.02em',
-                        boxShadow: `0 2px 8px ${brand.color}55`,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {brand.abbr}
-                    </div>
-                  )
-                })}
-                {extra > 0 && (
-                  <div style={{
-                    width: 34, height: 34, borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '2.5px solid rgba(15,22,35,0.9)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    marginLeft: -10, fontSize: 9, fontWeight: 700,
-                    color: 'rgba(255,255,255,0.55)',
-                  }}>
-                    +{extra}
-                  </div>
-                )}
-                <span style={{
-                  marginLeft: 12, fontSize: 11, color: 'var(--text-faint, #6B7280)',
-                }}>
-                  {subs.length} service{subs.length !== 1 ? 's' : ''} detected
-                </span>
-              </div>
-            </div>
-          </>
-        )
-      })()}
 
       {/* Tagline */}
       <p style={{
