@@ -366,23 +366,33 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
       {personality && <PersonalityCard data={personality} />}
 
       {/* ── Section header ─────────────────────────────────────────────────── */}
+      <style>{`
+        @keyframes bl-bulb-pulse {
+          0%, 100% { box-shadow: 0 0 6px 1px rgba(129,140,248,0.35), 0 0 14px 3px rgba(129,140,248,0.15); }
+          50%       { box-shadow: 0 0 10px 3px rgba(129,140,248,0.55), 0 0 24px 6px rgba(129,140,248,0.22); }
+        }
+        .bl-bulb-glow { animation: bl-bulb-pulse 2.8s ease-in-out infinite; }
+      `}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: 'rgba(129,140,248,0.12)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
+        <div
+          className="bl-bulb-glow"
+          style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'rgba(129,140,248,0.14)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
           <Lightbulb size={14} style={{ color: '#818CF8' }} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary, #e5e7eb)', letterSpacing: '0.01em' }}>
-            Financial Insights
+            Financial Autopsy
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-faint, #6B7280)', marginTop: 1 }}>
             {insightCards.length === 0
-              ? 'Personalized analysis of your spending patterns'
-              : `${insightCards.length} insight${insightCards.length !== 1 ? 's' : ''} for this month`
+              ? 'Deep-dive analysis of your spending patterns'
+              : `${insightCards.length} finding${insightCards.length !== 1 ? 's' : ''} this month`
             }
           </div>
         </div>
