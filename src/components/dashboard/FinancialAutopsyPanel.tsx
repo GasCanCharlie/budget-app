@@ -85,19 +85,31 @@ function getPersonalityIcon(id: string): LucideIcon {
   return (PERSONALITY_ICON_MAP as Record<string, LucideIcon>)[id] ?? BarChart3
 }
 
-// ─── shareParams ──────────────────────────────────────────────────────────────
+// ─── sharePersonality ─────────────────────────────────────────────────────────
 
-function shareParams(result: PersonalityResult, signals?: { income: number; spending: number; net: number; topCatName?: string }): string {
-  const params = new URLSearchParams({
-    type:   result.core.name,
-    vibe:   result.core.vibe,
-    income: String(signals?.income ?? 0),
-    spend:  String(signals?.spending ?? 0),
-    net:    String(signals?.net ?? 0),
-  })
-  if (result.trait) params.set('trait', result.trait.name)
-  if (signals?.topCatName) params.set('topCat', signals.topCatName)
-  return params.toString()
+async function sharePersonality(result: PersonalityResult, signals?: { income: number; spending: number; net: number; topCatName?: string }) {
+  const name  = result.core.name
+  const vibe  = result.core.vibe
+  const trait = result.trait ? ` · ${result.trait.name}` : ''
+  const text  = `My BudgetLens Money Personality: ${name}${trait}\n"${vibe}"\n\nDiscover yours at budgetlens.app`
+
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      await navigator.share({ title: `Money Personality: ${name}`, text })
+      return
+    } catch {
+      // User cancelled or share failed — fall through to clipboard
+    }
+  }
+
+  // Clipboard fallback
+  try {
+    await navigator.clipboard.writeText(text)
+    alert('Copied to clipboard!')
+  } catch {
+    // Last resort: prompt
+    prompt('Copy your personality card:', text)
+  }
 }
 
 // ─── PersonalityCard ──────────────────────────────────────────────────────────
@@ -184,7 +196,7 @@ export function PersonalityCard({ result, signals }: { result: PersonalityResult
             &ldquo;{core.vibe}&rdquo;
           </p>
           <button
-            onClick={() => window.open(`/api/share/personality?${shareParams(result, signals)}`, '_blank')}
+            onClick={() => void sharePersonality(result, signals)}
             aria-label="Share your money personality card"
             style={{
               flexShrink: 0,
@@ -244,7 +256,7 @@ export function PersonalityCard({ result, signals }: { result: PersonalityResult
           {labelText}
         </span>
         <button
-          onClick={() => window.open(`/api/share/personality?${shareParams(result)}`, '_blank')}
+          onClick={() => void sharePersonality(result, signals)}
           aria-label="Share your money personality card"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
