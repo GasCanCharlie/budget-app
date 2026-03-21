@@ -160,17 +160,26 @@ export function MonthlyStorylineCard({ cards, loading }: Props) {
         </div>
       </div>
 
-      {/* ── Narrative body ──────────────────────────────────────────────────── */}
-      <p style={{
-        fontSize: 15,
-        lineHeight: 1.75,
-        color: 'var(--text2)',
-        margin: '0 0 20px 0',
-        fontWeight: 400,
-        maxWidth: 760,
-      }}>
-        {body}
-      </p>
+      {/* ── Narrative body — split into bullet points ──────────────────────── */}
+      {(() => {
+        const bullets = (body.match(/[^.!?]+[.!?]+(?:\s|$)/g) ?? [body])
+          .map(s => s.trim()).filter(Boolean)
+        return (
+          <ul style={{ margin: '0 0 20px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {bullets.map((b, i) => (
+              <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 7,
+                  background: 'rgba(129,140,248,0.55)',
+                }} />
+                <span style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--text2)', fontWeight: 400 }}>
+                  {b}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )
+      })()}
 
       {/* ── Key numbers chips ───────────────────────────────────────────────── */}
       {keyNums.length > 0 && (

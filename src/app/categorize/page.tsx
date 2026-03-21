@@ -570,28 +570,21 @@ function ConfirmModal({
             onClick={onCancel}
             disabled={isPending}
             className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-[#8b97c3] hover:bg-white/[.06] disabled:opacity-50"
-          style={{ borderColor: 'rgba(255,255,255,.12)' }}
+            style={{ borderColor: 'rgba(255,255,255,.12)' }}
           >
             Cancel
           </button>
           <button
-            onClick={onApplyOne}
+            onClick={onApplyAll}
             disabled={isPending}
-            className="rounded-lg border border-accent-200 bg-accent-50 px-4 py-2 text-sm font-medium text-accent-700 hover:bg-accent-100 disabled:opacity-50"
+            className="btn-primary"
           >
-            {isPending ? <Loader2 size={14} className="inline animate-spin" /> : 'Just this one'}
+            {isPending
+              ? <Loader2 size={14} className="inline animate-spin" />
+              : state.similarCount > 1
+                ? `Apply to all ${state.similarCount}`
+                : 'Apply'}
           </button>
-          {state.similarCount > 1 && (
-            <button
-              onClick={onApplyAll}
-              disabled={isPending}
-              className="btn-primary"
-            >
-              {isPending
-                ? <Loader2 size={14} className="inline animate-spin" />
-                : `Apply to all ${state.similarCount}`}
-            </button>
-          )}
         </div>
       </div>
     </div>
