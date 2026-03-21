@@ -469,15 +469,6 @@ export default function InsightsPage() {
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="space-y-6 pb-24">
 
-        {/* ── Financial Autopsy — top of page, most prominent ─────────── */}
-        <FinancialAutopsyPanel
-          cards={insightsData?.cards ?? []}
-          year={year}
-          month={month}
-          isAutoGenerating={isAutoGenerating}
-          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
-        />
-
         {/* ── Q&A section ─────────────────────────────────────────────── */}
         <div>
           {/* Section header */}
@@ -624,6 +615,15 @@ export default function InsightsPage() {
 
         {/* ── AI Insights panel ───────────────────────────────────────── */}
         <AiInsightsPanel year={year} month={month} />
+
+        {/* ── Financial Autopsy — bottom ───────────────────────────────── */}
+        <FinancialAutopsyPanel
+          cards={insightsData?.cards ?? []}
+          year={year}
+          month={month}
+          isAutoGenerating={isAutoGenerating}
+          onGenerated={() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] })}
+        />
 
       </div>
 
