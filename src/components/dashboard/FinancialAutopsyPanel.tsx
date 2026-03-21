@@ -39,11 +39,12 @@ import type { InsightCard } from '@/lib/insights/types'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  cards:        InsightCard[]
-  year:         number
-  month:        number
-  onGenerated?: () => void
-  personality?: PersonalityResult
+  cards:            InsightCard[]
+  year:             number
+  month:            number
+  onGenerated?:     () => void
+  isAutoGenerating?: boolean   // parent is auto-triggering — show spinner state
+  personality?:     PersonalityResult
   personalitySignals?: { income: number; spending: number; net: number; topCatName?: string }
 }
 
@@ -518,13 +519,15 @@ function InsightCard({ card, prominent }: { card: InsightCard; prominent?: boole
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
-export function FinancialAutopsyPanel({ cards, year, month, onGenerated, personality, personalitySignals }: Props) {
+export function FinancialAutopsyPanel({ cards, year, month, onGenerated, isAutoGenerating, personality, personalitySignals }: Props) {
   const [generating, setGenerating] = useState(false)
   const [genError,   setGenError]   = useState<string | null>(null)
 
   const insightCards = cards
     .filter(c => c.card_type.startsWith('autopsy_'))
     .sort((a, b) => a.priority - b.priority)
+
+  const isLoading = generating || (isAutoGenerating && insightCards.length === 0)
 
   async function handleGenerate() {
     setGenerating(true)
@@ -576,40 +579,44 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
           <CaduceusIcon size={24} color="#818CF8" />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary, #e5e7eb)', letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary, #e5e7eb)', letterSpacing: '-0.02em' }}>
             Financial Autopsy
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-faint, #6B7280)', marginTop: 2 }}>
-            {insightCards.length === 0
-              ? 'Deep-dive analysis of your spending patterns'
-              : `${insightCards.length} finding${insightCards.length !== 1 ? 's' : ''} this month`
+          <div style={{ fontSize: 12, color: 'var(--text-faint, #6B7280)', marginTop: 3 }}>
+            {isLoading
+              ? 'Analyzing your spending…'
+              : insightCards.length === 0
+                ? 'A direct breakdown of what actually happened to your money'
+                : `${insightCards.length} finding${insightCards.length !== 1 ? 's' : ''} this month`
             }
           </div>
         </div>
 
-        {/* Analyze button */}
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 12, fontWeight: 700,
-            padding: '8px 16px', borderRadius: 10,
-            border: '1px solid rgba(129,140,248,0.35)',
-            background: generating ? 'rgba(129,140,248,0.05)' : 'rgba(129,140,248,0.14)',
-            color: generating ? '#6B7280' : '#a5b4fc',
-            cursor: generating ? 'not-allowed' : 'pointer',
-            transition: 'opacity 0.15s',
-            flexShrink: 0,
-          }}
-          onMouseEnter={e => { if (!generating) e.currentTarget.style.opacity = '0.75' }}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          {generating
-            ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Analyzing…</>
-            : insightCards.length > 0 ? 'Re-analyze' : 'Analyze'
-          }
-        </button>
+        {/* Re-analyze button — only shown when cards already exist */}
+        {insightCards.length > 0 && (
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 12, fontWeight: 700,
+              padding: '8px 16px', borderRadius: 10,
+              border: '1px solid rgba(129,140,248,0.35)',
+              background: generating ? 'rgba(129,140,248,0.05)' : 'rgba(129,140,248,0.14)',
+              color: generating ? '#6B7280' : '#a5b4fc',
+              cursor: generating ? 'not-allowed' : 'pointer',
+              transition: 'opacity 0.15s',
+              flexShrink: 0,
+            }}
+            onMouseEnter={e => { if (!generating) e.currentTarget.style.opacity = '0.75' }}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            {generating
+              ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Analyzing…</>
+              : 'Re-analyze'
+            }
+          </button>
+        )}
       </div>
 
       {/* Error */}
@@ -624,8 +631,23 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
         </div>
       )}
 
-      {/* Empty state */}
-      {insightCards.length === 0 && !generating && (
+      {/* Loading state — auto-generating */}
+      {isLoading && (
+        <div style={{
+          background: 'var(--card2, #111827)',
+          border: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
+          borderRadius: 12, padding: '24px 16px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+        }}>
+          <Loader2 size={20} style={{ color: '#818CF8', animation: 'spin 1s linear infinite' }} />
+          <div style={{ fontSize: 13, color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.6, textAlign: 'center' }}>
+            Analyzing your spending patterns…
+          </div>
+        </div>
+      )}
+
+      {/* Empty state — no cards, not loading */}
+      {insightCards.length === 0 && !isLoading && (
         <div style={{
           background: 'var(--card2, #111827)',
           border: '1px solid var(--border-soft, rgba(255,255,255,0.06))',
@@ -633,7 +655,7 @@ export function FinancialAutopsyPanel({ cards, year, month, onGenerated, persona
           textAlign: 'center',
         }}>
           <div style={{ fontSize: 12, color: 'var(--text-faint, #6B7280)', lineHeight: 1.6 }}>
-            Click <strong style={{ color: 'var(--text-secondary, #9ca3af)' }}>Analyze</strong> to generate personalized insights for this month.
+            No analysis available for this period.
           </div>
         </div>
       )}
