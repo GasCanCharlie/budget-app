@@ -10,17 +10,27 @@ const NAME_MAP: Array<[string, MasterKey]> = [
   ['espresso', 'COFFEE'],
   ['tea', 'COFFEE'],
 
+  // GROCERY (before FOOD so grocery doesn't fall into generic food)
+  ['groceries', 'GROCERY'],
+  ['grocery', 'GROCERY'],
+  ['supermarket', 'GROCERY'],
+
+  // FAST_FOOD (before FOOD)
+  ['fast food', 'FAST_FOOD'],
+
+  // ALCOHOL (before FOOD so bars/drinks don't fall into food)
+  ['alcohol', 'ALCOHOL'],
+  ['nightlife', 'ALCOHOL'],
+  ['brewery', 'ALCOHOL'],
+  ['winery', 'ALCOHOL'],
+  ['liquor', 'ALCOHOL'],
+
   // FOOD
   ['food', 'FOOD'],
   ['dining', 'FOOD'],
   ['restaurant', 'FOOD'],
-  ['groceries', 'FOOD'],
-  ['grocery', 'FOOD'],
-  ['fast food', 'FOOD'],
   ['meal', 'FOOD'],
-  ['alcohol', 'FOOD'],
-  ['bar', 'FOOD'],
-  ['nightlife', 'FOOD'],
+  ['bar', 'FOOD'],        // keeping bar under FOOD for ambiguous cases
   ['drinks', 'FOOD'],
 
   // TRANSPORT
@@ -147,10 +157,14 @@ const NAME_MAP: Array<[string, MasterKey]> = [
   ['investment', 'FINANCIAL'],
   ['savings', 'FINANCIAL'],
 
+  // PETS (before LIFESTYLE)
+  ['pet', 'PETS'],
+
+  // TOBACCO (before LIFESTYLE)
+  ['tobacco', 'TOBACCO'],
+  ['cigarette', 'TOBACCO'],
+
   // LIFESTYLE
-  ['pet', 'LIFESTYLE'],
-  ['tobacco', 'LIFESTYLE'],
-  ['cigarette', 'LIFESTYLE'],
   ['gambling', 'LIFESTYLE'],
   ['lottery', 'LIFESTYLE'],
 ]

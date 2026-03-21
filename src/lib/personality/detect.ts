@@ -117,41 +117,41 @@ function detectCore(s: PersonalitySignals): CorePersonalityId {
 
 // ─── Trait detection ──────────────────────────────────────────────────────────
 
-// Maps master key → trait ID (v1: one mapping per master, no ambiguity)
-const MASTER_TO_TRAIT: Partial<Record<MasterKey, TraitId>> = {
-  FOOD:         'fork_and_knife',
-  COFFEE:       'morning_stack',
-  ENTERTAINMENT:'friday_flush',
-  HEALTH:       'health_nut',
-  TRANSPORT:    'gear_head',
-  HOME:         'home_economist',
-  TRAVEL:       'frequent_flyer',
-  DIGITAL:      'digital_native',
-  PERSONAL_CARE:'glow_up',
-  EDUCATION:    'personal_cfo',
+// Maps discretionary master key → trait ID
+// HOME and FINANCIAL are intentionally excluded — fixed obligations, not personality signals
+const DISCRETIONARY_TRAIT_MAP: Partial<Record<MasterKey, TraitId>> = {
+  FOOD:         'margin_eater',
+  GROCERY:      'cash_casserole',
+  FAST_FOOD:    'drive_thru_cfo',
+  ALCOHOL:      'liquid_assets',
+  COFFEE:       'daily_grind',
+  ENTERTAINMENT:'never_home',
+  SHOPPING:     'delivery_regular',
+  HEALTH:       'wellness_bill',
+  DIGITAL:      'free_trial_life',
+  PERSONAL_CARE:'glowing_broke',
+  EDUCATION:    'degree_debt',
+  TRAVEL:       'mail_goes_home',
+  PETS:         'corner_office',
+  TOBACCO:      'budget_smoke',
+  SOCIAL:       'heaven_sent',
+  TRANSPORT:    'currency_combustion',
   BUSINESS:     'grind_setter',
-  SOCIAL:       'social_butterfly',
-  SHOPPING:     'glow_up',   // maps to glow_up in v1
-  FINANCIAL:    'card_carrier',
+  LIFESTYLE:    'corner_office',  // fallback for any uncategorized lifestyle
 }
 
 function detectTrait(s: PersonalitySignals): { trait: TraitId | null; soft: TraitId | null } {
-  const master = s.topCatMaster
+  const master = s.topDiscretionaryCatMaster
 
-  // No master = noisy/generic category, skip trait
+  // No discretionary master = nothing meaningful to say
   if (!master) return { trait: null, soft: null }
 
-  // No mapping for FINANCIAL, LIFESTYLE, SYSTEM — skip trait
-  const traitId = MASTER_TO_TRAIT[master]
+  const traitId = DISCRETIONARY_TRAIT_MAP[master]
   if (!traitId) return { trait: null, soft: null }
 
-  const strongTrait = s.topCatPct >= 30 && s.catSpread >= 10
-  const softTrait   = s.topCatPct >= 25 && s.topCatPct < 30
-
-  if (strongTrait) return { trait: traitId, soft: null }
-  if (softTrait)   return { trait: null, soft: traitId }
-
-  return { trait: null, soft: null }
+  // Always assign the discretionary trait — no minimum threshold
+  // (even a small spend on a category is a personality signal)
+  return { trait: traitId, soft: null }
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────

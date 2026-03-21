@@ -36,6 +36,7 @@ export type PremiumPersonalityId =
   | 'compounding_machine'  // future — stubbed
 
 export type TraitId =
+  // Legacy traits (kept for compatibility)
   | 'fork_and_knife'
   | 'friday_flush'
   | 'health_nut'
@@ -51,6 +52,23 @@ export type TraitId =
   | 'personal_cfo'
   | 'social_butterfly'
   | 'card_carrier'
+  // Discretionary spending traits
+  | 'margin_eater'       // FOOD
+  | 'cash_casserole'     // GROCERY
+  | 'drive_thru_cfo'     // FAST_FOOD
+  | 'liquid_assets'      // ALCOHOL
+  | 'daily_grind'        // COFFEE
+  | 'never_home'         // ENTERTAINMENT
+  | 'delivery_regular'   // SHOPPING
+  | 'wellness_bill'      // HEALTH
+  | 'free_trial_life'    // DIGITAL
+  | 'glowing_broke'      // PERSONAL_CARE
+  | 'degree_debt'        // EDUCATION
+  | 'mail_goes_home'     // TRAVEL
+  | 'corner_office'      // PETS
+  | 'budget_smoke'       // TOBACCO
+  | 'heaven_sent'        // SOCIAL
+  | 'currency_combustion'// TRANSPORT
 
 export interface PersonalitySignals {
   income:           number
@@ -58,12 +76,13 @@ export interface PersonalitySignals {
   net:              number
   spendRatio:       number
   savingsRate:      number
-  topCatName:       string
-  topCatMaster:     MasterKey | null
-  topCatPct:        number
-  secondCatName:    string
-  secondCatMaster:  MasterKey | null
-  secondCatPct:     number
+  topCatName:                string
+  topCatMaster:              MasterKey | null
+  topCatPct:                 number
+  secondCatName:             string
+  secondCatMaster:           MasterKey | null
+  secondCatPct:              number
+  topDiscretionaryCatMaster: MasterKey | null  // top non-HOME/FINANCIAL category
   catSpread:        number         // topCatPct - secondCatPct
   subCount:         number
   anomalyCount:     number

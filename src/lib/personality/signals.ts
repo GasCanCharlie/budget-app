@@ -27,24 +27,35 @@ export function computeSignals(input: RawSignalInput): PersonalitySignals {
   const secondCatName = second?.name ?? ''
   const secondCatPct  = second?.pctOfSpending ?? 0
 
+  // Top discretionary category — excludes fixed obligations
+  const EXCLUDED_FROM_SECONDARY = new Set(['HOME', 'FINANCIAL'])
+  const topDiscretionary = input.categories.find(c => {
+    const master = normalizeCategoryName(c.name)
+    return master !== null && !EXCLUDED_FROM_SECONDARY.has(master)
+  })
+  const topDiscretionaryCatMaster = topDiscretionary
+    ? normalizeCategoryName(topDiscretionary.name)
+    : null
+
   return {
-    income:           input.income,
-    spending:         input.spending,
-    net:              input.net,
+    income:                    input.income,
+    spending:                  input.spending,
+    net:                       input.net,
     spendRatio,
     savingsRate,
     topCatName,
-    topCatMaster:     normalizeCategoryName(topCatName),
+    topCatMaster:              normalizeCategoryName(topCatName),
     topCatPct,
     secondCatName,
-    secondCatMaster:  normalizeCategoryName(secondCatName),
+    secondCatMaster:           normalizeCategoryName(secondCatName),
     secondCatPct,
-    catSpread:        topCatPct - secondCatPct,
-    subCount:         input.subCount,
-    anomalyCount:     input.anomalyCount,
-    statementType:    input.statementType,
-    interestDetected: input.interestDetected  ?? false,
-    balanceCarried:   input.balanceCarried    ?? false,
-    utilizationRate:  input.utilizationRate   ?? 0,
+    catSpread:                 topCatPct - secondCatPct,
+    topDiscretionaryCatMaster,
+    subCount:                  input.subCount,
+    anomalyCount:              input.anomalyCount,
+    statementType:             input.statementType,
+    interestDetected:          input.interestDetected  ?? false,
+    balanceCarried:            input.balanceCarried    ?? false,
+    utilizationRate:           input.utilizationRate   ?? 0,
   }
 }
