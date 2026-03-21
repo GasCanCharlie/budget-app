@@ -332,6 +332,14 @@ export const PERSONALITY_REGISTRY: Record<AnyPersonalityId, PersonalityMeta> = {
     accent: '#EF4444', accentBg: 'rgba(239,68,68,0.08)',
     isCaution: false, isPremium: false, isDisabled: false,
   },
+  card_carrier: {
+    id: 'card_carrier',
+    name: 'Card Carrier',
+    tagline: 'Most of your real spending flows through credit cards. Your bank statement is mostly payoffs.',
+    vibe: 'The card does the work. You do the living.',
+    accent: '#6366F1', accentBg: 'rgba(99,102,241,0.08)',
+    isCaution: false, isPremium: false, isDisabled: false,
+  },
 }
 
 export function getPersonalityMeta(id: AnyPersonalityId): PersonalityMeta {

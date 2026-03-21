@@ -50,6 +50,7 @@ export type TraitId =
   | 'digital_native'
   | 'personal_cfo'
   | 'social_butterfly'
+  | 'card_carrier'
 
 export interface PersonalitySignals {
   income:           number

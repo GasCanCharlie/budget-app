@@ -132,6 +132,7 @@ const MASTER_TO_TRAIT: Partial<Record<MasterKey, TraitId>> = {
   BUSINESS:     'grind_setter',
   SOCIAL:       'social_butterfly',
   SHOPPING:     'glow_up',   // maps to glow_up in v1
+  FINANCIAL:    'card_carrier',
 }
 
 function detectTrait(s: PersonalitySignals): { trait: TraitId | null; soft: TraitId | null } {
