@@ -6,7 +6,7 @@ import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { FileText, Upload, Trash2, Loader2, AlertCircle, ChevronRight, Tags, ArrowRight, CheckCircle } from 'lucide-react'
+import { FileText, Upload, Trash2, Loader2, AlertCircle, ChevronRight, Tags, ArrowRight, CheckCircle, Info, ShieldCheck, ShieldOff, ChevronDown } from 'lucide-react'
 import { ReconciliationShield } from '@/components/ReconciliationShield'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
@@ -152,6 +152,9 @@ export default function StatementsPage() {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Statements</h1>
           <p style={{ margin: '4px 0 0', ...S.muted(14) }}>Upload bank statements to analyze your spending.</p>
         </div>
+
+        {/* Format guide */}
+        <FormatGuide />
 
         {/* Upload card */}
         <div style={S.card}>
@@ -379,6 +382,75 @@ export default function StatementsPage() {
 
       </div>
     </AppShell>
+  )
+}
+
+// ─── Format guide ──────────────────────────────────────────────────────────────
+
+const FORMAT_ROWS = [
+  {
+    format: 'OFX / QFX / QBO',
+    desc: 'Open Financial Exchange — exported from most banks and credit unions under "Download transactions".',
+    verification: 'Auto-verified',
+    verified: true,
+    tip: 'Recommended. Includes a closing balance that confirms every transaction was captured.',
+  },
+  {
+    format: 'CSV with balance column',
+    desc: 'A CSV export that includes a running balance or balance column alongside each transaction.',
+    verification: 'Auto-verified',
+    verified: true,
+    tip: 'Check your bank\'s export settings — many let you include a "Balance" column.',
+  },
+  {
+    format: 'CSV (no balance column)',
+    desc: 'A plain CSV export with date, description, and amount only — no running balance included.',
+    verification: 'Cannot verify',
+    verified: false,
+    tip: 'All transactions import correctly, but there\'s no total to check completeness against.',
+  },
+]
+
+function FormatGuide() {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ borderRadius: 12, border: '1px solid var(--border)', background: 'var(--card)', overflow: 'hidden' }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+      >
+        <Info size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>File formats &amp; verification</span>
+        <ChevronDown size={14} style={{ color: 'var(--muted)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+      </button>
+
+      {open && (
+        <div style={{ borderTop: '1px solid var(--border)', padding: '4px 0 8px' }}>
+          {FORMAT_ROWS.map((row, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', borderBottom: i < FORMAT_ROWS.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              {/* Verification badge */}
+              <div style={{ flexShrink: 0, marginTop: 1 }}>
+                {row.verified
+                  ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#16a34a', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 99, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                      <ShieldCheck size={10} /> Auto-verified
+                    </span>
+                  : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: 'var(--muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 99, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                      <ShieldOff size={10} /> Cannot verify
+                    </span>
+                }
+              </div>
+
+              {/* Text */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 3 }}>{row.format}</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 4 }}>{row.desc}</div>
+                <div style={{ fontSize: 11, color: 'var(--accent)', lineHeight: 1.4 }}>💡 {row.tip}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
