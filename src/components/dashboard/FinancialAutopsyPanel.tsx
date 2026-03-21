@@ -136,6 +136,7 @@ export function PersonalityCard({ result, signals }: { result: PersonalityResult
 
   const illus = ILLUSTRATION_CARDS[core.id as string]
   if (illus) {
+    const illusBottomHeight = trait ? 160 : 100
     return (
       <div style={{
         position: 'relative',
@@ -151,17 +152,18 @@ export function PersonalityCard({ result, signals }: { result: PersonalityResult
           style={{ width: '100%', height: 'auto', display: 'block' }}
         />
 
-        {/* Thin top gradient for badge readability only */}
+        {/* Top gradient for badge + share button readability */}
         <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 64,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%)',
+          position: 'absolute', top: 0, left: 0, right: 0, height: 72,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.62) 0%, transparent 100%)',
           pointerEvents: 'none',
         }} />
 
-        {/* Bottom gradient for vibe + share button */}
+        {/* Bottom gradient — taller when trait is present */}
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: 90,
-          background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%)',
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          height: illusBottomHeight,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 55%, transparent 100%)',
           pointerEvents: 'none',
         }} />
 
@@ -180,40 +182,51 @@ export function PersonalityCard({ result, signals }: { result: PersonalityResult
           </span>
         </div>
 
-        {/* Bottom: vibe saying (left) + share button (right) */}
+        {/* Top-right: share button */}
+        <button
+          onClick={() => void sharePersonality(result, signals)}
+          aria-label="Share your money personality card"
+          style={{
+            position: 'absolute', top: 10, right: 14,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 12, fontWeight: 700, color: '#fff',
+            background: illus.btnColor,
+            backdropFilter: 'blur(10px)',
+            border: `1px solid ${illus.btnBorder}`,
+            borderRadius: 999, padding: '7px 16px',
+            cursor: 'pointer', transition: 'opacity 150ms ease',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
+          ↗ Share
+        </button>
+
+        {/* Bottom identity block */}
         <div style={{
-          position: 'absolute', bottom: 14, left: 16, right: 16,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          position: 'absolute', bottom: 16, left: 16, right: 16,
           pointerEvents: 'none',
         }}>
-          <p style={{
-            margin: 0,
-            fontSize: 11, fontStyle: 'italic', fontWeight: 500,
-            color: 'rgba(255,255,255,0.70)',
-            letterSpacing: '0.01em', lineHeight: 1.4,
-            pointerEvents: 'none',
-          }}>
-            &ldquo;{core.vibe}&rdquo;
+          <p style={{ margin: '0 0 1px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: illus.dotColor }}>
+            The
           </p>
-          <button
-            onClick={() => void sharePersonality(result, signals)}
-            aria-label="Share your money personality card"
-            style={{
-              flexShrink: 0,
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 12, fontWeight: 700, color: '#fff',
-              background: illus.btnColor,
-              backdropFilter: 'blur(10px)',
-              border: `1px solid ${illus.btnBorder}`,
-              borderRadius: 999, padding: '7px 16px',
-              cursor: 'pointer', transition: 'opacity 150ms ease',
-              pointerEvents: 'all',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-          >
-            ↗ Share your card
-          </button>
+          <p style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#fff' }}>
+            {name}
+          </p>
+          {trait ? (
+            <>
+              <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: trait.accent, lineHeight: 1.2 }}>
+                · {trait.name}
+              </p>
+              <p style={{ margin: '5px 0 0', fontSize: 11, fontStyle: 'italic', fontWeight: 500, color: 'rgba(255,255,255,0.68)', lineHeight: 1.4 }}>
+                &ldquo;{trait.tagline}&rdquo;
+              </p>
+            </>
+          ) : (
+            <p style={{ margin: '5px 0 0', fontSize: 11, fontStyle: 'italic', fontWeight: 500, color: 'rgba(255,255,255,0.68)', lineHeight: 1.4 }}>
+              &ldquo;{core.vibe}&rdquo;
+            </p>
+          )}
         </div>
       </div>
     )
@@ -299,27 +312,21 @@ export function PersonalityCard({ result, signals }: { result: PersonalityResult
           }}>
             {name}
           </p>
-          {/* Trait display */}
-          {trait && (
-            <p style={{
-              margin: '4px 0 0', fontSize: 13, fontWeight: 600,
-              color: trait.accent,
-              lineHeight: 1.2,
-            }}>
-              · {trait.name}
-            </p>
-          )}
-          {/* Soft trait display (no strong trait, faded) */}
-          {!trait && soft && (
-            <p style={{
-              margin: '4px 0 0', fontSize: 11, fontWeight: 500,
-              color: soft.accent,
-              opacity: 0.45,
-              lineHeight: 1.2,
-            }}>
+          {/* Trait display + hazing line */}
+          {trait ? (
+            <>
+              <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600, color: trait.accent, lineHeight: 1.2 }}>
+                · {trait.name}
+              </p>
+              <p style={{ margin: '3px 0 0', fontSize: 11, fontWeight: 500, color: trait.accent, opacity: 0.72, lineHeight: 1.45, fontStyle: 'italic' }}>
+                {trait.tagline}
+              </p>
+            </>
+          ) : soft ? (
+            <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 500, color: soft.accent, opacity: 0.45, lineHeight: 1.2 }}>
               · {soft.name}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
 
