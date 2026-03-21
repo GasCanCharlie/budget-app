@@ -1488,6 +1488,21 @@ export default function CategorizePage() {
     if (dashboardTimer.current) { clearTimeout(dashboardTimer.current); dashboardTimer.current = null }
     qc.invalidateQueries({ queryKey: ['summary'] })
     qc.invalidateQueries({ queryKey: ['trends'] })
+
+    // Fire autopsy generation in the background for the most recent transaction month
+    const token = useAuthStore.getState().token
+    if (token && allTxs.length > 0) {
+      const mostRecent = allTxs.reduce((best, tx) => tx.date > best ? tx.date : best, allTxs[0].date)
+      const d = new Date(mostRecent)
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      void fetch('/api/insights/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ year, month }),
+      }).catch(() => { /* silent — user will still land on insights page */ })
+    }
+
     startTransition(() => router.push('/dashboard'))
   }
 
