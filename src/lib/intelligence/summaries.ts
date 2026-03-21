@@ -12,6 +12,7 @@ export interface CategoryTotal {
   categoryName: string
   categoryColor: string
   categoryIcon: string
+  masterKey: string | null
   total: number
   transactionCount: number
   pctOfSpending: number
@@ -76,38 +77,40 @@ function modifiedZScore(value: number, values: number[]): number {
 
 // ─── Display category style lookup ───────────────────────────────────────────
 
-const CATEGORY_STYLES: Record<string, { color: string; icon: string; isIncome: boolean }> = {
-  'Food & Dining':   { color: '#f97316', icon: 'UtensilsCrossed', isIncome: false },
-  'Groceries':       { color: '#22c55e', icon: 'ShoppingCart',    isIncome: false },
-  'Housing':         { color: '#f59e0b', icon: 'Home',            isIncome: false },
-  'Transport':       { color: '#3b82f6', icon: 'Car',             isIncome: false },
-  'Entertainment':   { color: '#ec4899', icon: 'Film',            isIncome: false },
-  'Shopping':        { color: '#f59e0b', icon: 'ShoppingBag',     isIncome: false },
-  'Health':          { color: '#10b981', icon: 'HeartPulse',      isIncome: false },
-  'Utilities':       { color: '#6366f1', icon: 'Zap',             isIncome: false },
-  'Subscriptions':   { color: '#6366f1', icon: 'CreditCard',      isIncome: false },
-  'Personal Care':   { color: '#f472b6', icon: 'Scissors',        isIncome: false },
-  'Education':       { color: '#06b6d4', icon: 'BookOpen',        isIncome: false },
-  'Travel':          { color: '#06b6d4', icon: 'Plane',           isIncome: false },
-  'Insurance':       { color: '#64748b', icon: 'Shield',          isIncome: false },
-  'Fees & Charges':  { color: '#ef4444', icon: 'DollarSign',      isIncome: false },
-  'Gifts & Charity': { color: '#8794ff', icon: 'Gift',            isIncome: false },
-  'Income':          { color: '#16a34a', icon: 'TrendingUp',      isIncome: true  },
-  'Transfer':        { color: '#64748b', icon: 'ArrowLeftRight',  isIncome: false },
-  'Transfers':       { color: '#64748b', icon: 'ArrowLeftRight',  isIncome: false },
-  'Other':           { color: '#94a3b8', icon: 'Package',         isIncome: false },
-  'Uncategorized':   { color: '#94a3b8', icon: 'Package',         isIncome: false },
-  'Fast Food':       { color: '#f97316', icon: 'Utensils',        isIncome: false },
-  'Alcohol':         { color: '#8b5cf6', icon: 'Wine',            isIncome: false },
-  'Restaurants':     { color: '#f97316', icon: 'UtensilsCrossed', isIncome: false },
-  'Gas/Fuel':        { color: '#3b82f6', icon: 'Zap',             isIncome: false },
-  'Gasoline/Fuel':   { color: '#3b82f6', icon: 'Zap',             isIncome: false },
-  'Cigarettes & Tobacco': { color: '#78716c', icon: 'Ban',        isIncome: false },
-  'Pets':            { color: '#a3e635', icon: 'PawPrint',        isIncome: false },
+const CATEGORY_STYLES: Record<string, { color: string; icon: string; isIncome: boolean; masterKey: string | null }> = {
+  'Food & Dining':        { color: '#f97316', icon: 'UtensilsCrossed', isIncome: false, masterKey: 'FOOD'          },
+  'Groceries':            { color: '#22c55e', icon: 'ShoppingCart',    isIncome: false, masterKey: 'GROCERY'       },
+  'Housing':              { color: '#f59e0b', icon: 'Home',            isIncome: false, masterKey: 'HOME'          },
+  'Transport':            { color: '#3b82f6', icon: 'Car',             isIncome: false, masterKey: 'TRANSPORT'     },
+  'Entertainment':        { color: '#ec4899', icon: 'Film',            isIncome: false, masterKey: 'ENTERTAINMENT' },
+  'Shopping':             { color: '#f59e0b', icon: 'ShoppingBag',     isIncome: false, masterKey: 'SHOPPING'      },
+  'Health':               { color: '#10b981', icon: 'HeartPulse',      isIncome: false, masterKey: 'HEALTH'        },
+  'Utilities':            { color: '#6366f1', icon: 'Zap',             isIncome: false, masterKey: 'HOME'          },
+  'Subscriptions':        { color: '#6366f1', icon: 'CreditCard',      isIncome: false, masterKey: 'DIGITAL'       },
+  'Personal Care':        { color: '#f472b6', icon: 'Scissors',        isIncome: false, masterKey: 'PERSONAL_CARE' },
+  'Education':            { color: '#06b6d4', icon: 'BookOpen',        isIncome: false, masterKey: 'EDUCATION'     },
+  'Travel':               { color: '#06b6d4', icon: 'Plane',           isIncome: false, masterKey: 'TRAVEL'        },
+  'Insurance':            { color: '#64748b', icon: 'Shield',          isIncome: false, masterKey: 'FINANCIAL'     },
+  'Fees & Charges':       { color: '#ef4444', icon: 'DollarSign',      isIncome: false, masterKey: 'FINANCIAL'     },
+  'Gifts & Charity':      { color: '#8794ff', icon: 'Gift',            isIncome: false, masterKey: 'SOCIAL'        },
+  'Income':               { color: '#16a34a', icon: 'TrendingUp',      isIncome: true,  masterKey: null            },
+  'Transfer':             { color: '#64748b', icon: 'ArrowLeftRight',  isIncome: false, masterKey: null            },
+  'Transfers':            { color: '#64748b', icon: 'ArrowLeftRight',  isIncome: false, masterKey: null            },
+  'Other':                { color: '#94a3b8', icon: 'Package',         isIncome: false, masterKey: null            },
+  'Uncategorized':        { color: '#94a3b8', icon: 'Package',         isIncome: false, masterKey: null            },
+  'Fast Food':            { color: '#f97316', icon: 'Utensils',        isIncome: false, masterKey: 'FAST_FOOD'     },
+  'Alcohol':              { color: '#8b5cf6', icon: 'Wine',            isIncome: false, masterKey: 'ALCOHOL'       },
+  'Coffee':               { color: '#d97706', icon: 'Coffee',          isIncome: false, masterKey: 'COFFEE'        },
+  'Restaurants':          { color: '#f97316', icon: 'UtensilsCrossed', isIncome: false, masterKey: 'FOOD'          },
+  'Gas/Fuel':             { color: '#3b82f6', icon: 'Zap',             isIncome: false, masterKey: 'TRANSPORT'     },
+  'Gasoline/Fuel':        { color: '#3b82f6', icon: 'Zap',             isIncome: false, masterKey: 'TRANSPORT'     },
+  'Cigarettes & Tobacco': { color: '#78716c', icon: 'Ban',             isIncome: false, masterKey: 'TOBACCO'       },
+  'Pets':                 { color: '#a3e635', icon: 'PawPrint',        isIncome: false, masterKey: 'PETS'          },
+  'Credit Card Payment':  { color: '#6366f1', icon: 'CreditCard',      isIncome: false, masterKey: 'FINANCIAL'     },
 }
 
 function getDisplayCategoryStyle(name: string) {
-  const style = CATEGORY_STYLES[name] ?? { color: '#94a3b8', icon: '📦', isIncome: false }
+  const style = CATEGORY_STYLES[name] ?? { color: '#94a3b8', icon: '📦', isIncome: false, masterKey: null }
   return { id: name, name, ...style }
 }
 
@@ -218,15 +221,29 @@ export async function computeMonthSummary(
   // A category is income only if ALL its transactions are positive (e.g. Paycheck, Salary).
   // A category with ANY negative transactions is an expense category — even if it also
   // has some refunds. This prevents a single credit from hiding a spending category.
+  // Fetch user's categories to resolve masterKey for custom categories
+  const userCategories = await prisma.category.findMany({
+    where: { OR: [{ isSystem: true, userId: null }, { userId }] },
+    select: { name: true, masterKey: true },
+  })
+  const masterKeyByName = new Map<string, string | null>(
+    userCategories.map(c => [c.name, c.masterKey ?? null])
+  )
+
   const categoryTotals: CategoryTotal[] = Array.from(categoryMap.entries())
-    .map(([, { spendingTotal, incomeTotal, count, cat }]) => {
+    .map(([catName, { spendingTotal, incomeTotal, count, cat }]) => {
       const isIncome = spendingTotal === 0 && incomeTotal > 0
       const total    = isIncome ? incomeTotal : spendingTotal
+      // masterKey: DB lookup first (exact name), then CATEGORY_STYLES fallback
+      const masterKey = masterKeyByName.has(catName)
+        ? masterKeyByName.get(catName)!
+        : cat.masterKey
       return {
         categoryId:       cat.id,
         categoryName:     cat.name,
         categoryColor:    cat.color,
         categoryIcon:     cat.icon,
+        masterKey,
         total,
         transactionCount: count,
         pctOfSpending:    totalSpending > 0 && !isIncome ? (total / totalSpending) * 100 : 0,
