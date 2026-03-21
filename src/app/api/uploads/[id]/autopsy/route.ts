@@ -13,12 +13,12 @@ import { triggerAutopsyIfReady } from '@/lib/insights/autopsy-trigger'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { uploadId: string } },
+  { params }: { params: { id: string } },
 ) {
   const payload = getUserFromRequest(req)
   if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { uploadId } = params
+  const uploadId = params.id
 
   // Verify ownership and get autopsy state
   const upload = await prisma.upload.findFirst({
