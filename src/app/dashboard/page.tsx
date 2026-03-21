@@ -147,6 +147,26 @@ export default function DashboardPage() {
     staleTime: 5 * 60_000,
   })
 
+  // Auto-generate insights when dashboard loads and no cards exist yet
+  const dashboardAutoGenRef = useRef('')
+  useEffect(() => {
+    if (!insightsData || !user) return
+    if (insightsData.cards.length > 0) return          // already have cards
+    const key = `${year}-${month}`
+    if (dashboardAutoGenRef.current === key) return     // already triggered
+    dashboardAutoGenRef.current = key
+    const authToken = useAuthStore.getState().token
+    if (!authToken) return
+    void fetch('/api/insights/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ year, month }),
+    })
+      .then(() => queryClient.invalidateQueries({ queryKey: ['insights', year, month] }))
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insightsData, year, month])
+
   const latestUpload = uploadsData?.uploads?.[0] as {
     id: string; filename: string; account: { name: string }
     rowCountAccepted: number; createdAt: string

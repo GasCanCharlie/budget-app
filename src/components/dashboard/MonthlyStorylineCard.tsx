@@ -74,7 +74,7 @@ function StorylineEmpty() {
           Your Month in Plain English
         </div>
         <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.5 }}>
-          Click <strong style={{ color: 'var(--text2)' }}>Run Autopsy</strong> below to generate your financial briefing.
+          Your financial briefing generates automatically once your transactions are categorized.
         </div>
       </div>
     </div>
