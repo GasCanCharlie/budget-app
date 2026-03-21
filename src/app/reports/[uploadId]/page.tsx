@@ -468,7 +468,7 @@ function AutopsyPanel({ autopsy, uploadId }: { autopsy: AutopsyState | null; upl
             Auto-generates after categorizing
           </p>
           <p style={{ margin: '0 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
-            Categorize {Math.round((0.8 - autopsy.progress) * 100)}% more transactions to unlock.
+            Categorize {Math.round((1 - autopsy.progress) * 100)}% more transactions to unlock.
           </p>
           <a
             href={`/categorize/${uploadId}`}
@@ -809,7 +809,7 @@ export default function ScanReportPage() {
               <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--muted)' }}>
                 {unlocked
                   ? 'Your categories are good to go. Head to the dashboard to see your insights.'
-                  : `${categorized} of ${categorizeTotal} transactions categorized — categorize to 80%+ to unlock insights`}
+                  : `${categorized} of ${categorizeTotal} transactions categorized — categorize 100% to unlock insights`}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -857,7 +857,7 @@ export default function ScanReportPage() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
             <span style={{ fontSize: 10, color: 'var(--subtle)' }}>{progressPct}% complete</span>
-            <span style={{ fontSize: 10, color: 'var(--subtle)' }}>80% required to unlock</span>
+            <span style={{ fontSize: 10, color: 'var(--subtle)' }}>100% required to unlock</span>
           </div>
         </div>
 

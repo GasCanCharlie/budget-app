@@ -58,7 +58,7 @@ export async function GET(
     prisma.transaction.count({ where: { uploadId, isExcluded: false, appCategory: { not: null } } }),
   ])
   const progress = total > 0 ? categorized / total : 0
-  const thresholdMet = progress >= 0.8
+  const thresholdMet = progress >= 1.0
 
   // If threshold is met and autopsy hasn't started, kick it off now (refresh heal)
   const currentStatus = upload.financialAutopsyStatus ?? 'pending'

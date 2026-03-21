@@ -1,8 +1,8 @@
 /**
  * Server-side autopsy trigger.
  *
- * Called after any categorization save. Checks if the upload has reached the
- * 80% threshold and, if so, fires computeInsights() in the background and
+ * Called after any categorization save. Checks if the upload has reached
+ * 100% categorization and, if so, fires computeInsights() in the background and
  * persists the result status on the Upload row.
  *
  * Safe to call frequently — uses an atomic DB update as a lock so only one
@@ -12,7 +12,7 @@
 import prisma from '@/lib/db'
 import { computeInsights } from './compute'
 
-const THRESHOLD = 0.8
+const THRESHOLD = 1.0
 
 export async function triggerAutopsyIfReady(userId: string, uploadId: string): Promise<void> {
   try {
