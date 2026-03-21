@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
@@ -62,6 +62,26 @@ interface UnlockStatus {
   categorized: number
   uncategorized: number
   unlocked: boolean
+}
+
+interface AutopsyCard {
+  id: string
+  card_type: string
+  priority: number
+  title: string
+  summary: string
+  supporting_data: Record<string, unknown>
+  confidence: 'high' | 'medium' | 'low'
+  icon_suggestion: string
+  numbers_used: { label: string; value: string; field: string }[]
+}
+
+interface AutopsyState {
+  status: 'pending' | 'generating' | 'ready' | 'failed'
+  progress: number
+  thresholdMet: boolean
+  cards: AutopsyCard[]
+  generatedAt: string | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -173,6 +193,301 @@ function LockedFeatureCard({ icon, title, description, teaser }: { icon: string;
   )
 }
 
+// ─── AutopsyPanel ─────────────────────────────────────────────────────────────
+
+const CONFIDENCE_COLOR: Record<string, string> = {
+  high:   '#34d399',
+  medium: '#fbbf24',
+  low:    '#94a3b8',
+}
+
+function AutopsyPanel({ autopsy, uploadId }: { autopsy: AutopsyState | null; uploadId: string }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  const toggle = (id: string) =>
+    setExpanded(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+
+  const headerBadge = (label: string, color: string, bg: string) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 4,
+      padding: '3px 8px', borderRadius: 999,
+      background: bg, border: `1px solid ${color}40`,
+      color, fontSize: 10, fontWeight: 700,
+      letterSpacing: '0.05em', textTransform: 'uppercase',
+    }}>
+      {label}
+    </div>
+  )
+
+  // ── Loading (null = not fetched yet) ──────────────────────────────────────
+  if (!autopsy) {
+    return (
+      <div style={{
+        background: 'var(--card)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', minHeight: 180,
+      }}>
+        <div style={{
+          width: 22, height: 22, borderRadius: '50%',
+          border: '2px solid var(--border)', borderTopColor: 'var(--accent)',
+          animation: 'spin 0.9s linear infinite',
+        }} />
+      </div>
+    )
+  }
+
+  // ── Generating (in-progress) ───────────────────────────────────────────────
+  if (autopsy.status === 'generating') {
+    return (
+      <div style={{
+        background: 'var(--card)', border: '1px solid rgba(99,102,241,0.3)',
+        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-soft)',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          padding: '12px 18px', borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'linear-gradient(180deg, rgba(99,102,241,0.06), transparent)',
+        }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            FINANCIAL AUTOPSY
+          </p>
+          {headerBadge('Generating…', '#818cf8', 'rgba(129,140,248,0.12)')}
+        </div>
+        <div style={{ padding: '28px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: '3px solid var(--border)', borderTopColor: '#818cf8',
+            animation: 'spin 0.9s linear infinite',
+          }} />
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>
+            Analyzing your spending patterns…
+          </p>
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--subtle)', textAlign: 'center' }}>
+            This takes a few seconds. The page will update automatically.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Ready with cards ───────────────────────────────────────────────────────
+  if (autopsy.status === 'ready' && autopsy.cards.length > 0) {
+    return (
+      <div style={{
+        background: 'var(--card)', border: '1px solid rgba(99,102,241,0.25)',
+        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-soft)',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          padding: '12px 18px', borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'linear-gradient(180deg, rgba(99,102,241,0.06), transparent)',
+        }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            FINANCIAL AUTOPSY
+          </p>
+          {headerBadge('Ready', '#34d399', 'rgba(34,197,94,0.10)')}
+        </div>
+        <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {autopsy.cards.map(card => (
+            <div key={card.id} style={{
+              borderRadius: 12, background: 'var(--card2)',
+              border: '1px solid var(--border)', overflow: 'hidden',
+            }}>
+              <button
+                onClick={() => toggle(card.id)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                  padding: '13px 16px', background: 'none', border: 'none',
+                  cursor: 'pointer', textAlign: 'left', gap: 12,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)', lineHeight: 1.4 }}>
+                    {card.title}
+                  </p>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                    {card.summary}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999,
+                    background: `${CONFIDENCE_COLOR[card.confidence]}18`,
+                    color: CONFIDENCE_COLOR[card.confidence],
+                    textTransform: 'uppercase', letterSpacing: '0.05em',
+                  }}>
+                    {card.confidence}
+                  </span>
+                  <span style={{ fontSize: 16, color: 'var(--muted)' }}>
+                    {expanded.has(card.id) ? '▲' : '▼'}
+                  </span>
+                </div>
+              </button>
+
+              {expanded.has(card.id) && card.numbers_used.length > 0 && (
+                <div style={{
+                  borderTop: '1px solid var(--border)',
+                  padding: '10px 16px 14px',
+                  display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8,
+                }}>
+                  {card.numbers_used.map((n, i) => (
+                    <div key={i} style={{
+                      padding: '8px 12px', borderRadius: 8,
+                      background: 'var(--card)', border: '1px solid var(--border)',
+                    }}>
+                      <p style={{ margin: 0, fontSize: 10, color: 'var(--subtle)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {n.label}
+                      </p>
+                      <p style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+                        {n.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Ready but nothing triggered (all below thresholds) ────────────────────
+  if (autopsy.status === 'ready' && autopsy.cards.length === 0) {
+    return (
+      <div style={{
+        background: 'var(--card)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-soft)', overflow: 'hidden',
+      }}>
+        <div style={{
+          padding: '12px 18px', borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.03), transparent)',
+        }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            FINANCIAL AUTOPSY
+          </p>
+          {headerBadge('Complete', '#34d399', 'rgba(34,197,94,0.10)')}
+        </div>
+        <div style={{ padding: '24px 20px', textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: 22 }}>✓</p>
+          <p style={{ margin: '8px 0 4px', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+            No significant patterns found
+          </p>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>
+            Your spending looks balanced — no anomalies, spikes, or concentration issues to flag.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Failed ─────────────────────────────────────────────────────────────────
+  if (autopsy.status === 'failed') {
+    return (
+      <div style={{
+        background: 'var(--card)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-soft)', overflow: 'hidden',
+      }}>
+        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)' }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>FINANCIAL AUTOPSY</p>
+        </div>
+        <div style={{ padding: '24px 20px', textAlign: 'center' }}>
+          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--danger)', fontWeight: 600 }}>Analysis failed</p>
+          <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--muted)' }}>
+            Something went wrong generating your autopsy. It will retry automatically next time.
+          </p>
+          <a href={`/categorize/${uploadId}`}
+            style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'underline' }}>
+            Continue categorizing →
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Pending / threshold not met ────────────────────────────────────────────
+  return (
+    <div style={{
+      background: 'var(--card)', border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-soft)',
+      overflow: 'hidden', position: 'relative',
+    }}>
+      <div style={{
+        padding: '12px 18px', borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.03), transparent)',
+      }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+          FINANCIAL AUTOPSY
+        </p>
+        {headerBadge('Auto-generates after categorize', 'var(--accent)', 'var(--accent-muted)')}
+      </div>
+
+      {/* blurred preview rows */}
+      <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[
+          { label: 'Biggest category', value: 'Housing · 42%', color: '#818cf8' },
+          { label: 'Hidden subscriptions', value: '$67/mo found', color: '#fb923c' },
+          { label: 'Daily coffee spend', value: '$4.20/day avg', color: '#fbbf24' },
+          { label: 'Savings rate', value: '23% of income', color: '#34d399' },
+        ].map((row, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 14px', borderRadius: 10,
+            background: 'var(--card2)', border: '1px solid var(--border)',
+            filter: 'blur(3.5px)', userSelect: 'none', pointerEvents: 'none',
+          }}>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>{row.label}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: row.color }}>{row.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.08)',
+      }}>
+        <div style={{
+          background: 'rgba(15,15,25,0.88)',
+          border: '1px solid rgba(99,102,241,0.35)',
+          borderRadius: 16, padding: '20px 28px', textAlign: 'center',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(12px)', maxWidth: 260,
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🔬</div>
+          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#fff' }}>
+            Auto-generates after categorizing
+          </p>
+          <p style={{ margin: '0 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+            Categorize {Math.round((0.8 - autopsy.progress) * 100)}% more transactions to unlock.
+          </p>
+          <a
+            href={`/categorize/${uploadId}`}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '9px 18px', borderRadius: 999,
+              background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+              color: '#fff', fontSize: 13, fontWeight: 700,
+              textDecoration: 'none', boxShadow: '0 4px 16px rgba(99,102,241,0.5)',
+            }}
+          >
+            Start categorizing →
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ScanReportPage() {
@@ -188,7 +503,9 @@ export default function ScanReportPage() {
   const [errorStatus, setErrorStatus] = useState<number | null>(null)
   const [showAllMerchants, setShowAllMerchants] = useState(false)
   const [unlockStatus, setUnlockStatus] = useState<UnlockStatus | null>(null)
+  const [autopsy, setAutopsy] = useState<AutopsyState | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
+  const autopsyPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setAuthChecked(true), 50)
@@ -237,6 +554,36 @@ export default function ScanReportPage() {
       .then((data: UnlockStatus | null) => { if (data) setUnlockStatus(data) })
       .catch(() => {})
   }, [token])
+
+  // Fetch autopsy state for this upload
+  const fetchAutopsy = (tok: string, uid: string) =>
+    fetch(`/api/uploads/${uid}/autopsy`, { headers: { Authorization: `Bearer ${tok}` } })
+      .then(r => r.ok ? r.json() as Promise<AutopsyState> : null)
+      .then(data => { if (data) setAutopsy(data); return data })
+      .catch(() => null)
+
+  useEffect(() => {
+    if (!token || !uploadId) return
+    void fetchAutopsy(token, uploadId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, uploadId])
+
+  // Poll while generating
+  useEffect(() => {
+    if (!token || !uploadId) return
+    if (autopsy?.status === 'generating') {
+      autopsyPollRef.current = setInterval(async () => {
+        const data = await fetchAutopsy(token, uploadId)
+        if (data && data.status !== 'generating') {
+          if (autopsyPollRef.current) clearInterval(autopsyPollRef.current)
+        }
+      }, 3000)
+    } else {
+      if (autopsyPollRef.current) clearInterval(autopsyPollRef.current)
+    }
+    return () => { if (autopsyPollRef.current) clearInterval(autopsyPollRef.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autopsy?.status, token, uploadId])
 
   if (!authChecked) return null
   if (!user) return null
@@ -612,91 +959,8 @@ export default function ScanReportPage() {
             </div>
           </div>
 
-          {/* Locked Financial Autopsy preview */}
-          <div style={{
-            background: 'var(--card)', border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-soft)',
-            overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column',
-          }}>
-            <div style={{
-              padding: '12px 18px', borderBottom: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.03), transparent)',
-            }}>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                Financial Autopsy
-              </p>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '3px 8px', borderRadius: 999,
-                background: 'var(--accent-muted)', border: '1px solid rgba(99,102,241,0.25)',
-                color: 'var(--accent)', fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.05em', textTransform: 'uppercase',
-              }}>
-                <LockIcon size={10} />
-                Auto-generates after categorize
-              </div>
-            </div>
-
-            {/* blurred preview cards */}
-            <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-              {[
-                { label: 'Biggest category', value: 'Housing · 42%', color: '#818cf8' },
-                { label: 'Hidden subscriptions', value: '$67/mo found', color: '#fb923c' },
-                { label: 'Daily coffee spend', value: '$4.20/day avg', color: '#fbbf24' },
-                { label: 'Savings rate', value: '23% of income', color: '#34d399' },
-              ].map((row, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '10px 14px', borderRadius: 10,
-                  background: 'var(--card2)', border: '1px solid var(--border)',
-                  filter: 'blur(3.5px)', userSelect: 'none', pointerEvents: 'none',
-                }}>
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{row.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: row.color }}>{row.value}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* overlay CTA */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(0,0,0,0.10)',
-              backdropFilter: 'blur(0px)',
-              gap: 12,
-            }}>
-              <div style={{
-                background: 'rgba(15,15,25,0.88)',
-                border: '1px solid rgba(99,102,241,0.35)',
-                borderRadius: 16, padding: '20px 28px', textAlign: 'center',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                backdropFilter: 'blur(12px)',
-                maxWidth: 260,
-              }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>🔬</div>
-                <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#fff' }}>
-                  Auto-generates after categorizing
-                </p>
-                <p style={{ margin: '0 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
-                  Finish categorizing and your Financial Autopsy runs automatically.
-                </p>
-                <a
-                  href={`/categorize/${uploadId}`}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '9px 18px', borderRadius: 999,
-                    background: 'linear-gradient(135deg, #6366f1, #818cf8)',
-                    color: '#fff', fontSize: 13, fontWeight: 700,
-                    textDecoration: 'none',
-                    boxShadow: '0 4px 16px rgba(99,102,241,0.5)',
-                  }}
-                >
-                  Start categorizing →
-                </a>
-              </div>
-            </div>
-          </div>
+          {/* Financial Autopsy — live state */}
+          <AutopsyPanel autopsy={autopsy} uploadId={uploadId} />
         </div>
 
         {/* ── Diagnostics section header ────────────────────────────────────── */}

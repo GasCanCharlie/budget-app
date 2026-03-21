@@ -110,6 +110,11 @@ model Upload {
   // authoritativeDateColumn: posting | effective
   authoritativeDateColumn String?
 
+  // ── Financial Autopsy (auto-generated after categorization) ────────────────
+  // financialAutopsyStatus: pending | generating | ready | failed
+  financialAutopsyStatus      String?   @default("pending")
+  financialAutopsyGeneratedAt DateTime?
+
   user            User             @relation(fields: [userId], references: [id])
   account         Account          @relation(fields: [accountId], references: [id])
   rawTxs          TransactionRaw[]

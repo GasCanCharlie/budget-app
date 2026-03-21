@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { normalizeForRule } from '@/lib/ingestion/vendor-normalize'
+import { triggerAutopsyIfReady } from '@/lib/insights/autopsy-trigger'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/transactions/bulk-assign
@@ -150,6 +151,19 @@ export async function POST(req: NextRequest) {
         where: { userId: payload.userId },
         data:  { generatedAt: new Date(0) },
       })
+
+      // Auto-trigger Financial Autopsy if categorization threshold is met.
+      // Resolve uploadId from the first owned transaction in this batch.
+      const firstTx = ownedTxs[0]
+      if (firstTx) {
+        const txWithUpload = await prisma.transaction.findFirst({
+          where: { id: firstTx.id },
+          select: { uploadId: true },
+        })
+        if (txWithUpload?.uploadId) {
+          void triggerAutopsyIfReady(payload.userId, txWithUpload.uploadId)
+        }
+      }
     }
 
     return NextResponse.json({ updated: totalUpdated })

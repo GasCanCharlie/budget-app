@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { computeMonthSummary } from '@/lib/intelligence/summaries'
+import { triggerAutopsyIfReady } from '@/lib/insights/autopsy-trigger'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/transactions/[id]
@@ -309,6 +310,11 @@ export async function PATCH(
         where: { userId: payload.userId },
         data:  { generatedAt: new Date(0) },
       })
+
+      // Auto-trigger Financial Autopsy if categorization threshold is met
+      if (tx.uploadId) {
+        void triggerAutopsyIfReady(payload.userId, tx.uploadId)
+      }
     }
 
     return NextResponse.json({ updated: appliedCount })
