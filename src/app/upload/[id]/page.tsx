@@ -654,7 +654,7 @@ export default function UploadDetailPage() {
             View Scan Report
           </button>
           <button
-            onClick={() => router.push('/categorize')}
+            onClick={() => router.push(`/categorize/${id}`)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
           >
             <Tags size={16} />
@@ -748,7 +748,7 @@ export default function UploadDetailPage() {
                   <p className="text-xs text-slate-400 mt-0.5">Total spend: <strong className="text-slate-600">{fmtPie(totalSpend)}</strong></p>
                 </div>
                 <button
-                  onClick={() => router.push('/categorize')}
+                  onClick={() => router.push(`/categorize/${id}`)}
                   className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
                 >
                   Categorize →

@@ -4,9 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { computeSignals } from '@/lib/personality/signals'
-import { detectPersonality } from '@/lib/personality/detect'
-import type { PersonalityResult } from '@/lib/personality/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -139,163 +136,6 @@ function EmptyState({ text }: { text: string }) {
     <p style={{ margin: '14px 0 0', fontSize: 13, color: 'var(--subtle)', fontStyle: 'italic' }}>
       {text}
     </p>
-  )
-}
-
-// ─── Money Personality ────────────────────────────────────────────────────────
-
-// Personalities that use illustration cards instead of gradient cards
-const ILLUSTRATION_MAP: Record<string, { src: string; dotColor: string; btnColor: string; btnBorder: string }> = {
-  subscription_collector: {
-    src: '/personalities/subscription-collector.webp',
-    dotColor: '#FBBF24', btnColor: 'rgba(251,191,36,0.22)', btnBorder: 'rgba(251,191,36,0.45)',
-  },
-  wire_dancer: {
-    src: '/personalities/wire-dancer.webp',
-    dotColor: '#2DD4BF', btnColor: 'rgba(45,212,191,0.22)', btnBorder: 'rgba(45,212,191,0.45)',
-  },
-}
-
-function buildInsights(totals: ScanReport['totals'], findings: ScanReport['findings']): string[] {
-  const lines: string[] = []
-  if (totals.income > 0) {
-    const pct = Math.round((totals.spending / totals.income) * 100)
-    lines.push(totals.net >= 0
-      ? `You spent ${pct}% of your income — net positive`
-      : `You spent ${pct}% of your income this period`)
-  }
-  const topCat = findings.categoryBreakdown[0]
-  if (topCat) lines.push(`Biggest category: ${topCat.category} (${Math.round(topCat.pct)}%)`)
-  lines.push(findings.anomalies.count === 0
-    ? 'No unusual activity detected'
-    : `${findings.anomalies.count} unusual transaction${findings.anomalies.count !== 1 ? 's' : ''} flagged`)
-  lines.push(findings.subscriptions.count === 0
-    ? 'No recurring subscriptions found'
-    : `${findings.subscriptions.count} recurring subscription${findings.subscriptions.count !== 1 ? 's' : ''} · ${fmt(findings.subscriptions.monthlyTotal)}/mo`)
-  if (findings.duplicates.count > 0)
-    lines.push(`${findings.duplicates.count} possible duplicate${findings.duplicates.count !== 1 ? 's' : ''} flagged for review`)
-  return lines.slice(0, 5)
-}
-
-function MoneyPersonality({ report }: { report: ScanReport }) {
-  const result: PersonalityResult = detectPersonality(computeSignals({
-    income:       report.totals.income,
-    spending:     report.totals.spending,
-    net:          report.totals.net,
-    categories:   report.findings.categoryBreakdown.map(c => ({ name: c.category, pctOfSpending: c.pct })),
-    subCount:     report.findings.subscriptions.count,
-    anomalyCount: report.findings.anomalies.count,
-    statementType: 'unknown',
-  }))
-
-  const core    = result.core
-  const trait   = result.trait
-  const insights = buildInsights(report.totals, report.findings)
-  const illus   = ILLUSTRATION_MAP[core.id as string]
-
-  function handleShare() {
-    const params = new URLSearchParams({
-      type:   core.name,
-      vibe:   core.vibe,
-      income: String(report.totals.income),
-      spend:  String(report.totals.spending),
-      net:    String(report.totals.net),
-    })
-    if (trait) params.set('trait', trait.name)
-    const topCat = report.findings.categoryBreakdown[0]?.category
-    if (topCat) params.set('topCat', topCat)
-    window.open(`/api/share/personality?${params.toString()}`, '_blank')
-  }
-
-  // ── Illustration card ────────────────────────────────────────────────────
-  if (illus) {
-    return (
-      <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', boxShadow: '0 12px 48px rgba(0,0,0,0.45)', border: `1px solid ${illus.dotColor}40` }}>
-        <img src={illus.src} alt={core.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 64, background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 90, background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: 14, left: 16, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 999, padding: '4px 10px' }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: illus.dotColor }} />
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.85)' }}>Money Personality</span>
-        </div>
-        <div style={{ position: 'absolute', bottom: 14, left: 16, right: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, pointerEvents: 'none' }}>
-          <p style={{ margin: 0, fontSize: 11, fontStyle: 'italic', fontWeight: 500, color: 'rgba(255,255,255,0.70)', letterSpacing: '0.01em', lineHeight: 1.4, pointerEvents: 'none' }}>
-            &ldquo;{core.vibe}&rdquo;
-          </p>
-          <button onClick={handleShare} aria-label="Share your money personality card" style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#fff', background: illus.btnColor, backdropFilter: 'blur(10px)', border: `1px solid ${illus.btnBorder}`, borderRadius: 999, padding: '7px 16px', cursor: 'pointer', transition: 'opacity 150ms ease', pointerEvents: 'all' }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-            ↗ Share your card
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Standard gradient card ───────────────────────────────────────────────
-  const accent   = core.isCaution ? '#FB923C' : core.accent
-  const accentBg = core.isCaution ? 'rgba(251,146,60,0.08)' : core.accentBg
-  const label    = core.isCaution ? 'Heads up' : 'Your Money Personality'
-
-  return (
-    <div style={{
-      ...card,
-      background: `radial-gradient(ellipse at 8% 8%, ${accentBg}, transparent 55%), var(--card)`,
-      padding: '24px 26px',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-
-      {/* Section label + share */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: accent }}>
-          {label}
-        </span>
-        <button onClick={handleShare} aria-label="Share your money personality card"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: accent, background: accentBg, border: `1px solid ${accent}30`, borderRadius: 999, padding: '4px 11px', cursor: 'pointer', letterSpacing: '0.01em', transition: 'opacity 150ms ease' }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-          ↗ Share card
-        </button>
-      </div>
-
-      {/* Hero */}
-      <div style={{ marginBottom: 22 }}>
-        <p style={{ margin: '0 0 2px', fontSize: 12, color: 'var(--text-muted)', letterSpacing: '0.01em' }}>You&apos;re</p>
-        <p style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--text)' }}>
-          {core.name}
-        </p>
-        {trait && (
-          <p style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 600, color: trait.accent, letterSpacing: '-0.01em' }}>
-            · {trait.name}
-          </p>
-        )}
-        <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
-          {core.tagline}
-        </p>
-      </div>
-
-      {/* Divider */}
-      <div style={{ height: 1, background: 'var(--border)', margin: '0 0 18px' }} />
-
-      {/* Insights */}
-      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {insights.map((line, i) => (
-          <li key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
-            <span style={{ fontSize: 12, color: accent, flexShrink: 0, fontWeight: 700, lineHeight: 1.5 }}>✓</span>
-            <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.4 }}>{line}</span>
-          </li>
-        ))}
-      </ul>
-
-      {/* Divider */}
-      <div style={{ height: 1, background: 'var(--border)', margin: '18px 0 16px' }} />
-
-      {/* Vibe */}
-      <p style={{ margin: 0, fontSize: 14, fontStyle: 'italic', color: 'var(--text)', lineHeight: 1.5, fontWeight: 500 }}>
-        &ldquo;{trait ? trait.vibe : core.vibe}&rdquo;
-      </p>
-    </div>
   )
 }
 
@@ -465,9 +305,6 @@ export default function ScanReportPage() {
       {/* ── Content ────────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* ── Money Personality card ───────────────────────────────────────── */}
-        <MoneyPersonality report={report} />
-
         {/* ── Next step banner ─────────────────────────────────────────────── */}
         <div style={{
           ...card,
@@ -489,7 +326,7 @@ export default function ScanReportPage() {
             </p>
           </div>
           <a
-            href="/categorize"
+            href={`/categorize/${uploadId}`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

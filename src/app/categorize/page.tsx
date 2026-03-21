@@ -992,7 +992,6 @@ function CategorizationTips({ onSortAmount, onSortVendor, onSortSamePrice }: Cat
 
 export default function CategorizePage() {
   const router       = useRouter()
-  const [fromInsights, setFromInsights] = useState(false)
   const user         = useAuthStore(s => s.user)
   const { apiFetch } = useApi()
   const qc           = useQueryClient()
@@ -1023,9 +1022,6 @@ export default function CategorizePage() {
   }, [qc])
 
   useEffect(() => { if (!user) router.replace('/login') }, [user, router])
-  useEffect(() => {
-    setFromInsights(new URLSearchParams(window.location.search).get('from') === 'insights')
-  }, [])
 
   const [filterMode,    setFilterMode]    = useState<FilterMode>('needs-review')
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
@@ -1720,20 +1716,39 @@ export default function CategorizePage() {
         onDragEnd={onDragEnd}
       >
         <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
-          {/* From-insights banner */}
-          {fromInsights && !unlocked && (
-            <div
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                marginBottom: 16, padding: '12px 16px', borderRadius: 12,
-                background: 'rgba(111,128,255,0.12)',
-                border: '1px solid rgba(111,128,255,0.3)',
-              }}
-            >
-              <span style={{ fontSize: 16 }}>🔒</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                Finish categorizing your transactions to unlock AI Insights.
-              </span>
+          {/* Unlock intent banner — always shown */}
+          {!unlocked && (
+            <div style={{
+              marginBottom: 20, padding: '18px 20px', borderRadius: 14,
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(168,85,247,0.08) 100%)',
+              border: '1px solid rgba(99,102,241,0.25)',
+            }}>
+              <p style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+                Categorize your transactions to unlock your financial insights
+              </p>
+              <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                This step powers everything — your spending patterns, subscriptions, and Money Personality are only as accurate as your categories.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {[
+                  { icon: '🧠', label: 'Money Personality' },
+                  { icon: '📊', label: 'Spending Patterns' },
+                  { icon: '🔄', label: 'Subscription Detection' },
+                  { icon: '💡', label: 'Personalized Insights' },
+                ].map(({ icon, label }) => (
+                  <span key={label} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                    background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)',
+                    color: 'var(--text)',
+                  }}>
+                    {icon} {label}
+                  </span>
+                ))}
+              </div>
+              <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>
+                No categorization = limited insights
+              </p>
             </div>
           )}
 
