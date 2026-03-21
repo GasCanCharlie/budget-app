@@ -276,7 +276,7 @@ export default function DashboardPage() {
   const topTransactions        = summary.topTransactions ?? []
   const prevSpendingCategories = (prevSummaryData?.summary?.categoryTotals ?? []).filter(c => !c.isIncome)
 
-  const personalityResult: PersonalityResult = detectPersonality(computeSignals({
+  const _signalInput = {
     income:        summary.totalIncome as number,
     spending:      summary.totalSpending as number,
     net:           summary.net as number,
@@ -288,7 +288,11 @@ export default function DashboardPage() {
     anomalyCount:  summary.alerts?.length ?? 0,
     statementType: (summary as any).statementType ?? 'unknown',
     interestDetected: (summary as any).interestDetected ?? false,
-  }))
+  }
+  console.log('[personality debug] categories:', _signalInput.categories)
+  const _signals = computeSignals(_signalInput)
+  console.log('[personality debug] topDiscretionaryCatMaster:', _signals.topDiscretionaryCatMaster)
+  const personalityResult: PersonalityResult = detectPersonality(_signals)
 
   const prevMonthYear  = month === 1 ? year - 1 : year
   const prevMonthMonth = month === 1 ? 12 : month - 1
