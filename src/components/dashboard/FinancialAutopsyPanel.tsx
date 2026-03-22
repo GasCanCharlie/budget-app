@@ -141,7 +141,6 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
 
   const illus = ILLUSTRATION_CARDS[core.id as string]
   if (illus) {
-    const illusBottomHeight = trait ? 110 : 90
     return (
       <>
       <div style={{
@@ -158,18 +157,10 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
           style={{ width: '100%', height: 'auto', display: 'block' }}
         />
 
-        {/* Top gradient for badge + share button readability */}
+        {/* Top gradient for badge + share button readability only */}
         <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 72,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.62) 0%, transparent 100%)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Bottom gradient — taller when trait is present */}
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          height: illusBottomHeight,
-          background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 55%, transparent 100%)',
+          position: 'absolute', top: 0, left: 0, right: 0, height: 64,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%)',
           pointerEvents: 'none',
         }} />
 
@@ -207,24 +198,6 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
         >
           ↗ Share
         </button>
-
-        {/* Bottom identity block */}
-        <div style={{
-          position: 'absolute', bottom: 16, left: 16, right: 16,
-          pointerEvents: 'none',
-        }}>
-          <p style={{ margin: '0 0 1px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: illus.dotColor }}>
-            The
-          </p>
-          <p style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#fff' }}>
-            {name}
-          </p>
-          {trait && (
-            <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: trait.accent, lineHeight: 1.2 }}>
-              · {trait.name}
-            </p>
-          )}
-        </div>
       </div>
 
       {/* See What's Driving This CTA */}
