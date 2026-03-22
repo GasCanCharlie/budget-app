@@ -46,23 +46,85 @@ function getIntensity(pct: number): { label: string; color: string } {
   return              { label: 'LOW',      color: '#6b7280' }
 }
 
-// ─── Placeholder card ─────────────────────────────────────────────────────────
-// TODO: swap internals for a real image asset when ready — layout stays identical
+// ─── Trait image registry — add entries as art arrives ───────────────────────
+
+const TRAIT_IMAGES: Partial<Record<string, { src: string; dotColor: string }>> = {
+  glowing_broke: { src: '/personalities/glowing-broke.webp', dotColor: '#c026d3' },
+}
+
+// ─── Card — renders real image when available, placeholder otherwise ──────────
 
 function SecondaryPersonalityPlaceholder({
+  traitId,
   traitName,
   traitAccent,
   tagline,
 }: {
+  traitId?:    string
   traitName:   string
   traitAccent: string
   tagline:     string
 }) {
+  const art = traitId ? TRAIT_IMAGES[traitId] : undefined
+
+  // ── Illustration variant ─────────────────────────────────────────────────
+  if (art) {
+    return (
+      <div style={{
+        position: 'relative',
+        borderRadius: 18, overflow: 'hidden',
+        marginBottom: 24,
+        boxShadow: '0 12px 48px rgba(0,0,0,0.45)',
+        border: `1px solid ${art.dotColor}40`,
+      }}>
+        <img src={art.src} alt={traitName} style={{ width: '100%', height: 'auto', display: 'block' }} />
+
+        {/* Top gradient */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 72,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.62) 0%, transparent 100%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Bottom gradient */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 110,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.50) 60%, transparent 100%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Top-left badge */}
+        <div style={{
+          position: 'absolute', top: 14, left: 16,
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: 999, padding: '4px 10px',
+        }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: art.dotColor }} />
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.85)' }}>
+            Spending Personality
+          </span>
+        </div>
+
+        {/* Bottom identity */}
+        <div style={{ position: 'absolute', bottom: 16, left: 16, right: 16, pointerEvents: 'none' }}>
+          <p style={{ margin: '0 0 1px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: art.dotColor }}>
+            Your
+          </p>
+          <p style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#fff' }}>
+            {traitName}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Placeholder variant (no image yet) ───────────────────────────────────
   return (
     <div style={{
       position: 'relative',
-      borderRadius: 18,
-      overflow: 'hidden',
+      borderRadius: 18, overflow: 'hidden',
       marginBottom: 24,
       padding: '36px 24px 32px',
       background: `
@@ -72,13 +134,9 @@ function SecondaryPersonalityPlaceholder({
       `,
       border: `1px solid ${traitAccent}30`,
       boxShadow: `0 8px 40px ${traitAccent}18`,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      textAlign: 'center',
-      gap: 12,
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      textAlign: 'center', gap: 12,
     }}>
-      {/* Icon */}
       <div style={{
         width: 68, height: 68, borderRadius: 20, flexShrink: 0,
         background: `radial-gradient(circle at 35% 35%, ${traitAccent}28, ${traitAccent}10)`,
@@ -88,25 +146,20 @@ function SecondaryPersonalityPlaceholder({
       }}>
         <Sparkles size={30} strokeWidth={1.5} color={traitAccent} />
       </div>
-
       <p style={{ margin: 0, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: traitAccent }}>
         Spending Personality
       </p>
-
       <p style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05, color: '#f2f5ff' }}>
         {traitName}
       </p>
-
       <p style={{ margin: 0, fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.55)', lineHeight: 1.55, maxWidth: 260 }}>
         &ldquo;{tagline}&rdquo;
       </p>
-
-      {/* Watermark — remove when real image is dropped in */}
       <p style={{
         position: 'absolute', bottom: 8, right: 12, margin: 0,
         fontSize: 9, color: 'rgba(255,255,255,0.18)', fontStyle: 'italic', letterSpacing: '0.04em',
       }}>
-        image placeholder
+        image coming soon
       </p>
     </div>
   )
@@ -235,6 +288,7 @@ function SecondaryPersonalityInner() {
 
         {/* ── Placeholder card ──────────────────────────────────────────────── */}
         <SecondaryPersonalityPlaceholder
+          traitId={trait ? String(trait.id) : undefined}
           traitName={trait ? trait.name : core.name}
           traitAccent={accent}
           tagline={trait ? trait.vibe : core.vibe}
