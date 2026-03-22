@@ -185,8 +185,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
                   marginTop: 6,
                   borderRadius: 12,
                   overflow: 'hidden',
-                  height: 130,
-                  cursor: unlocked ? 'pointer' : 'pointer',
+                  cursor: 'pointer',
                   border: active
                     ? '1px solid rgba(108,124,255,0.55)'
                     : '1px solid rgba(255,255,255,0.08)',
@@ -202,7 +201,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
                   <img
                     src="/financial-autopsy-nav.webp"
                     alt="Financial Autopsy"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }}
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
                   />
                   {/* Bottom gradient + lock badge */}
                   <div style={{
