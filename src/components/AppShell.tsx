@@ -114,6 +114,8 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
           100% { box-shadow: none; }
         }
         .bl-unlock-glow { animation: bl-unlock-glow 2.5s ease-out forwards; }
+        .bl-sidebar-nav { scrollbar-width: none; }
+        .bl-sidebar-nav::-webkit-scrollbar { display: none; }
       `}</style>
 
       {/* ── Insights unlocked toast ──────────────────────────────────────────── */}
@@ -153,7 +155,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         </div>
 
         {/* Nav — primary core flow + secondary utilities */}
-        <nav className="p-3 flex-1 flex flex-col overflow-y-auto">
+        <nav className="p-3 flex-1 flex flex-col overflow-y-auto bl-sidebar-nav">
 
           {/* Primary: core product flow */}
           <div className="space-y-0.5">
