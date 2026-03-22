@@ -157,37 +157,89 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
 
           {/* Primary: core product flow */}
           <div className="space-y-0.5">
-            {primaryNavItems.map(({ href, label, icon: Icon }) => {
+            {primaryNavItems.filter(i => i.href !== '/insights').map(({ href, label, icon: Icon }) => {
               const active = pathname === href
                 || (href === '/upload' && pathname.startsWith('/upload'))
-                || (href === '/insights' && (pathname.startsWith('/insights') || pathname.startsWith('/chat')))
 
-              if (href === '/insights' && !unlocked) {
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={clsx(
+                    'bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition',
+                    active ? 'active' : '',
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              )
+            })}
+
+            {/* Financial Autopsy — featured image card */}
+            {(() => {
+              const active = pathname.startsWith('/insights') || pathname.startsWith('/chat')
+              const card = (
+                <div style={{
+                  position: 'relative',
+                  marginTop: 6,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  height: 130,
+                  cursor: unlocked ? 'pointer' : 'pointer',
+                  border: active
+                    ? '1px solid rgba(108,124,255,0.55)'
+                    : '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: active
+                    ? '0 0 0 1px rgba(108,124,255,0.18), 0 4px 20px rgba(108,124,255,0.20)'
+                    : '0 2px 12px rgba(0,0,0,0.35)',
+                  opacity: unlocked ? 1 : 0.60,
+                  transition: 'opacity 150ms ease, border-color 150ms ease, box-shadow 150ms ease',
+                }}
+                  onMouseEnter={!unlocked ? onInsightsMouseEnter : undefined}
+                  onMouseLeave={!unlocked ? onInsightsMouseLeave : undefined}
+                >
+                  <img
+                    src="/financial-autopsy-nav.webp"
+                    alt="Financial Autopsy"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }}
+                  />
+                  {/* Bottom gradient + lock badge */}
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, height: 40,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.70) 0%, transparent 100%)',
+                    pointerEvents: 'none',
+                  }} />
+                  {!unlocked && (
+                    <span style={{
+                      position: 'absolute', bottom: 8, right: 10,
+                      fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+                      background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.14)',
+                      borderRadius: 4, padding: '2px 6px', color: 'rgba(255,255,255,0.45)',
+                      pointerEvents: 'none',
+                    }}>
+                      Locked
+                    </span>
+                  )}
+                  {active && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      border: '2px solid rgba(108,124,255,0.55)',
+                      borderRadius: 12, pointerEvents: 'none',
+                    }} />
+                  )}
+                </div>
+              )
+
+              if (!unlocked) {
                 return (
-                  <div key={href} style={{ position: 'relative' }}>
-                    <button
-                      onClick={handleLockedInsightsClick}
-                      onMouseEnter={onInsightsMouseEnter}
-                      onMouseLeave={onInsightsMouseLeave}
-                      className="bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition w-full text-left"
-                      style={{ opacity: 0.55 }}
-                      aria-label={`${label} — complete categorization to unlock`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {label}
-                      <span style={{
-                        marginLeft: 'auto', fontSize: 10, fontWeight: 700,
-                        letterSpacing: '0.05em', textTransform: 'uppercase',
-                        padding: '2px 6px', borderRadius: 4,
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.10)',
-                        color: 'rgba(255,255,255,0.38)',
-                        flexShrink: 0,
-                      }}>
-                        Locked
-                      </span>
+                  <div key="/insights" style={{ position: 'relative' }}
+                    onMouseEnter={onInsightsMouseEnter}
+                    onMouseLeave={onInsightsMouseLeave}
+                  >
+                    <button onClick={handleLockedInsightsClick} style={{ width: '100%', background: 'none', border: 'none', padding: 0 }}>
+                      {card}
                     </button>
-
                     {insightsTooltip && (
                       <div style={{
                         position: 'absolute', left: '100%', top: '50%',
@@ -200,9 +252,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
                         boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
                         pointerEvents: 'none',
                       }}>
-                        <div style={{ fontWeight: 700, marginBottom: 4, color: '#e5e7eb', fontSize: 13 }}>
-                          Insights locked
-                        </div>
+                        <div style={{ fontWeight: 700, marginBottom: 4, color: '#e5e7eb', fontSize: 13 }}>Insights locked</div>
                         {LOCKED_TOOLTIP}
                       </div>
                     )}
@@ -211,20 +261,14 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
               }
 
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={clsx(
-                    'bl-nav-link flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition',
-                    active ? 'active' : '',
-                    href === '/insights' && justUnlocked ? 'bl-unlock-glow' : '',
-                  )}
+                <Link key="/insights" href="/insights"
+                  className={clsx(justUnlocked ? 'bl-unlock-glow' : '')}
+                  style={{ display: 'block', borderRadius: 12 }}
                 >
-                  <Icon className="h-4 w-4" />
-                  {label}
+                  {card}
                 </Link>
               )
-            })}
+            })()}
           </div>
 
           {/* Secondary: management utilities, pushed to bottom */}
@@ -352,7 +396,9 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         }}
       >
         {primaryNavItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href === '/upload' && pathname.startsWith('/upload'))
+          const active = pathname === href
+            || (href === '/upload' && pathname.startsWith('/upload'))
+            || (href === '/insights' && (pathname.startsWith('/insights') || pathname.startsWith('/chat')))
 
           if (href === '/insights' && !unlocked) {
             return (
