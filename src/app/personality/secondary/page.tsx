@@ -59,13 +59,11 @@ function SecondaryPersonalityPlaceholder({
   traitName,
   traitAccent,
   tagline,
-  autopsyHref,
 }: {
   traitId?:     string
   traitName:    string
   traitAccent:  string
   tagline:      string
-  autopsyHref?: string
 }) {
   const art = traitId ? TRAIT_IMAGES[traitId] : undefined
 
@@ -73,51 +71,34 @@ function SecondaryPersonalityPlaceholder({
   if (art) {
     return (
       <div style={{
-        borderRadius: 18,
         marginBottom: 24,
-        padding: '16px 16px 20px',
+        padding: 16,
+        borderRadius: 16,
         background: 'rgba(12, 15, 28, 0.95)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid rgba(255,255,255,0.08)',
         boxShadow: '0 12px 48px rgba(0,0,0,0.50)',
       }}>
-        {/* Header row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#f2f5ff', letterSpacing: '-0.01em' }}>
-            Your Spending Personality
-          </p>
-          {autopsyHref && (
-            <Link href={autopsyHref} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 11, fontWeight: 700, color: '#fff',
-              background: 'rgba(108,124,255,0.22)',
-              border: '1px solid rgba(108,124,255,0.45)',
-              borderRadius: 999, padding: '6px 13px',
-              textDecoration: 'none', whiteSpace: 'nowrap',
-              backdropFilter: 'blur(8px)',
-            }}>
-              <FlaskConical size={12} strokeWidth={2} />
-              Run Financial Autopsy
-            </Link>
-          )}
-        </div>
-
-        {/* Image container */}
+        {/* Image card */}
         <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden' }}>
-          <img src={art.src} alt={traitName} style={{ width: '100%', height: 'auto', display: 'block' }} />
+          <img
+            src={art.src}
+            alt={traitName}
+            style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
+          />
 
-          {/* Bottom gradient */}
+          {/* Cinematic top-left gradient — readable text without covering the image */}
           <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%',
-            background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%)',
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.40) 38%, transparent 62%)',
             pointerEvents: 'none',
           }} />
 
-          {/* Bottom-left identity */}
-          <div style={{ position: 'absolute', bottom: 16, left: 18, right: 18, pointerEvents: 'none' }}>
-            <p style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, color: '#fff' }}>
+          {/* Top-left identity */}
+          <div style={{ position: 'absolute', top: 18, left: 20, right: '32%', pointerEvents: 'none' }}>
+            <p style={{ margin: '0 0 5px', fontSize: 30, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#fff' }}>
               {traitName}
             </p>
-            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45, maxWidth: 260 }}>
+            <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.82)', lineHeight: 1.4 }}>
               {tagline}
             </p>
           </div>
@@ -277,28 +258,46 @@ function SecondaryPersonalityInner() {
         </div>
 
         {/* ── Header ────────────────────────────────────────────────────────── */}
-        <div style={{ marginBottom: 22 }}>
-          <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.28)' }}>
-            {monthLabel} · Behavior Report
-          </p>
-          <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: accent }}>
-            Your Spending Personality
-          </p>
-          <h1 style={{ margin: '0 0 10px', fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05, color: '#f2f5ff' }}>
-            {trait ? trait.name : core.name}
-          </h1>
-          <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.50)', lineHeight: 1.65, maxWidth: 380 }}>
-            {trait ? trait.tagline : core.tagline}
-          </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
+          {/* Left: eyebrow + title + subtitle */}
+          <div style={{ minWidth: 0 }}>
+            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.28)' }}>
+              {monthLabel} &bull; Behavior Report
+            </p>
+            <h1 style={{ margin: '0 0 10px', fontSize: 44, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.0, color: '#f2f5ff' }}>
+              {trait ? trait.name : core.name}
+            </h1>
+            <p style={{ margin: 0, fontSize: 16, color: 'rgba(255,255,255,0.50)', lineHeight: 1.55, maxWidth: 340 }}>
+              {trait ? trait.tagline : core.tagline}
+            </p>
+          </div>
+
+          {/* Right: primary CTA */}
+          <Link
+            href="/insights"
+            style={{
+              flexShrink: 0,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 13, fontWeight: 700, color: '#fff',
+              background: `linear-gradient(135deg, ${accent}cc, ${accent}88)`,
+              border: `1px solid ${accent}55`,
+              borderRadius: 999, padding: '10px 16px',
+              textDecoration: 'none', whiteSpace: 'nowrap',
+              boxShadow: `0 2px 12px ${accent}28`,
+              marginTop: 4,
+            }}
+          >
+            <FlaskConical size={13} strokeWidth={2} />
+            Run Financial Autopsy
+          </Link>
         </div>
 
-        {/* ── Placeholder card ──────────────────────────────────────────────── */}
+        {/* ── Personality card ──────────────────────────────────────────────── */}
         <SecondaryPersonalityPlaceholder
           traitId={trait ? String(trait.id) : undefined}
           traitName={trait ? trait.name : core.name}
           traitAccent={accent}
           tagline={trait ? trait.tagline : core.tagline}
-          autopsyHref="/insights"
         />
 
         {/* ── Behavior Breakdown ────────────────────────────────────────────── */}
