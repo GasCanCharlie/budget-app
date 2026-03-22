@@ -144,6 +144,109 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
         </p>
       </div>
 
+      {/* ── Steps ──────────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 16,
+          width: '100%',
+          maxWidth: 860,
+        }}
+      >
+        {stepDefs.map((step) => {
+          const Icon = step.icon
+          const isActive = step.number === activeStep
+          const isDone   = step.number < activeStep
+
+          return (
+            <div
+              key={step.number}
+              style={{
+                background: isActive
+                  ? 'linear-gradient(135deg, rgba(124,137,255,0.12) 0%, rgba(139,111,255,0.08) 100%)'
+                  : isDone
+                  ? 'rgba(22,163,74,0.06)'
+                  : 'var(--card)',
+                border: isActive
+                  ? '1px solid rgba(124,137,255,0.38)'
+                  : isDone
+                  ? '1px solid rgba(22,163,74,0.30)'
+                  : '1px solid var(--border)',
+                borderRadius: 16,
+                padding: '24px 22px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+                opacity: isActive || isDone ? 1 : 0.55,
+                boxShadow: isActive
+                  ? '0 0 0 1px rgba(124,137,255,0.12), 0 8px 32px rgba(124,137,255,0.10)'
+                  : isDone
+                  ? '0 0 0 1px rgba(22,163,74,0.08)'
+                  : 'none',
+                transition: 'box-shadow 200ms ease',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: isDone
+                      ? 'rgba(22,163,74,0.18)'
+                      : isActive
+                      ? 'rgba(124,137,255,0.22)'
+                      : 'var(--surface2)',
+                    border: isDone
+                      ? '1px solid rgba(22,163,74,0.32)'
+                      : isActive
+                      ? '1px solid rgba(124,137,255,0.32)'
+                      : '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {isDone ? (
+                    <Check size={18} style={{ color: 'rgb(22,163,74)' }} />
+                  ) : (
+                    <Icon
+                      size={18}
+                      style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
+                    />
+                  )}
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: isDone
+                      ? 'rgb(22,163,74)'
+                      : isActive
+                      ? 'var(--accent)'
+                      : 'var(--muted)',
+                  }}
+                >
+                  Step {step.number}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3 }}>
+                  {step.title}
+                </p>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)', lineHeight: 1.55 }}>
+                  {step.description}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       {/* ── How it works ───────────────────────────────────────────────────── */}
       <div style={{ width: '100%', maxWidth: 860 }}>
         <p style={{
@@ -194,112 +297,6 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
             )
           })}
         </div>
-      </div>
-
-      {/* ── Steps ──────────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 16,
-          width: '100%',
-          maxWidth: 860,
-        }}
-      >
-        {stepDefs.map((step) => {
-          const Icon = step.icon
-          const isActive = step.number === activeStep
-          const isDone   = step.number < activeStep
-
-          return (
-            <div
-              key={step.number}
-              style={{
-                background: isActive
-                  ? 'linear-gradient(135deg, rgba(124,137,255,0.12) 0%, rgba(139,111,255,0.08) 100%)'
-                  : isDone
-                  ? 'rgba(22,163,74,0.06)'
-                  : 'var(--card)',
-                border: isActive
-                  ? '1px solid rgba(124,137,255,0.38)'
-                  : isDone
-                  ? '1px solid rgba(22,163,74,0.30)'
-                  : '1px solid var(--border)',
-                borderRadius: 16,
-                padding: '24px 22px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 14,
-                opacity: isActive || isDone ? 1 : 0.55,
-                boxShadow: isActive
-                  ? '0 0 0 1px rgba(124,137,255,0.12), 0 8px 32px rgba(124,137,255,0.10)'
-                  : isDone
-                  ? '0 0 0 1px rgba(22,163,74,0.08)'
-                  : 'none',
-                transition: 'box-shadow 200ms ease',
-              }}
-            >
-              {/* Step number + icon */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: isDone
-                      ? 'rgba(22,163,74,0.18)'
-                      : isActive
-                      ? 'rgba(124,137,255,0.22)'
-                      : 'var(--surface2)',
-                    border: isDone
-                      ? '1px solid rgba(22,163,74,0.32)'
-                      : isActive
-                      ? '1px solid rgba(124,137,255,0.32)'
-                      : '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  {isDone ? (
-                    <Check size={18} style={{ color: 'rgb(22,163,74)' }} />
-                  ) : (
-                    <Icon
-                      size={18}
-                      style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
-                    />
-                  )}
-                </div>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: isDone
-                      ? 'rgb(22,163,74)'
-                      : isActive
-                      ? 'var(--accent)'
-                      : 'var(--muted)',
-                  }}
-                >
-                  Step {step.number}
-                </span>
-              </div>
-
-              {/* Text */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3 }}>
-                  {step.title}
-                </p>
-                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)', lineHeight: 1.55 }}>
-                  {step.description}
-                </p>
-              </div>
-            </div>
-          )
-        })}
       </div>
 
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
