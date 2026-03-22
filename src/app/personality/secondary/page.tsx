@@ -242,38 +242,57 @@ function SecondaryPersonalityInner() {
         </div>
 
         {/* ── Header ────────────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
-          {/* Left: eyebrow + title + subtitle */}
-          <div style={{ minWidth: 0 }}>
-            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.28)' }}>
-              {monthLabel} &bull; Behavior Report
-            </p>
-            <h1 style={{ margin: '0 0 10px', fontSize: 44, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.0, color: '#f2f5ff' }}>
-              {trait ? trait.name : core.name}
+        <div style={{ marginBottom: 22 }}>
+
+          {/* Eyebrow */}
+          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.50)' }}>
+            {monthLabel} &bull; Behavior Report
+          </p>
+
+          {/* Section title + CTA aligned on same baseline */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <h1 style={{ margin: 0, fontSize: 19, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.2, color: '#f2f5ff' }}>
+              Your Spending Personality
             </h1>
-            <p style={{ margin: 0, fontSize: 16, color: 'rgba(255,255,255,0.50)', lineHeight: 1.55, maxWidth: 340 }}>
-              {trait ? trait.tagline : core.tagline}
-            </p>
+            <Link
+              href="/insights"
+              style={{
+                flexShrink: 0,
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontSize: 13, fontWeight: 700, color: '#fff',
+                background: `linear-gradient(135deg, ${accent}cc, ${accent}88)`,
+                border: `1px solid ${accent}55`,
+                borderRadius: 999, padding: '10px 16px',
+                textDecoration: 'none', whiteSpace: 'nowrap',
+                boxShadow: `0 2px 12px ${accent}28`,
+              }}
+            >
+              <FlaskConical size={13} strokeWidth={2} />
+              Run Financial Autopsy
+            </Link>
           </div>
 
-          {/* Right: primary CTA */}
-          <Link
-            href="/insights"
-            style={{
-              flexShrink: 0,
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 13, fontWeight: 700, color: '#fff',
-              background: `linear-gradient(135deg, ${accent}cc, ${accent}88)`,
-              border: `1px solid ${accent}55`,
-              borderRadius: 999, padding: '10px 16px',
-              textDecoration: 'none', whiteSpace: 'nowrap',
-              boxShadow: `0 2px 12px ${accent}28`,
-              marginTop: 4,
-            }}
-          >
-            <FlaskConical size={13} strokeWidth={2} />
-            Run Financial Autopsy
-          </Link>
+          {/* Category chip — 6px below section title */}
+          {topDiscretionary && (() => {
+            const CatIcon  = getCategoryIcon(topDiscretionary.categoryName)
+            const catColor = topDiscretionary.categoryColor
+            return (
+              <div style={{ marginTop: 6 }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  fontSize: 13, fontWeight: 600, color: catColor,
+                  background: `${catColor}18`,
+                  border: `1px solid ${catColor}35`,
+                  borderRadius: 999, padding: '5px 12px',
+                  boxShadow: `0 0 14px ${catColor}22`,
+                }}>
+                  <CatIcon size={12} strokeWidth={2} color={catColor} />
+                  {topDiscretionary.categoryName} Dominant
+                </span>
+              </div>
+            )
+          })()}
+
         </div>
 
         {/* ── Personality card ──────────────────────────────────────────────── */}
