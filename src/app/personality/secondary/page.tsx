@@ -59,11 +59,13 @@ function SecondaryPersonalityPlaceholder({
   traitName,
   traitAccent,
   tagline,
+  autopsyHref,
 }: {
-  traitId?:    string
-  traitName:   string
-  traitAccent: string
-  tagline:     string
+  traitId?:     string
+  traitName:    string
+  traitAccent:  string
+  tagline:      string
+  autopsyHref?: string
 }) {
   const art = traitId ? TRAIT_IMAGES[traitId] : undefined
 
@@ -71,50 +73,54 @@ function SecondaryPersonalityPlaceholder({
   if (art) {
     return (
       <div style={{
-        position: 'relative',
-        borderRadius: 18, overflow: 'hidden',
+        borderRadius: 18,
         marginBottom: 24,
-        boxShadow: '0 12px 48px rgba(0,0,0,0.45)',
-        border: `1px solid ${art.dotColor}40`,
+        padding: '16px 16px 20px',
+        background: 'rgba(12, 15, 28, 0.95)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        boxShadow: '0 12px 48px rgba(0,0,0,0.50)',
       }}>
-        <img src={art.src} alt={traitName} style={{ width: '100%', height: 'auto', display: 'block' }} />
-
-        {/* Top gradient */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 72,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.62) 0%, transparent 100%)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Bottom gradient */}
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: 110,
-          background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.50) 60%, transparent 100%)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Top-left badge */}
-        <div style={{
-          position: 'absolute', top: 14, left: 16,
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: 999, padding: '4px 10px',
-        }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: art.dotColor }} />
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.85)' }}>
-            Spending Personality
-          </span>
+        {/* Header row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#f2f5ff', letterSpacing: '-0.01em' }}>
+            Your Spending Personality
+          </p>
+          {autopsyHref && (
+            <Link href={autopsyHref} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 11, fontWeight: 700, color: '#fff',
+              background: 'rgba(108,124,255,0.22)',
+              border: '1px solid rgba(108,124,255,0.45)',
+              borderRadius: 999, padding: '6px 13px',
+              textDecoration: 'none', whiteSpace: 'nowrap',
+              backdropFilter: 'blur(8px)',
+            }}>
+              <FlaskConical size={12} strokeWidth={2} />
+              Run Financial Autopsy
+            </Link>
+          )}
         </div>
 
-        {/* Bottom identity */}
-        <div style={{ position: 'absolute', bottom: 16, left: 16, right: 16, pointerEvents: 'none' }}>
-          <p style={{ margin: '0 0 1px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: art.dotColor }}>
-            Your
-          </p>
-          <p style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#fff' }}>
-            {traitName}
-          </p>
+        {/* Image container */}
+        <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden' }}>
+          <img src={art.src} alt={traitName} style={{ width: '100%', height: 'auto', display: 'block' }} />
+
+          {/* Bottom gradient */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%',
+            background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%)',
+            pointerEvents: 'none',
+          }} />
+
+          {/* Bottom-left identity */}
+          <div style={{ position: 'absolute', bottom: 16, left: 18, right: 18, pointerEvents: 'none' }}>
+            <p style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, color: '#fff' }}>
+              {traitName}
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45, maxWidth: 260 }}>
+              {tagline}
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -291,7 +297,8 @@ function SecondaryPersonalityInner() {
           traitId={trait ? String(trait.id) : undefined}
           traitName={trait ? trait.name : core.name}
           traitAccent={accent}
-          tagline={trait ? trait.vibe : core.vibe}
+          tagline={trait ? trait.tagline : core.tagline}
+          autopsyHref="/insights"
         />
 
         {/* ── Behavior Breakdown ────────────────────────────────────────────── */}
