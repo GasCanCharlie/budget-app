@@ -48,8 +48,9 @@ function getIntensity(pct: number): { label: string; color: string } {
 
 // ─── Trait image registry — add entries as art arrives ───────────────────────
 
-const TRAIT_IMAGES: Partial<Record<string, { src: string; dotColor: string }>> = {
-  glowing_broke: { src: '/personalities/glowing-broke.webp', dotColor: '#c026d3' },
+const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string }>> = {
+  glowing_broke:        { src: '/personalities/glowing-broke.webp',        dotColor: '#c026d3' },
+  currency_combustion:  { src: '/personalities/currency-combustion.webp',  dotColor: '#EF4444' },
 }
 
 // ─── Card — renders real image when available, placeholder otherwise ──────────
@@ -65,7 +66,7 @@ function SecondaryPersonalityPlaceholder({
   traitAccent:  string
   tagline:      string
 }) {
-  const art = traitId ? TRAIT_IMAGES[traitId] : undefined
+  const art = traitId ? PERSONALITY_IMAGES[traitId] : undefined
 
   // ── Illustration variant ─────────────────────────────────────────────────
   if (art) {
@@ -297,7 +298,7 @@ function SecondaryPersonalityInner() {
 
         {/* ── Personality card ──────────────────────────────────────────────── */}
         <SecondaryPersonalityPlaceholder
-          traitId={trait ? String(trait.id) : undefined}
+          traitId={trait ? String(trait.id) : String(core.id)}
           traitName={trait ? trait.name : core.name}
           traitAccent={accent}
           tagline={trait ? trait.tagline : core.tagline}
