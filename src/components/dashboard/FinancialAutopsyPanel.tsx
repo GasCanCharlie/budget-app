@@ -137,10 +137,6 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/wire-dancer.webp',
       dotColor: '#2DD4BF', btnColor: 'rgba(45,212,191,0.22)', btnBorder: 'rgba(45,212,191,0.45)',
     },
-    full_send: {
-      src: '/personalities/full-send.webp',
-      dotColor: '#F97316', btnColor: 'rgba(249,115,22,0.22)', btnBorder: 'rgba(249,115,22,0.45)',
-    },
   }
 
   const illus = ILLUSTRATION_CARDS[core.id as string]
