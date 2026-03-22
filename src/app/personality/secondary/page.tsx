@@ -54,6 +54,19 @@ const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string
   balance_transfer:     { src: '/personalities/balance_transfer.webp',     dotColor: '#FBBF24' },
   utilization_king:     { src: '/personalities/utilization_king.webp',     dotColor: '#FB923C' },
   cashback_architect:   { src: '/personalities/cashback_architect.webp',   dotColor: '#818CF8' },
+  minimum_payer:        { src: '/personalities/minimum_payer.webp',        dotColor: '#FB923C' },
+  points_chaser:        { src: '/personalities/points_chaser.webp',        dotColor: '#FBBF24' },
+  revolving_door:       { src: '/personalities/revolving_door.webp',       dotColor: '#F87171' },
+  direct_depositor:     { src: '/personalities/direct_depositor.webp',     dotColor: '#34D399' },
+  cash_keeper:          { src: '/personalities/cash_keeper.webp',          dotColor: '#FBBF24' },
+  flow_master:          { src: '/personalities/flow_master.webp',          dotColor: '#2DD4BF' },
+  breakeven_poet:       { src: '/personalities/breakeven_poet.webp',       dotColor: '#A78BFA' },
+  overdraft_artist:     { src: '/personalities/overdraft_artist.webp',     dotColor: '#F97316' },
+  quiet_millionaire:    { src: '/personalities/quiet_millionaire.webp',    dotColor: '#D97706' },
+  savvy_spender:        { src: '/personalities/savvy_spender.webp',        dotColor: '#22C55E' },
+  low_key_saver:        { src: '/personalities/low_key_saver.webp',        dotColor: '#60A5FA' },
+  big_ticket_player:    { src: '/personalities/big_ticket_player.webp',    dotColor: '#F59E0B' },
+  safety_buffer:        { src: '/personalities/safety_buffer.webp',        dotColor: '#34D399' },
 }
 
 // ─── Card — renders real image when available, placeholder otherwise ──────────
