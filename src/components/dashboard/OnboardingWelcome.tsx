@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { UploadCloud, Tags, BarChart2, Check } from 'lucide-react'
+import { UploadCloud, Tags, BarChart2, Check, Brain, BarChart3, FlaskConical } from 'lucide-react'
 
 interface Props {
   uploadsDone?: boolean
@@ -14,7 +14,7 @@ const stepDefs = [
     icon: UploadCloud,
     title: 'Upload your statement',
     description:
-      'Export a CSV or OFX file from your bank\'s website and upload it here.',
+      'Export a CSV or OFX file from your bank and upload it here. Takes about 30 seconds.',
     href: '/upload',
   },
   {
@@ -22,16 +22,37 @@ const stepDefs = [
     icon: Tags,
     title: 'Categorize transactions',
     description:
-      'Drag transactions into categories. Create rules to auto-categorize future imports.',
+      'Drag transactions into categories. We use this to map your spending behavior.',
     href: '/categorize',
   },
   {
     number: 3,
     icon: BarChart2,
-    title: 'See your dashboard',
+    title: 'Unlock your results',
     description:
-      'Get a full breakdown of spending, income, trends, and financial health score.',
+      'See your Money Personality, spending patterns, and full Financial Autopsy.',
     href: '/dashboard',
+  },
+]
+
+const howItWorks = [
+  {
+    icon: Brain,
+    title: 'Get your Money Personality',
+    description: 'Understand your unique spending behavior — are you a Wire Dancer or Glowing Broke?',
+    color: '#8b6fff',
+  },
+  {
+    icon: BarChart3,
+    title: 'See what\'s driving it',
+    description: 'We analyze your categories to reveal the patterns behind your habits.',
+    color: '#6c7cff',
+  },
+  {
+    icon: FlaskConical,
+    title: 'Run a Financial Autopsy',
+    description: 'Get a clear breakdown of where your money is going — and how to fix it.',
+    color: '#2dd4bf',
   },
 ]
 
@@ -44,7 +65,7 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
   // CTA config
   let ctaHref = '/upload'
   let ctaLabel: React.ReactNode = (
-    <><UploadCloud size={18} />Upload your first statement &rarr;</>
+    <><UploadCloud size={18} />Upload &amp; Reveal My Money Personality &rarr;</>
   )
   if (activeStep === 2) {
     ctaHref = '/categorize'
@@ -70,8 +91,8 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
         gap: 40,
       }}
     >
-      {/* Header */}
-      <div style={{ textAlign: 'center', maxWidth: 520 }}>
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div style={{ textAlign: 'center', maxWidth: 540 }}>
         <div
           style={{
             display: 'inline-flex',
@@ -94,7 +115,7 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
             fontSize: 28,
             fontWeight: 700,
             color: 'var(--text)',
-            margin: '0 0 10px',
+            margin: '0 0 12px',
             letterSpacing: '-0.5px',
           }}
         >
@@ -104,15 +125,78 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
           style={{
             fontSize: 16,
             color: 'var(--muted)',
-            margin: 0,
-            lineHeight: 1.5,
+            margin: '0 0 14px',
+            lineHeight: 1.6,
           }}
         >
-          You&apos;re 3 steps away from understanding your finances
+          Discover your Money Personality, uncover what&apos;s really driving your spending, and run a full Financial Autopsy on your habits.
+        </p>
+        <p
+          style={{
+            fontSize: 13,
+            color: 'rgba(255,255,255,0.32)',
+            margin: 0,
+            fontStyle: 'italic',
+            letterSpacing: '0.01em',
+          }}
+        >
+          Your bank statement tells a story. We translate it.
         </p>
       </div>
 
-      {/* Steps */}
+      {/* ── How it works ───────────────────────────────────────────────────── */}
+      <div style={{ width: '100%', maxWidth: 860 }}>
+        <p style={{
+          margin: '0 0 14px',
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.10em',
+          color: 'rgba(255,255,255,0.30)',
+          textAlign: 'center',
+        }}>
+          How it works
+        </p>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: 12,
+        }}>
+          {howItWorks.map((item) => {
+            const Icon = item.icon
+            return (
+              <div key={item.title} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                padding: '18px 18px',
+                borderRadius: 14,
+                background: `${item.color}0a`,
+                border: `1px solid ${item.color}22`,
+              }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                  background: `${item.color}18`,
+                  border: `1px solid ${item.color}30`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon size={16} color={item.color} strokeWidth={1.8} />
+                </div>
+                <div>
+                  <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+                    {item.title}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)', lineHeight: 1.55 }}>
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Steps ──────────────────────────────────────────────────────────── */}
       <div
         style={{
           display: 'grid',
@@ -156,13 +240,7 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
               }}
             >
               {/* Step number + icon */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                }}
-              >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div
                   style={{
                     width: 36,
@@ -189,9 +267,7 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
                   ) : (
                     <Icon
                       size={18}
-                      style={{
-                        color: isActive ? 'var(--accent)' : 'var(--muted)',
-                      }}
+                      style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
                     />
                   )}
                 </div>
@@ -214,25 +290,10 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
 
               {/* Text */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 15,
-                    fontWeight: 600,
-                    color: 'var(--text)',
-                    lineHeight: 1.3,
-                  }}
-                >
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3 }}>
                   {step.title}
                 </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 13,
-                    color: 'var(--muted)',
-                    lineHeight: 1.55,
-                  }}
-                >
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)', lineHeight: 1.55 }}>
                   {step.description}
                 </p>
               </div>
@@ -241,15 +302,8 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
         })}
       </div>
 
-      {/* CTA */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 14,
-        }}
-      >
+      {/* ── CTA ────────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <Link
           href={ctaHref}
           style={{
@@ -271,14 +325,7 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
           {ctaLabel}
         </Link>
 
-        <p
-          style={{
-            margin: 0,
-            fontSize: 12,
-            color: 'var(--subtle)',
-            textAlign: 'center',
-          }}
-        >
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--subtle)', textAlign: 'center' }}>
           Supports CSV, OFX, QFX, and QBO formats from any bank
         </p>
       </div>
