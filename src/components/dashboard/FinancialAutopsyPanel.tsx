@@ -141,7 +141,7 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
 
   const illus = ILLUSTRATION_CARDS[core.id as string]
   if (illus) {
-    const illusBottomHeight = trait ? 160 : 100
+    const illusBottomHeight = trait ? 110 : 90
     return (
       <>
       <div style={{
@@ -219,18 +219,9 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
           <p style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#fff' }}>
             {name}
           </p>
-          {trait ? (
-            <>
-              <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: trait.accent, lineHeight: 1.2 }}>
-                · {trait.name}
-              </p>
-              <p style={{ margin: '5px 0 0', fontSize: 11, fontStyle: 'italic', fontWeight: 500, color: 'rgba(255,255,255,0.68)', lineHeight: 1.4 }}>
-                &ldquo;{trait.tagline}&rdquo;
-              </p>
-            </>
-          ) : (
-            <p style={{ margin: '5px 0 0', fontSize: 11, fontStyle: 'italic', fontWeight: 500, color: 'rgba(255,255,255,0.68)', lineHeight: 1.4 }}>
-              &ldquo;{core.vibe}&rdquo;
+          {trait && (
+            <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: trait.accent, lineHeight: 1.2 }}>
+              · {trait.name}
             </p>
           )}
         </div>
