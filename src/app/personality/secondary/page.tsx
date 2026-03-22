@@ -67,6 +67,9 @@ const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string
   low_key_saver:        { src: '/personalities/low_key_saver.webp',        dotColor: '#60A5FA' },
   big_ticket_player:    { src: '/personalities/big_ticket_player.webp',    dotColor: '#F59E0B' },
   safety_buffer:        { src: '/personalities/safety_buffer.webp',        dotColor: '#34D399' },
+  wire_dancer:          { src: '/personalities/wire-dancer.webp',          dotColor: '#2DD4BF' },
+  full_send:            { src: '/personalities/full-send.webp',            dotColor: '#F97316' },
+  subscription_collector: { src: '/personalities/subscription-collector.webp', dotColor: '#818CF8' },
 }
 
 // ─── Card — renders real image when available, placeholder otherwise ──────────
