@@ -19,10 +19,10 @@ export function useInsightsUnlock() {
     queryKey: ['insights-unlock-status'],
     queryFn: () => apiFetch('/api/insights/unlock-status'),
     enabled: !!user,
-    staleTime: 10_000,
+    staleTime: 0,
     refetchOnWindowFocus: true,
-    // Poll every 30s while still locked; stop once unlocked
-    refetchInterval: (query) => (query.state.data?.unlocked ? false : 30_000),
+    // Poll every 15s while still locked; stop once unlocked
+    refetchInterval: (query) => (query.state.data?.unlocked ? false : 15_000),
   })
 
   return {

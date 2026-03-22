@@ -1305,6 +1305,7 @@ export default function CategorizePage() {
     mutationFn: () => apiFetch('/api/transactions/apply-rules', { method: 'POST' }),
     onSuccess: (res: { applied: number; skipped: number }) => {
       void qc.invalidateQueries({ queryKey: ['categorize-transactions'] })
+      qc.invalidateQueries({ queryKey: ['insights-unlock-status'] })
       setApplyRulesMsg(`${res.applied} transaction${res.applied !== 1 ? 's' : ''} categorized by rules`)
       setTimeout(() => setApplyRulesMsg(null), 3000)
     },
@@ -1471,6 +1472,7 @@ export default function CategorizePage() {
     if (dashboardTimer.current) { clearTimeout(dashboardTimer.current); dashboardTimer.current = null }
     qc.invalidateQueries({ queryKey: ['summary'] })
     qc.invalidateQueries({ queryKey: ['trends'] })
+    qc.invalidateQueries({ queryKey: ['insights-unlock-status'] })
 
     // Fire autopsy generation in the background for the most recent transaction month
     const token = useAuthStore.getState().token
