@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText, Equal, Lightbulb, Store, Trash2, PlusCircle } from 'lucide-react'
+import { CheckCircle2, GripVertical, Loader2, AlertCircle, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Search, X, Save, Zap, FileText, Equal, Lightbulb, Store, Trash2, PlusCircle, Brain, BarChart3, Repeat2, Sparkles, Activity } from 'lucide-react'
 import clsx from 'clsx'
 import {
   DndContext,
@@ -890,73 +890,63 @@ function CategorizationTips({ onSortAmount, onSortVendor, onSortSamePrice }: Cat
     setDismissed(true)
   }
 
-  const cards: Array<{ Icon: React.ElementType; title: string; body: string; sub: string; onClick: () => void }> = [
+  const cards: Array<{ Icon: React.ElementType; title: string; desc: string; onClick: () => void }> = [
     {
       Icon: ArrowUpDown,
-      title: 'Amount',
-      body: 'Groups identical transactions.',
-      sub: 'Great for bills and subscriptions.',
+      title: 'Amount Matching',
+      desc: 'Group identical transactions',
       onClick: onSortAmount,
     },
     {
       Icon: Store,
-      title: 'Vendor',
-      body: 'Clusters merchants together.',
-      sub: 'Categorize many at once.',
+      title: 'Vendor Clustering',
+      desc: 'Merge similar merchants',
       onClick: onSortVendor,
     },
     {
-      Icon: Equal,
-      title: 'Same Price',
-      body: 'Detect recurring payments.',
-      sub: 'Netflix, Spotify, utilities.',
+      Icon: Repeat2,
+      title: 'Recurring Detection',
+      desc: 'Identify subscriptions automatically',
       onClick: onSortSamePrice,
     },
   ]
 
   return (
-    <div className="smart-tips-panel" style={{
-      display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
-      marginBottom: 16, padding: '12px 16px',
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+      marginBottom: 16, padding: '10px 0',
     }}>
 
-      {/* Header label */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <Lightbulb size={14} style={{ color: 'var(--accent)' }} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-          Smart Tips
-        </span>
-      </div>
-
-      {/* Divider */}
-      <div style={{ width: 1, height: 32, background: 'var(--border)', flexShrink: 0 }} />
+      {/* Label */}
+      <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.30)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+        Smart Suggestions
+      </span>
 
       {/* Tip cards */}
-      <div style={{ display: 'flex', gap: 10, flex: 1, flexWrap: 'wrap' }}>
-        {cards.map(({ Icon, title, body, sub, onClick }) => (
+      <div style={{ display: 'flex', gap: 8, flex: 1, flexWrap: 'wrap' }}>
+        {cards.map(({ Icon, title, desc, onClick }) => (
           <button
             key={title}
             onClick={onClick}
-            className="smart-tip-item"
             style={{
-              display: 'flex', alignItems: 'flex-start', gap: 9,
-              padding: '8px 12px', cursor: 'pointer',
-              textAlign: 'left', transition: 'background 0.15s, border-color 0.15s',
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+              padding: '10px 13px', cursor: 'pointer', textAlign: 'left',
+              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 10, transition: 'background 0.15s, border-color 0.15s',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(108,124,255,0.08)'
-              e.currentTarget.style.borderColor = 'rgba(108,124,255,0.16)'
+              e.currentTarget.style.background = 'rgba(108,124,255,0.07)'
+              e.currentTarget.style.borderColor = 'rgba(108,124,255,0.18)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
             }}
           >
-            <Icon size={13} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
+            <Icon size={13} strokeWidth={1.5} style={{ color: 'rgba(255,255,255,0.45)', marginTop: 2, flexShrink: 0 }} />
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>{title}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>{body}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>{sub}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3 }}>{title}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>{desc}</div>
             </div>
           </button>
         ))}
@@ -1727,36 +1717,36 @@ export default function CategorizePage() {
           {/* Unlock intent banner — always shown */}
           {!unlocked && (
             <div style={{
-              marginBottom: 20, padding: '18px 20px', borderRadius: 14,
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(168,85,247,0.08) 100%)',
-              border: '1px solid rgba(99,102,241,0.25)',
+              marginBottom: 20, padding: '20px 22px',
+              borderRadius: 14,
+              background: 'rgba(99,102,241,0.06)',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid rgba(99,102,241,0.18)',
             }}>
-              <p style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-                Categorize your transactions to unlock your financial insights
+              <p style={{ margin: '0 0 6px', fontSize: 21, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                Categorize your transactions to unlock insights
               </p>
-              <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                This step powers everything — your spending patterns, subscriptions, and Money Personality are only as accurate as your categories.
+              <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, maxWidth: 600 }}>
+                This step powers your entire analysis — your Money Personality, spending patterns, and insights depend on accurate categorization.
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {[
-                  { icon: '🧠', label: 'Money Personality' },
-                  { icon: '📊', label: 'Spending Patterns' },
-                  { icon: '🔄', label: 'Subscription Detection' },
-                  { icon: '💡', label: 'Personalized Insights' },
-                ].map(({ icon, label }) => (
+                  { Icon: Brain,     label: 'Money Personality' },
+                  { Icon: BarChart3, label: 'Spending Patterns' },
+                  { Icon: Repeat2,   label: 'Subscriptions' },
+                  { Icon: Sparkles,  label: 'Insights' },
+                ].map(({ Icon, label }) => (
                   <span key={label} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                    background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)',
-                    color: 'var(--text)',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '5px 12px', borderRadius: 999, fontSize: 13,
+                    background: 'transparent', border: '1px solid rgba(255,255,255,0.09)',
+                    color: 'rgba(255,255,255,0.65)',
                   }}>
-                    {icon} {label}
+                    <Icon size={12} strokeWidth={1.5} />
+                    {label}
                   </span>
                 ))}
               </div>
-              <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>
-                No categorization = limited insights
-              </p>
             </div>
           )}
 
@@ -1787,34 +1777,51 @@ export default function CategorizePage() {
           {/* Header */}
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Categorize</h1>
-              <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
-                Categorizations go faster when you group similar transactions.
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>Categorize</h1>
+              <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+                Group similar transactions to categorize faster.
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {needsReviewCount > 0 && (
-                <span className="badge bg-amber-100 text-amber-700">
-                  {needsReviewCount} uncategorized
-                </span>
-              )}
-              <div className="flex rounded-lg overflow-hidden text-sm font-semibold" style={{ border: '1px solid var(--border-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* State tabs */}
+              <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <button
                   onClick={() => setFilterMode('needs-review')}
-                  className={clsx('px-3 py-1.5 transition', filterMode === 'needs-review' ? 'bg-accent-500 text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]')}
+                  style={{
+                    padding: '7px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none',
+                    background: filterMode === 'needs-review' ? 'rgba(108,124,255,0.22)' : 'transparent',
+                    color: filterMode === 'needs-review' ? '#c5cbff' : 'rgba(255,255,255,0.40)',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}
                 >
                   Uncategorized
                 </button>
                 <button
                   onClick={() => setFilterMode('all')}
-                  className={clsx('px-3 py-1.5 transition', filterMode === 'all' ? 'bg-accent-500 text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]')}
+                  style={{
+                    padding: '7px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none',
+                    borderLeft: '1px solid rgba(255,255,255,0.08)',
+                    background: filterMode === 'all' ? 'rgba(108,124,255,0.22)' : 'transparent',
+                    color: filterMode === 'all' ? '#c5cbff' : 'rgba(255,255,255,0.40)',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}
                 >
                   All
                 </button>
               </div>
+              {/* Primary CTA */}
               <button
                 onClick={handleFinishCategorizing}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700 transition"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px', height: 40, borderRadius: 999, border: 'none',
+                  background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  boxShadow: '0 2px 12px rgba(22,163,74,0.30)',
+                  transition: 'opacity 0.15s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
               >
                 Finish Categorizing →
               </button>
@@ -1829,21 +1836,69 @@ export default function CategorizePage() {
           />
 
           {queueTxs.length === 0 ? (
-            /* All caught up */
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle2 size={32} className="text-green-600" />
+            txTotal === 0 ? (
+              /* No transactions at all — nothing to categorize */
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', textAlign: 'center' }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 14, marginBottom: 20,
+                  background: 'rgba(108,124,255,0.10)', border: '1px solid rgba(108,124,255,0.20)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <FileText size={22} strokeWidth={1.5} style={{ color: 'rgba(108,124,255,0.70)' }} />
+                </div>
+                <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                  No transactions yet
+                </h2>
+                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, maxWidth: 340 }}>
+                  Upload a bank or credit card statement to get started.
+                </p>
+                <button
+                  onClick={() => router.push('/upload')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '10px 20px', borderRadius: 999, border: 'none',
+                    background: 'linear-gradient(135deg, #6c7cff, #8b6fff)',
+                    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                    boxShadow: '0 2px 16px rgba(108,124,255,0.30)',
+                  }}
+                >
+                  Upload a Statement →
+                </button>
               </div>
-              <h2 className="text-xl font-bold text-slate-800">All caught up!</h2>
-              <p className="mt-2 max-w-sm text-sm text-slate-500">
-                {filterMode === 'needs-review'
-                  ? 'Every transaction has an app category. New imports will appear here.'
-                  : 'No transactions to show.'}
-              </p>
-              <button onClick={() => router.push('/dashboard')} className="btn-primary mt-6">
-                Go to Dashboard →
-              </button>
-            </div>
+            ) : (
+              /* All transactions categorized */
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', textAlign: 'center' }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 14, marginBottom: 20,
+                  background: 'rgba(22,163,74,0.10)', border: '1px solid rgba(22,163,74,0.22)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <CheckCircle2 size={22} strokeWidth={1.5} style={{ color: 'rgba(34,197,94,0.80)' }} />
+                </div>
+                <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                  {filterMode === 'needs-review' ? 'All transactions categorized' : 'No transactions to show'}
+                </h2>
+                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, maxWidth: 360 }}>
+                  {filterMode === 'needs-review'
+                    ? 'Your financial data is now structured and ready for analysis.'
+                    : 'Try switching to Uncategorized view.'}
+                </p>
+                {filterMode === 'needs-review' && (
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      padding: '10px 20px', borderRadius: 999, border: 'none',
+                      background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                      color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                      boxShadow: '0 2px 16px rgba(22,163,74,0.28)',
+                    }}
+                  >
+                    Go to Dashboard →
+                  </button>
+                )}
+              </div>
+            )
           ) : (
             /* Two-column layout */
             <>
