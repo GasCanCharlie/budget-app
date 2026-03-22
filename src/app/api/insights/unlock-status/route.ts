@@ -6,7 +6,9 @@ export async function GET(req: NextRequest) {
   const payload = getUserFromRequest(req)
   if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const base = { account: { userId: payload.userId }, isExcluded: false }
+  // Transfers are excluded from the categorize queue and never get an appCategory —
+  // exclude them here so they don't block the unlock.
+  const base = { account: { userId: payload.userId }, isExcluded: false, isTransfer: false }
 
   const [total, uncategorized] = await Promise.all([
     prisma.transaction.count({ where: base }),
