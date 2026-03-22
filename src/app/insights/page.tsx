@@ -337,7 +337,7 @@ export default function InsightsPage() {
   useEffect(() => {
     if (!unlockLoading && !unlocked) router.replace('/categorize?from=insights')
   }, [unlocked, unlockLoading, router])
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }, [messages])
   useEffect(() => { return () => { abortControllerRef.current?.abort() } }, [])
 
   // ── Data ──────────────────────────────────────────────────────────────────
