@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import {
   Coins, Target, RefreshCw, TrendingUp, Gauge,
   ChevronDown, ChevronRight, Loader2, Lightbulb,
@@ -114,7 +115,11 @@ async function sharePersonality(result: PersonalityResult, signals?: { income: n
 
 // ─── PersonalityCard ──────────────────────────────────────────────────────────
 
-export function PersonalityCard({ result, signals }: { result: PersonalityResult; signals?: { income: number; spending: number; net: number; topCatName?: string } }) {
+export function PersonalityCard({ result, signals, secondaryHref }: {
+  result: PersonalityResult
+  signals?: { income: number; spending: number; net: number; topCatName?: string }
+  secondaryHref?: string
+}) {
   const core  = result.core
   const trait = result.trait
   const soft  = result.softTrait
@@ -138,10 +143,11 @@ export function PersonalityCard({ result, signals }: { result: PersonalityResult
   if (illus) {
     const illusBottomHeight = trait ? 160 : 100
     return (
+      <>
       <div style={{
         position: 'relative',
         borderRadius: 18, overflow: 'hidden',
-        marginBottom: 14,
+        marginBottom: trait && secondaryHref ? 0 : 14,
         boxShadow: '0 12px 48px rgba(0,0,0,0.45)',
         border: `1px solid ${illus.dotColor}40`,
       }}>
@@ -229,6 +235,23 @@ export function PersonalityCard({ result, signals }: { result: PersonalityResult
           )}
         </div>
       </div>
+
+      {/* See What's Driving This CTA */}
+      {secondaryHref && trait && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8, marginBottom: 6 }}>
+          <Link href={secondaryHref} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontSize: 11, fontWeight: 600, color: trait.accent,
+            background: `${trait.accent}15`,
+            border: `1px solid ${trait.accent}35`,
+            borderRadius: 999, padding: '5px 12px',
+            textDecoration: 'none', letterSpacing: '0.01em',
+          }}>
+            See What&rsquo;s Driving This →
+          </Link>
+        </div>
+      )}
+    </>
     )
   }
 
@@ -342,6 +365,22 @@ export function PersonalityCard({ result, signals }: { result: PersonalityResult
       <p style={{ margin: 0, fontSize: 13, fontStyle: 'italic', color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.55 }}>
         &ldquo;{vibeText}&rdquo;
       </p>
+
+      {/* See What's Driving This CTA */}
+      {secondaryHref && trait && (
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+          <Link href={secondaryHref} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontSize: 11, fontWeight: 600, color: trait.accent,
+            background: `${trait.accent}12`,
+            border: `1px solid ${trait.accent}30`,
+            borderRadius: 999, padding: '5px 12px',
+            textDecoration: 'none', letterSpacing: '0.01em',
+          }}>
+            See What&rsquo;s Driving This →
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

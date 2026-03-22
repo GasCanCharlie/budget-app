@@ -330,6 +330,7 @@ export default function DashboardPage() {
             net:        summary.net as number,
             topCatName: spendingCategories[0]?.categoryName,
           }}
+          secondaryHref={`/personality/secondary?year=${year}&month=${month}`}
         />
 
 
