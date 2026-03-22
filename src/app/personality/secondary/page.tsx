@@ -86,22 +86,6 @@ function SecondaryPersonalityPlaceholder({
             style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
           />
 
-          {/* Cinematic top-left gradient — readable text without covering the image */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.40) 38%, transparent 62%)',
-            pointerEvents: 'none',
-          }} />
-
-          {/* Top-left identity */}
-          <div style={{ position: 'absolute', top: 18, left: 20, right: '32%', pointerEvents: 'none' }}>
-            <p style={{ margin: '0 0 5px', fontSize: 30, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#fff' }}>
-              {traitName}
-            </p>
-            <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.82)', lineHeight: 1.4 }}>
-              {tagline}
-            </p>
-          </div>
         </div>
       </div>
     )
