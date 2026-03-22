@@ -161,16 +161,23 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
           style={{ width: '100%', height: 'auto', display: 'block' }}
         />
 
-        {/* Top gradient for badge + share button readability only */}
+        {/* Top gradient for share button readability */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 64,
           background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%)',
           pointerEvents: 'none',
         }} />
 
-        {/* Top-left badge */}
+        {/* Bottom gradient for badge readability */}
         <div style={{
-          position: 'absolute', top: 14, left: 16,
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 64,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Bottom-left badge */}
+        <div style={{
+          position: 'absolute', bottom: 14, left: 16,
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'rgba(0,0,0,0.35)',
           backdropFilter: 'blur(10px)',
