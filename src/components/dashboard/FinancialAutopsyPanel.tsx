@@ -141,6 +141,10 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/full-send.webp',
       dotColor: '#F97316', btnColor: 'rgba(249,115,22,0.22)', btnBorder: 'rgba(249,115,22,0.45)',
     },
+    currency_combustion: {
+      src: '/personalities/currency-combustion.webp',
+      dotColor: '#EF4444', btnColor: 'rgba(239,68,68,0.22)', btnBorder: 'rgba(239,68,68,0.45)',
+    },
   }
 
   const illus = ILLUSTRATION_CARDS[core.id as string]
