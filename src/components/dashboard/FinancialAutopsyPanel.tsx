@@ -247,7 +247,7 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
             borderRadius: 999, padding: '5px 12px',
             textDecoration: 'none', letterSpacing: '0.01em',
           }}>
-            See What&rsquo;s Driving This →
+            Check out your alter ego →
           </Link>
         </div>
       )}
@@ -377,7 +377,7 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
             borderRadius: 999, padding: '5px 12px',
             textDecoration: 'none', letterSpacing: '0.01em',
           }}>
-            See What&rsquo;s Driving This →
+            Check out your alter ego →
           </Link>
         </div>
       )}
