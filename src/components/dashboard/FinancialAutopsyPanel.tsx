@@ -145,6 +145,18 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/currency-combustion.webp',
       dotColor: '#EF4444', btnColor: 'rgba(239,68,68,0.22)', btnBorder: 'rgba(239,68,68,0.45)',
     },
+    balance_transfer: {
+      src: '/personalities/balance_transfer.webp',
+      dotColor: '#FBBF24', btnColor: 'rgba(251,191,36,0.22)', btnBorder: 'rgba(251,191,36,0.45)',
+    },
+    utilization_king: {
+      src: '/personalities/utilization_king.webp',
+      dotColor: '#FB923C', btnColor: 'rgba(251,146,60,0.22)', btnBorder: 'rgba(251,146,60,0.45)',
+    },
+    cashback_architect: {
+      src: '/personalities/cashback_architect.webp',
+      dotColor: '#818CF8', btnColor: 'rgba(129,140,248,0.22)', btnBorder: 'rgba(129,140,248,0.45)',
+    },
   }
 
   const illus = ILLUSTRATION_CARDS[core.id as string]

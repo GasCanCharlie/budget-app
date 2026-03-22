@@ -51,6 +51,9 @@ function getIntensity(pct: number): { label: string; color: string } {
 const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string }>> = {
   glowing_broke:        { src: '/personalities/glowing-broke.webp',        dotColor: '#c026d3' },
   currency_combustion:  { src: '/personalities/currency-combustion.webp',  dotColor: '#EF4444' },
+  balance_transfer:     { src: '/personalities/balance_transfer.webp',     dotColor: '#FBBF24' },
+  utilization_king:     { src: '/personalities/utilization_king.webp',     dotColor: '#FB923C' },
+  cashback_architect:   { src: '/personalities/cashback_architect.webp',   dotColor: '#818CF8' },
 }
 
 // ─── Card — renders real image when available, placeholder otherwise ──────────
