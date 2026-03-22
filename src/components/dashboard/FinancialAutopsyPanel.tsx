@@ -157,6 +157,58 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/cashback_architect.webp',
       dotColor: '#818CF8', btnColor: 'rgba(129,140,248,0.22)', btnBorder: 'rgba(129,140,248,0.45)',
     },
+    minimum_payer: {
+      src: '/personalities/minimum_payer.webp',
+      dotColor: '#FB923C', btnColor: 'rgba(251,146,60,0.22)', btnBorder: 'rgba(251,146,60,0.45)',
+    },
+    points_chaser: {
+      src: '/personalities/points_chaser.webp',
+      dotColor: '#FBBF24', btnColor: 'rgba(251,191,36,0.22)', btnBorder: 'rgba(251,191,36,0.45)',
+    },
+    revolving_door: {
+      src: '/personalities/revolving_door.webp',
+      dotColor: '#F87171', btnColor: 'rgba(248,113,113,0.22)', btnBorder: 'rgba(248,113,113,0.45)',
+    },
+    direct_depositor: {
+      src: '/personalities/direct_depositor.webp',
+      dotColor: '#34D399', btnColor: 'rgba(52,211,153,0.22)', btnBorder: 'rgba(52,211,153,0.45)',
+    },
+    cash_keeper: {
+      src: '/personalities/cash_keeper.webp',
+      dotColor: '#FBBF24', btnColor: 'rgba(251,191,36,0.22)', btnBorder: 'rgba(251,191,36,0.45)',
+    },
+    flow_master: {
+      src: '/personalities/flow_master.webp',
+      dotColor: '#2DD4BF', btnColor: 'rgba(45,212,191,0.22)', btnBorder: 'rgba(45,212,191,0.45)',
+    },
+    breakeven_poet: {
+      src: '/personalities/breakeven_poet.webp',
+      dotColor: '#A78BFA', btnColor: 'rgba(167,139,250,0.22)', btnBorder: 'rgba(167,139,250,0.45)',
+    },
+    overdraft_artist: {
+      src: '/personalities/overdraft_artist.webp',
+      dotColor: '#F97316', btnColor: 'rgba(249,115,22,0.22)', btnBorder: 'rgba(249,115,22,0.45)',
+    },
+    quiet_millionaire: {
+      src: '/personalities/quiet_millionaire.webp',
+      dotColor: '#D97706', btnColor: 'rgba(217,119,6,0.22)', btnBorder: 'rgba(217,119,6,0.45)',
+    },
+    savvy_spender: {
+      src: '/personalities/savvy_spender.webp',
+      dotColor: '#22C55E', btnColor: 'rgba(34,197,94,0.22)', btnBorder: 'rgba(34,197,94,0.45)',
+    },
+    low_key_saver: {
+      src: '/personalities/low_key_saver.webp',
+      dotColor: '#60A5FA', btnColor: 'rgba(96,165,250,0.22)', btnBorder: 'rgba(96,165,250,0.45)',
+    },
+    big_ticket_player: {
+      src: '/personalities/big_ticket_player.webp',
+      dotColor: '#F59E0B', btnColor: 'rgba(245,158,11,0.22)', btnBorder: 'rgba(245,158,11,0.45)',
+    },
+    safety_buffer: {
+      src: '/personalities/safety_buffer.webp',
+      dotColor: '#34D399', btnColor: 'rgba(52,211,153,0.22)', btnBorder: 'rgba(52,211,153,0.45)',
+    },
   }
 
   const illus = ILLUSTRATION_CARDS[core.id as string]
