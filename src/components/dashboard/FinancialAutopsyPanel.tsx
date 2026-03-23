@@ -221,6 +221,18 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/strategic_deployer.webp',
       dotColor: '#818CF8', btnColor: 'rgba(129,140,248,0.22)', btnBorder: 'rgba(129,140,248,0.45)',
     },
+    smooth_operator: {
+      src: '/personalities/smooth_operator.webp',
+      dotColor: '#A78BFA', btnColor: 'rgba(167,139,250,0.22)', btnBorder: 'rgba(167,139,250,0.45)',
+    },
+    steady_builder: {
+      src: '/personalities/steady_builder.webp',
+      dotColor: '#6366F1', btnColor: 'rgba(99,102,241,0.22)', btnBorder: 'rgba(99,102,241,0.45)',
+    },
+    chaos_controller: {
+      src: '/personalities/chaos_controller.webp',
+      dotColor: '#FB923C', btnColor: 'rgba(251,146,60,0.22)', btnBorder: 'rgba(251,146,60,0.45)',
+    },
   }
 
   const illus = ILLUSTRATION_CARDS[core.id as string]

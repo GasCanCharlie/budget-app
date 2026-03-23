@@ -73,6 +73,9 @@ const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string
   corner_office:          { src: '/personalities/corner_office.webp',          dotColor: '#84cc16' },
   adrenaline_accountant:  { src: '/personalities/adrenaline_accountant.webp',  dotColor: '#F43F5E' },
   strategic_deployer:     { src: '/personalities/strategic_deployer.webp',     dotColor: '#818CF8' },
+  smooth_operator:        { src: '/personalities/smooth_operator.webp',        dotColor: '#A78BFA' },
+  steady_builder:         { src: '/personalities/steady_builder.webp',         dotColor: '#6366F1' },
+  chaos_controller:       { src: '/personalities/chaos_controller.webp',       dotColor: '#FB923C' },
 }
 
 // ─── Card — renders real image when available, placeholder otherwise ──────────
