@@ -233,6 +233,34 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/chaos_controller.webp',
       dotColor: '#FB923C', btnColor: 'rgba(251,146,60,0.22)', btnBorder: 'rgba(251,146,60,0.45)',
     },
+    one_card_wonder: {
+      src: '/personalities/one_card_wonder.webp',
+      dotColor: '#94A3B8', btnColor: 'rgba(148,163,184,0.22)', btnBorder: 'rgba(148,163,184,0.45)',
+    },
+    glow_up: {
+      src: '/personalities/glow_up.webp',
+      dotColor: '#A855F7', btnColor: 'rgba(168,85,247,0.22)', btnBorder: 'rgba(168,85,247,0.45)',
+    },
+    grind_setter: {
+      src: '/personalities/grind_setter.webp',
+      dotColor: '#64748B', btnColor: 'rgba(100,116,139,0.22)', btnBorder: 'rgba(100,116,139,0.45)',
+    },
+    margin_eater: {
+      src: '/personalities/margin_eater.webp',
+      dotColor: '#f97316', btnColor: 'rgba(249,115,22,0.22)', btnBorder: 'rgba(249,115,22,0.45)',
+    },
+    wellness_bill: {
+      src: '/personalities/wellness_bill.webp',
+      dotColor: '#10b981', btnColor: 'rgba(16,185,129,0.22)', btnBorder: 'rgba(16,185,129,0.45)',
+    },
+    free_trial_life: {
+      src: '/personalities/free_trial_life.webp',
+      dotColor: '#06b6d4', btnColor: 'rgba(6,182,212,0.22)', btnBorder: 'rgba(6,182,212,0.45)',
+    },
+    mail_goes_home: {
+      src: '/personalities/mail_goes_home.webp',
+      dotColor: '#f59e0b', btnColor: 'rgba(245,158,11,0.22)', btnBorder: 'rgba(245,158,11,0.45)',
+    },
   }
 
   const illus = ILLUSTRATION_CARDS[core.id as string]

@@ -76,6 +76,13 @@ const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string
   smooth_operator:        { src: '/personalities/smooth_operator.webp',        dotColor: '#A78BFA' },
   steady_builder:         { src: '/personalities/steady_builder.webp',         dotColor: '#6366F1' },
   chaos_controller:       { src: '/personalities/chaos_controller.webp',       dotColor: '#FB923C' },
+  one_card_wonder:        { src: '/personalities/one_card_wonder.webp',        dotColor: '#94A3B8' },
+  glow_up:                { src: '/personalities/glow_up.webp',                dotColor: '#A855F7' },
+  grind_setter:           { src: '/personalities/grind_setter.webp',           dotColor: '#64748B' },
+  margin_eater:           { src: '/personalities/margin_eater.webp',           dotColor: '#f97316' },
+  wellness_bill:          { src: '/personalities/wellness_bill.webp',          dotColor: '#10b981' },
+  free_trial_life:        { src: '/personalities/free_trial_life.webp',        dotColor: '#06b6d4' },
+  mail_goes_home:         { src: '/personalities/mail_goes_home.webp',         dotColor: '#f59e0b' },
 }
 
 // ─── Card — renders real image when available, placeholder otherwise ──────────
