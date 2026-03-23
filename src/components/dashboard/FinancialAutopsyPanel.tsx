@@ -209,6 +209,10 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/safety_buffer.webp',
       dotColor: '#34D399', btnColor: 'rgba(52,211,153,0.22)', btnBorder: 'rgba(52,211,153,0.45)',
     },
+    corner_office: {
+      src: '/personalities/corner_office.webp',
+      dotColor: '#84cc16', btnColor: 'rgba(132,204,22,0.22)', btnBorder: 'rgba(132,204,22,0.45)',
+    },
   }
 
   const illus = ILLUSTRATION_CARDS[core.id as string]

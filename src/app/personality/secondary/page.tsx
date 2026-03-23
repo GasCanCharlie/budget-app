@@ -70,6 +70,7 @@ const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string
   wire_dancer:          { src: '/personalities/wire-dancer.webp',          dotColor: '#2DD4BF' },
   full_send:            { src: '/personalities/full-send.webp',            dotColor: '#F97316' },
   subscription_collector: { src: '/personalities/subscription-collector.webp', dotColor: '#818CF8' },
+  corner_office:          { src: '/personalities/corner_office.webp',          dotColor: '#84cc16' },
 }
 
 // ─── Card — renders real image when available, placeholder otherwise ──────────
