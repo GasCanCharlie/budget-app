@@ -71,6 +71,8 @@ const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string
   full_send:            { src: '/personalities/full-send.webp',            dotColor: '#F97316' },
   subscription_collector: { src: '/personalities/subscription-collector.webp', dotColor: '#818CF8' },
   corner_office:          { src: '/personalities/corner_office.webp',          dotColor: '#84cc16' },
+  adrenaline_accountant:  { src: '/personalities/adrenaline_accountant.webp',  dotColor: '#F43F5E' },
+  strategic_deployer:     { src: '/personalities/strategic_deployer.webp',     dotColor: '#818CF8' },
 }
 
 // ─── Card — renders real image when available, placeholder otherwise ──────────

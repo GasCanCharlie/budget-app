@@ -213,6 +213,14 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/corner_office.webp',
       dotColor: '#84cc16', btnColor: 'rgba(132,204,22,0.22)', btnBorder: 'rgba(132,204,22,0.45)',
     },
+    adrenaline_accountant: {
+      src: '/personalities/adrenaline_accountant.webp',
+      dotColor: '#F43F5E', btnColor: 'rgba(244,63,94,0.22)', btnBorder: 'rgba(244,63,94,0.45)',
+    },
+    strategic_deployer: {
+      src: '/personalities/strategic_deployer.webp',
+      dotColor: '#818CF8', btnColor: 'rgba(129,140,248,0.22)', btnBorder: 'rgba(129,140,248,0.45)',
+    },
   }
 
   const illus = ILLUSTRATION_CARDS[core.id as string]
