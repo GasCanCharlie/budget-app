@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
   const category        = searchParams.get('category')        || null
   const displayCategory = searchParams.get('displayCategory') || null
   const search          = searchParams.get('search')          || null
+  const maxAmount       = searchParams.get('maxAmount')       ? parseFloat(searchParams.get('maxAmount')!) : null
   const ingestionFilter = searchParams.get('ingestionFilter') || null   // 'flagged' | 'duplicate'
   const sortBy          = searchParams.get('sortBy')  || 'date'          // 'date' | 'vendor' | 'amount'
   const sortDir         = searchParams.get('sortDir') || 'desc'          // 'asc' | 'desc'
@@ -58,6 +59,10 @@ export async function GET(req: NextRequest) {
       { description: { contains: search } },
       { merchantNormalized: { contains: search } },
     ]
+  }
+
+  if (maxAmount !== null) {
+    where['amount'] = { lte: maxAmount }
   }
 
   // Ingestion-quality filters (independent of category/search OR conditions)

@@ -128,11 +128,12 @@ function TransactionsPageInner() {
   const { apiFetch, apiDownload } = useApi()
   const qc           = useQueryClient()
 
-  const [search,           setSearch]           = useState('')
+  const [search,           setSearch]           = useState(searchParams.get('search') || searchParams.get('merchant') || '')
   const [category,         setCategory]         = useState(searchParams.get('category') || '')
   const [displayCategory,  setDisplayCategory]  = useState(searchParams.get('displayCategory') || '')
   const [yearFilter,       setYearFilter]        = useState(searchParams.get('year') || '')
   const [monthFilter,      setMonthFilter]       = useState(searchParams.get('month') || '')
+  const [maxAmount,        setMaxAmount]         = useState(searchParams.get('maxAmount') || '')
   const [ingestionFilter,  setIngestionFilter]  = useState<IngestionFilter>('')
   const [sortBy,           setSortBy]           = useState<SortBy>('date')
   const [sortDir,          setSortDir]          = useState<SortDir>('desc')
@@ -155,7 +156,7 @@ function TransactionsPageInner() {
   const categories = catData?.categories ?? []
 
   const { data, isLoading } = useQuery({
-    queryKey: ['transactions', search, category, displayCategory, yearFilter, monthFilter, ingestionFilter, sortBy, sortDir, page],
+    queryKey: ['transactions', search, category, displayCategory, yearFilter, monthFilter, maxAmount, ingestionFilter, sortBy, sortDir, page],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), limit: '50' })
       if (search)           params.set('search',          search)
@@ -163,6 +164,7 @@ function TransactionsPageInner() {
       if (displayCategory)  params.set('displayCategory', displayCategory)
       if (yearFilter)       params.set('year',            yearFilter)
       if (monthFilter)      params.set('month',           monthFilter)
+      if (maxAmount)        params.set('maxAmount',       maxAmount)
       if (ingestionFilter)  params.set('ingestionFilter', ingestionFilter)
       params.set('sortBy',  sortBy)
       params.set('sortDir', sortDir)
