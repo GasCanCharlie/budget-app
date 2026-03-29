@@ -23,7 +23,7 @@ export const PERSONALITY_REGISTRY: Record<AnyPersonalityId, PersonalityMeta> = {
   compounding_machine: {
     id: 'compounding_machine',
     name: 'The Compounding Machine',
-    tagline: 'Your savings rate is climbing and the math is starting to work in your favor.',
+    tagline: 'Money quietly stacking on itself — you built something that works while you sleep.',
     vibe: 'You\'re not saving money. You\'re buying future time.',
     accent: '#34D399', accentBg: 'rgba(52,211,153,0.08)',
     isCaution: false, isPremium: true, isDisabled: true,  // needs multi-month data
@@ -353,7 +353,7 @@ export const PERSONALITY_REGISTRY: Record<AnyPersonalityId, PersonalityMeta> = {
   cash_casserole: {
     id: 'cash_casserole',
     name: 'Cash Casserole',
-    tagline: 'Turns cash into casserole.',
+    tagline: 'Baked your budget into dinner.',
     vibe: 'Dinner is served. Savings are not.',
     accent: '#fb923c', accentBg: 'rgba(251,146,60,0.08)',
     isCaution: false, isPremium: false, isDisabled: false,
@@ -448,8 +448,8 @@ export const PERSONALITY_REGISTRY: Record<AnyPersonalityId, PersonalityMeta> = {
   },
   budget_smoke: {
     id: 'budget_smoke',
-    name: 'Budget Smoke',
-    tagline: 'Rolled up your budget and smoked it.',
+    name: 'The Burn Rate',
+    tagline: 'You rolled up your budget and smoked it.',
     vibe: 'The habit outlasted the savings.',
     accent: '#78716c', accentBg: 'rgba(120,113,108,0.08)',
     isCaution: false, isPremium: false, isDisabled: false,

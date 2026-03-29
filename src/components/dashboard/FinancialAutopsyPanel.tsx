@@ -261,6 +261,102 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/mail_goes_home.webp',
       dotColor: '#f59e0b', btnColor: 'rgba(245,158,11,0.22)', btnBorder: 'rgba(245,158,11,0.45)',
     },
+    budget_smoke: {
+      src: '/personalities/budget_smoke.webp',
+      dotColor: '#78716c', btnColor: 'rgba(120,113,108,0.22)', btnBorder: 'rgba(120,113,108,0.45)',
+    },
+    glowing_broke: {
+      src: '/personalities/glowing-broke.webp',
+      dotColor: '#c026d3', btnColor: 'rgba(192,38,211,0.22)', btnBorder: 'rgba(192,38,211,0.45)',
+    },
+    daily_grind: {
+      src: '/personalities/daily_grind.webp',
+      dotColor: '#d97706', btnColor: 'rgba(217,119,6,0.22)', btnBorder: 'rgba(217,119,6,0.45)',
+    },
+    liquid_assets: {
+      src: '/personalities/liquid_assets.webp',
+      dotColor: '#8b5cf6', btnColor: 'rgba(139,92,246,0.22)', btnBorder: 'rgba(139,92,246,0.45)',
+    },
+    drive_thru_cfo: {
+      src: '/personalities/drive_thru_cfo.webp',
+      dotColor: '#ef4444', btnColor: 'rgba(239,68,68,0.22)', btnBorder: 'rgba(239,68,68,0.45)',
+    },
+    cash_casserole: {
+      src: '/personalities/cash_casserole.webp',
+      dotColor: '#fb923c', btnColor: 'rgba(251,146,60,0.22)', btnBorder: 'rgba(251,146,60,0.45)',
+    },
+    compounding_machine: {
+      src: '/personalities/compounding_machine.webp',
+      dotColor: '#34D399', btnColor: 'rgba(52,211,153,0.22)', btnBorder: 'rgba(52,211,153,0.45)',
+    },
+    gear_head: {
+      src: '/personalities/gear_head.webp',
+      dotColor: '#3B82F6', btnColor: 'rgba(59,130,246,0.22)', btnBorder: 'rgba(59,130,246,0.45)',
+    },
+    morning_stack: {
+      src: '/personalities/morning_stack.webp',
+      dotColor: '#d97706', btnColor: 'rgba(217,119,6,0.22)', btnBorder: 'rgba(217,119,6,0.45)',
+    },
+    health_nut: {
+      src: '/personalities/health_nut.webp',
+      dotColor: '#10B981', btnColor: 'rgba(16,185,129,0.22)', btnBorder: 'rgba(16,185,129,0.45)',
+    },
+    friday_flush: {
+      src: '/personalities/friday_flush.webp',
+      dotColor: '#EC4899', btnColor: 'rgba(236,72,153,0.22)', btnBorder: 'rgba(236,72,153,0.45)',
+    },
+    fork_and_knife: {
+      src: '/personalities/fork_and_knife.webp',
+      dotColor: '#F97316', btnColor: 'rgba(249,115,22,0.22)', btnBorder: 'rgba(249,115,22,0.45)',
+    },
+    home_economist: {
+      src: '/personalities/home_economist.webp',
+      dotColor: '#6366F1', btnColor: 'rgba(99,102,241,0.22)', btnBorder: 'rgba(99,102,241,0.45)',
+    },
+    frequent_flyer: {
+      src: '/personalities/frequent_flyer.webp',
+      dotColor: '#F59E0B', btnColor: 'rgba(245,158,11,0.22)', btnBorder: 'rgba(245,158,11,0.45)',
+    },
+    nest_builder: {
+      src: '/personalities/nest_builder.webp',
+      dotColor: '#8B5CF6', btnColor: 'rgba(139,92,246,0.22)', btnBorder: 'rgba(139,92,246,0.45)',
+    },
+    night_owl: {
+      src: '/personalities/night_owl.webp',
+      dotColor: '#818CF8', btnColor: 'rgba(129,140,248,0.22)', btnBorder: 'rgba(129,140,248,0.45)',
+    },
+    digital_native: {
+      src: '/personalities/digital_native.webp',
+      dotColor: '#06B6D4', btnColor: 'rgba(6,182,212,0.22)', btnBorder: 'rgba(6,182,212,0.45)',
+    },
+    heaven_sent: {
+      src: '/personalities/heaven_sent.webp',
+      dotColor: '#F59E0B', btnColor: 'rgba(245,158,11,0.22)', btnBorder: 'rgba(245,158,11,0.45)',
+    },
+    personal_cfo: {
+      src: '/personalities/personal_cfo.webp',
+      dotColor: '#10B981', btnColor: 'rgba(16,185,129,0.22)', btnBorder: 'rgba(16,185,129,0.45)',
+    },
+    social_butterfly: {
+      src: '/personalities/social_butterfly.webp',
+      dotColor: '#EC4899', btnColor: 'rgba(236,72,153,0.22)', btnBorder: 'rgba(236,72,153,0.45)',
+    },
+    card_carrier: {
+      src: '/personalities/card_carrier.webp',
+      dotColor: '#6366F1', btnColor: 'rgba(99,102,241,0.22)', btnBorder: 'rgba(99,102,241,0.45)',
+    },
+    never_home: {
+      src: '/personalities/never_home.webp',
+      dotColor: '#F59E0B', btnColor: 'rgba(245,158,11,0.22)', btnBorder: 'rgba(245,158,11,0.45)',
+    },
+    delivery_regular: {
+      src: '/personalities/delivery_regular.webp',
+      dotColor: '#FB923C', btnColor: 'rgba(251,146,60,0.22)', btnBorder: 'rgba(251,146,60,0.45)',
+    },
+    degree_debt: {
+      src: '/personalities/degree_debt.webp',
+      dotColor: '#94A3B8', btnColor: 'rgba(148,163,184,0.22)', btnBorder: 'rgba(148,163,184,0.45)',
+    },
   }
 
   const illus = ILLUSTRATION_CARDS[core.id as string]
