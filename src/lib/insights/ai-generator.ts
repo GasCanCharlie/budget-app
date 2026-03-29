@@ -23,6 +23,8 @@ interface AiInsightRaw {
   summary: string
   icon: string
   confidence: 'high' | 'medium' | 'low'
+  filter_merchant?: string
+  filter_category?: string
 }
 
 const VALID_ICONS = ['TrendingUp', 'AlertCircle', 'DollarSign', 'Sparkles', 'RefreshCw', 'Zap', 'Wrench']
@@ -101,6 +103,8 @@ Return ONLY a valid JSON array with exactly 4 objects. Each object must have:
 - "summary": string, 2-3 sentences with real numbers from the data, actionable
 - "icon": one of: TrendingUp, AlertCircle, DollarSign, Sparkles, RefreshCw, Zap, Wrench
 - "confidence": "high", "medium", or "low"
+- "filter_merchant": (optional) exact merchant name from the data if this insight is about a specific merchant
+- "filter_category": (optional) exact category name from the data if this insight is about a specific category
 
 Focus on variety — cover different aspects: one on spending patterns, one on a specific merchant or category, one on a saving opportunity or behavior, one surprising or noteworthy finding. Use specific dollar amounts. Do not repeat the same insight type.
 
@@ -150,6 +154,18 @@ Return only the JSON array, no other text.`
       const confidence = ['high', 'medium', 'low'].includes(item.confidence as string)
         ? item.confidence as 'high' | 'medium' | 'low'
         : 'medium'
+      const filterMerchant = typeof item.filter_merchant === 'string' ? item.filter_merchant : null
+      const filterCategory = typeof item.filter_category === 'string' ? item.filter_category : null
+
+      const baseParams = `year=${monthly.year}&month=${monthly.month}`
+      let txHref: string | null = null
+      if (filterMerchant) {
+        txHref = `/transactions?search=${encodeURIComponent(filterMerchant)}&${baseParams}`
+      } else if (filterCategory) {
+        txHref = `/transactions?displayCategory=${encodeURIComponent(filterCategory)}&${baseParams}`
+      } else {
+        txHref = `/transactions?${baseParams}`
+      }
 
       const supportingData: AiInsightData = { ai_generated: true }
 
@@ -160,14 +176,14 @@ Return only the JSON array, no other text.`
         title,
         summary,
         supporting_data: supportingData,
-        actions: [{ label: 'View transactions', action_key: 'view_transactions', href: '/transactions' }, { label: 'Dismiss', action_key: 'dismiss' }],
+        actions: [{ label: 'View transactions', action_key: 'view_transactions', href: txHref }, { label: 'Dismiss', action_key: 'dismiss' }],
         confidence,
         icon_suggestion: icon,
         generated_at: now,
         year: monthly.year,
         month: monthly.month,
         numbers_used: [],
-        filters: undefined,
+        filters: filterMerchant ? { merchant: filterMerchant } : filterCategory ? { category: filterCategory } : undefined,
       })
     }
 
