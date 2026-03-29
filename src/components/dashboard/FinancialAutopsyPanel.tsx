@@ -262,7 +262,7 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       dotColor: '#f59e0b', btnColor: 'rgba(245,158,11,0.22)', btnBorder: 'rgba(245,158,11,0.45)',
     },
     burn_rate: {
-      src: '/personalities/budget_smoke.webp',
+      src: '/personalities/burn_rate.webp',
       dotColor: '#78716c', btnColor: 'rgba(120,113,108,0.22)', btnBorder: 'rgba(120,113,108,0.45)',
     },
     glowing_broke: {
