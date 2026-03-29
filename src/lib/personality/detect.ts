@@ -126,7 +126,7 @@ const DISCRETIONARY_TRAIT_MAP: Partial<Record<MasterKey, TraitId>> = {
   ALCOHOL:      'liquid_assets',
   COFFEE:       'daily_grind',
   ENTERTAINMENT:'never_home',
-  SHOPPING:     'delivery_regular',
+  SHOPPING:     'delivery_doorstep',
   HEALTH:       'wellness_bill',
   DIGITAL:      'free_trial_life',
   PERSONAL_CARE:'glowing_broke',

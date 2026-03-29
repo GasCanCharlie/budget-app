@@ -390,10 +390,10 @@ export const PERSONALITY_REGISTRY: Record<AnyPersonalityId, PersonalityMeta> = {
     accent: '#ec4899', accentBg: 'rgba(236,72,153,0.08)',
     isCaution: false, isPremium: false, isDisabled: false,
   },
-  delivery_regular: {
-    id: 'delivery_regular',
-    name: 'Delivery Regular',
-    tagline: 'Your delivery driver has seen you in pajamas more than your friends have.',
+  delivery_doorstep: {
+    id: 'delivery_doorstep',
+    name: 'The Delivery Doorstep',
+    tagline: "You don't order things. They arrive.",
     vibe: 'The doorbell knows your name.',
     accent: '#a855f7', accentBg: 'rgba(168,85,247,0.08)',
     isCaution: false, isPremium: false, isDisabled: false,

@@ -104,7 +104,7 @@ const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string
   social_butterfly:       { src: '/personalities/social_butterfly.webp',       dotColor: '#ec4899' },
   card_carrier:           { src: '/personalities/card_carrier.webp',           dotColor: '#fbbf24' },
   never_home:             { src: '/personalities/never_home.webp',             dotColor: '#f59e0b' },
-  delivery_regular:       { src: '/personalities/delivery_regular.webp',       dotColor: '#f97316' },
+  delivery_doorstep:      { src: '/personalities/delivery_doorstep.webp',      dotColor: '#f97316' },
   degree_debt:            { src: '/personalities/degree_debt.webp',            dotColor: '#818cf8' },
 }
 

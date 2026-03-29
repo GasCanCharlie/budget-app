@@ -349,8 +349,8 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/never_home.webp',
       dotColor: '#F59E0B', btnColor: 'rgba(245,158,11,0.22)', btnBorder: 'rgba(245,158,11,0.45)',
     },
-    delivery_regular: {
-      src: '/personalities/delivery_regular.webp',
+    delivery_doorstep: {
+      src: '/personalities/delivery_doorstep.webp',
       dotColor: '#FB923C', btnColor: 'rgba(251,146,60,0.22)', btnBorder: 'rgba(251,146,60,0.45)',
     },
     degree_debt: {

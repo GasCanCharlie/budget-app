@@ -59,7 +59,7 @@ export type TraitId =
   | 'liquid_assets'      // ALCOHOL
   | 'daily_grind'        // COFFEE
   | 'never_home'         // ENTERTAINMENT
-  | 'delivery_regular'   // SHOPPING
+  | 'delivery_doorstep'  // SHOPPING
   | 'wellness_bill'      // HEALTH
   | 'free_trial_life'    // DIGITAL
   | 'glowing_broke'      // PERSONAL_CARE
