@@ -446,8 +446,8 @@ export const PERSONALITY_REGISTRY: Record<AnyPersonalityId, PersonalityMeta> = {
     accent: '#84cc16', accentBg: 'rgba(132,204,22,0.08)',
     isCaution: false, isPremium: false, isDisabled: false,
   },
-  budget_smoke: {
-    id: 'budget_smoke',
+  burn_rate: {
+    id: 'burn_rate',
     name: 'The Burn Rate',
     tagline: 'You rolled up your budget and smoked it.',
     vibe: 'The habit outlasted the savings.',

@@ -133,7 +133,7 @@ const DISCRETIONARY_TRAIT_MAP: Partial<Record<MasterKey, TraitId>> = {
   EDUCATION:    'degree_debt',
   TRAVEL:       'mail_goes_home',
   PETS:         'corner_office',
-  TOBACCO:      'budget_smoke',
+  TOBACCO:      'burn_rate',
   SOCIAL:       'heaven_sent',
   TRANSPORT:    'currency_combustion',
   BUSINESS:     'grind_setter',

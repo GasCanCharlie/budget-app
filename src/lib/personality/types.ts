@@ -66,7 +66,7 @@ export type TraitId =
   | 'degree_debt'        // EDUCATION
   | 'mail_goes_home'     // TRAVEL
   | 'corner_office'      // PETS
-  | 'budget_smoke'       // TOBACCO
+  | 'burn_rate'          // TOBACCO
   | 'heaven_sent'        // SOCIAL
   | 'currency_combustion'// TRANSPORT
 
