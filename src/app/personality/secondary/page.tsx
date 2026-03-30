@@ -86,7 +86,7 @@ const PERSONALITY_IMAGES: Partial<Record<string, { src: string; dotColor: string
   burn_rate:              { src: '/personalities/burn_rate.webp',              dotColor: '#78716c' },
   drive_thru_cfo:         { src: '/personalities/drive_thru_cfo.webp',         dotColor: '#f97316' },
   daily_grind:            { src: '/personalities/daily_grind.webp',            dotColor: '#f59e0b' },
-  liquid_assets:          { src: '/personalities/liquid_assets.webp',          dotColor: '#06b6d4' },
+  dollar_shots:           { src: '/personalities/dollar_shots.webp',           dotColor: '#f59e0b' },
   cash_casserole:         { src: '/personalities/cash_casserole.webp',         dotColor: '#84cc16' },
   compounding_machine:    { src: '/personalities/compounding_machine.webp',    dotColor: '#10b981' },
   gear_head:              { src: '/personalities/gear_head.webp',              dotColor: '#f97316' },

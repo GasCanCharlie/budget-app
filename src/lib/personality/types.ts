@@ -56,7 +56,7 @@ export type TraitId =
   | 'margin_eater'       // FOOD
   | 'cash_casserole'     // GROCERY
   | 'drive_thru_cfo'     // FAST_FOOD
-  | 'liquid_assets'      // ALCOHOL
+  | 'dollar_shots'       // ALCOHOL
   | 'daily_grind'        // COFFEE
   | 'never_home'         // ENTERTAINMENT
   | 'delivery_doorstep'  // SHOPPING

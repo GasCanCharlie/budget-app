@@ -123,7 +123,7 @@ const DISCRETIONARY_TRAIT_MAP: Partial<Record<MasterKey, TraitId>> = {
   FOOD:         'margin_eater',
   GROCERY:      'cash_casserole',
   FAST_FOOD:    'drive_thru_cfo',
-  ALCOHOL:      'liquid_assets',
+  ALCOHOL:      'dollar_shots',
   COFFEE:       'daily_grind',
   ENTERTAINMENT:'never_home',
   SHOPPING:     'delivery_doorstep',

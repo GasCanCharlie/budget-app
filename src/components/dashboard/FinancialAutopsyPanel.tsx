@@ -273,8 +273,8 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
       src: '/personalities/daily_grind.webp',
       dotColor: '#d97706', btnColor: 'rgba(217,119,6,0.22)', btnBorder: 'rgba(217,119,6,0.45)',
     },
-    liquid_assets: {
-      src: '/personalities/liquid_assets.webp',
+    dollar_shots: {
+      src: '/personalities/dollar_shots.webp',
       dotColor: '#8b5cf6', btnColor: 'rgba(139,92,246,0.22)', btnBorder: 'rgba(139,92,246,0.45)',
     },
     drive_thru_cfo: {

@@ -366,10 +366,10 @@ export const PERSONALITY_REGISTRY: Record<AnyPersonalityId, PersonalityMeta> = {
     accent: '#ef4444', accentBg: 'rgba(239,68,68,0.08)',
     isCaution: false, isPremium: false, isDisabled: false,
   },
-  liquid_assets: {
-    id: 'liquid_assets',
-    name: 'Liquid Assets',
-    tagline: 'Liquid assets fully liquidated.',
+  dollar_shots: {
+    id: 'dollar_shots',
+    name: 'Dollar Shots',
+    tagline: 'How about another round of these?',
     vibe: 'The bar never closed itself.',
     accent: '#8b5cf6', accentBg: 'rgba(139,92,246,0.08)',
     isCaution: false, isPremium: false, isDisabled: false,
