@@ -1046,7 +1046,7 @@ export default function CategorizePage() {
   // ── Data ──
   const { data: txData, isLoading: txLoading, error: txError } = useQuery({
     queryKey: ['categorize-transactions'],
-    queryFn: () => apiFetch('/api/transactions?limit=500'),
+    queryFn: () => apiFetch('/api/transactions?uncategorized=true'),
     enabled: !!user,
     staleTime: 60_000,          // don't eagerly refetch — optimistic updates handle the UI
     refetchOnWindowFocus: false, // prevent mid-categorization refetches from restoring removed txs

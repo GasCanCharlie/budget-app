@@ -14,10 +14,14 @@ export async function GET(req: NextRequest) {
   const search          = searchParams.get('search')          || null
   const maxAmount       = searchParams.get('maxAmount')       ? parseFloat(searchParams.get('maxAmount')!) : null
   const ingestionFilter = searchParams.get('ingestionFilter') || null   // 'flagged' | 'duplicate'
+  const uncategorized   = searchParams.get('uncategorized') === 'true'  // true = only null appCategory
   const sortBy          = searchParams.get('sortBy')  || 'date'          // 'date' | 'vendor' | 'amount'
   const sortDir         = searchParams.get('sortDir') || 'desc'          // 'asc' | 'desc'
   const page            = parseInt(searchParams.get('page')   || '1')
-  const limit           = Math.min(parseInt(searchParams.get('limit') || '100'), 500)
+  // Uncategorized queue needs all rows — allow up to 5000; other views cap at 500
+  const limit           = uncategorized
+    ? Math.min(parseInt(searchParams.get('limit') || '5000'), 5000)
+    : Math.min(parseInt(searchParams.get('limit') || '100'), 500)
   const skip            = (page - 1) * limit
 
   const safeDir = sortDir === 'asc' ? 'asc' : 'desc'
@@ -30,6 +34,7 @@ export async function GET(req: NextRequest) {
   const where: Record<string, unknown> = {
     account: { userId: payload.userId },
     isExcluded: false,
+    ...(uncategorized ? { appCategory: null, isTransfer: false } : {}),
   }
 
   if (year && month) {

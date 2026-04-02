@@ -35,6 +35,29 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Gate: refuse to generate insights if any transactions are uncategorized.
+    // Mirrors the guard in /api/summaries/[year]/[month] — prevents misleading
+    // "Uncategorized Spending is Skyrocketing" cards when data isn't ready.
+    const monthStart = new Date(year, month - 1, 1)
+    const monthEnd   = new Date(year, month, 0, 23, 59, 59, 999)
+    const uncategorizedCount = await prisma.transaction.count({
+      where: {
+        account:     { userId: user.userId },
+        date:        { gte: monthStart, lte: monthEnd },
+        isTransfer:  false,
+        isExcluded:  false,
+        isDuplicate: false,
+        amount:      { not: 0 },
+        appCategory: null,
+      },
+    })
+    if (uncategorizedCount > 0) {
+      return NextResponse.json(
+        { error: 'categorization_required', uncategorizedCount },
+        { status: 422 },
+      )
+    }
+
     // Clear dismissed state so manual refresh always shows fresh cards
     await prisma.insightCard.updateMany({
       where: { userId: user.userId, year, month, isDismissed: true },
