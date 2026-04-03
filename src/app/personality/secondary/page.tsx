@@ -139,7 +139,7 @@ function SecondaryPersonalityPlaceholder({
           <img
             src={art.src}
             alt={traitName}
-            style={{ width: '100%', aspectRatio: '16/9', maxHeight: 260, objectFit: 'cover', display: 'block' }}
+            style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
           />
 
         </div>
