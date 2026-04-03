@@ -2013,16 +2013,16 @@ export default function CategorizePage() {
                 {/* Category rows — grouped into pairs so accordion expands inline */}
                 <div className={clsx('categories-panel px-1 py-0.5', isDraggingTx && 'drag-mode')}>
                   <SortableContext items={sortableCatIds} strategy={verticalListSortingStrategy}>
-                    {Array.from({ length: Math.ceil(categories.length / 2) }, (_, rowIdx) => {
-                      const row = categories.slice(rowIdx * 2, rowIdx * 2 + 2)
+                    {Array.from({ length: Math.ceil(categories.length / 3) }, (_, rowIdx) => {
+                      const row = categories.slice(rowIdx * 3, rowIdx * 3 + 3)
                       const expandedCat = row.find(c => c.id === expandedCatId)
                         ? categories.find(c => c.id === expandedCatId)!
                         : null
                       return (
                         <div key={rowIdx}>
-                          <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div className="grid grid-cols-3 gap-3 mb-3">
                             {row.map((cat, i) => (
-                              <div key={cat.id} className={row.length === 1 ? 'col-span-2' : ''}>
+                              <div key={cat.id} className={row.length === 1 ? 'col-span-3' : row.length === 2 ? '' : ''}>
                                 <CategoryBucket
                                   cat={cat}
                                   isDraggingTx={isDraggingTx}
