@@ -2110,7 +2110,7 @@ export default function CategorizePage() {
                   )}
                 </div>
 
-                <div className="space-y-2 pr-1">
+                <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
                   {sortedQueueTxs.map((tx) => (
                     <TxCard
                       key={tx.id}
