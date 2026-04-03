@@ -2011,7 +2011,7 @@ export default function CategorizePage() {
               {/* LEFT: Category drop targets */}
               <div>
                 {/* Category rows — grouped into pairs so accordion expands inline */}
-                <div className={clsx('categories-panel max-h-[calc(100vh-300px)] overflow-x-hidden overflow-y-auto px-1 py-0.5', isDraggingTx && 'drag-mode')}>
+                <div className={clsx('categories-panel px-1 py-0.5', isDraggingTx && 'drag-mode')}>
                   <SortableContext items={sortableCatIds} strategy={verticalListSortingStrategy}>
                     {Array.from({ length: Math.ceil(categories.length / 2) }, (_, rowIdx) => {
                       const row = categories.slice(rowIdx * 2, rowIdx * 2 + 2)
@@ -2110,7 +2110,7 @@ export default function CategorizePage() {
                   )}
                 </div>
 
-                <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
+                <div className="space-y-2 pr-1">
                   {sortedQueueTxs.map((tx) => (
                     <TxCard
                       key={tx.id}
