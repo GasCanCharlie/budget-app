@@ -866,7 +866,7 @@ h3 { letter-spacing: -0.01em; }
 }
 .category-item:hover .category-icon        { transform: scale(1.04); box-shadow: 0 4px 10px rgba(108,124,255,.10); }
 .category-item.drag-over .category-icon   { transform: scale(1.06); box-shadow: 0 8px 18px rgba(108,124,255,.14); }
-.category-name  { font-size: 15px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.category-name  { font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
 .category-arrow { color: var(--text-muted); flex-shrink: 0; transition: color var(--transition-fast); }
 .category-item:hover .category-arrow      { color: #65758d; }
 .category-item.drag-over .category-arrow  { color: var(--accent); }
