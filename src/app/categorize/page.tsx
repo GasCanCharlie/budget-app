@@ -349,7 +349,7 @@ interface RuleAskState {
   similarCount: number
 }
 
-type RuleMatchType = 'vendor_exact_amount' | 'vendor_exact' | 'vendor_smart'
+type RuleMatchType = 'vendor_exact_amount' | 'vendor_exact'
 
 function RuleAskModal({
   state,
@@ -409,15 +409,6 @@ function RuleAskModal({
       value: 'vendor_exact',
       label: 'This vendor only (any amount)',
       desc:  `All ${vendor} transactions regardless of amount`,
-    },
-    {
-      value: 'vendor_smart',
-      label: allVendorAmounts.length > 1
-        ? `Similar amounts (${allVendorAmounts.slice(0, 3).map(fmtCents).join(', ')}${allVendorAmounts.length > 3 ? '…' : ''})`
-        : 'Smart match (learned amounts)',
-      desc: allVendorAmounts.length > 1
-        ? `Matches any of the ${allVendorAmounts.length} amounts seen for this vendor`
-        : `Matches ${fmtCents(amountExact)} and any future amounts you categorize`,
     },
   ]
 
@@ -1214,7 +1205,7 @@ export default function CategorizePage() {
   // ── Rule creation mutation ──
   const createRuleMutation = useMutation({
     mutationFn: ({ matchType, matchValue, amountExact, learnedAmounts, categoryId, mode, scopeAccountId }: {
-      matchType: 'vendor_exact_amount' | 'vendor_exact' | 'vendor_smart'
+      matchType: 'vendor_exact_amount' | 'vendor_exact'
       matchValue: string; amountExact?: number; learnedAmounts?: number[]
       categoryId: string; mode: 'always' | 'ask'; scopeAccountId?: string
     }) =>
@@ -1238,7 +1229,7 @@ export default function CategorizePage() {
   const bulkAssignMutation = useMutation({
     mutationFn: (items: {
       txId: string; appCategory: string; applyToAll: boolean
-      createRule: boolean; matchType?: 'vendor_exact_amount' | 'vendor_exact' | 'vendor_smart'
+      createRule: boolean; matchType?: 'vendor_exact_amount' | 'vendor_exact'
       matchValue?: string; amountExact?: number; learnedAmounts?: number[]
       categoryId?: string; scopeAccountId?: string
     }[]) =>
@@ -2266,7 +2257,6 @@ export default function CategorizePage() {
                 matchType,
                 matchValue:     ruleAsk.tx.merchantNormalized,
                 amountExact:    matchType === 'vendor_exact_amount' ? Math.round(ruleAsk.tx.amount * 100) : undefined,
-                learnedAmounts: matchType === 'vendor_smart' ? learnedAmounts : undefined,
                 categoryId:     ruleAsk.category.id,
                 mode:           'always',
                 scopeAccountId: ruleAsk.tx.accountId,
@@ -2284,7 +2274,6 @@ export default function CategorizePage() {
                   matchType,
                   matchValue:     item.tx.merchantNormalized,
                   amountExact:    matchType === 'vendor_exact_amount' ? Math.round(item.tx.amount * 100) : undefined,
-                  learnedAmounts: matchType === 'vendor_smart' ? [Math.abs(Math.round(item.tx.amount * 100))] : undefined,
                   categoryId:     item.category.id,
                   scopeAccountId: item.tx.accountId,
                 }))
