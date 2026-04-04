@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { Microscope, Brain, Sparkles } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -142,7 +143,7 @@ function LockIcon({ size = 18 }: { size?: number }) {
   )
 }
 
-function LockedFeatureCard({ icon, title, description, bullets }: { icon: string; title: string; description: string; bullets: string[] }) {
+function LockedFeatureCard({ icon, iconColor, iconBg, title, description, bullets }: { icon: React.ReactNode; iconColor: string; iconBg: string; title: string; description: string; bullets: string[] }) {
   return (
     <div style={{
       background: 'rgba(255,255,255,0.04)',
@@ -168,7 +169,9 @@ function LockedFeatureCard({ icon, title, description, bullets }: { icon: string
         Locked
       </div>
 
-      <div style={{ fontSize: 26, marginBottom: 12 }}>{icon}</div>
+      <div style={{ width: 44, height: 44, borderRadius: 14, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, color: iconColor }}>
+        {icon}
+      </div>
       <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.92)', letterSpacing: '-0.02em' }}>{title}</p>
       <p style={{ margin: '6px 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>{description}</p>
 
@@ -774,19 +777,25 @@ export default function ScanReportPage() {
 
           <div className="locked-row">
             <LockedFeatureCard
-              icon="🔬"
+              icon={<Microscope size={22} />}
+              iconColor="#a78bfa"
+              iconBg="rgba(167,139,250,0.15)"
               title="Financial Autopsy"
               description="A brutally honest breakdown of exactly what happened to your money this month."
               bullets={['Cash flow pressure detected', 'Largest outflows identified', 'Month-over-month context hidden']}
             />
             <LockedFeatureCard
-              icon="🧠"
+              icon={<Brain size={22} />}
+              iconColor="#34d399"
+              iconBg="rgba(52,211,153,0.15)"
               title="Money Personality"
               description="Discover your financial archetype based on real spending patterns, not a quiz."
               bullets={['Pattern recognition ready', 'Trait scoring complete', 'Card art waiting to unlock']}
             />
             <LockedFeatureCard
-              icon="✨"
+              icon={<Sparkles size={22} />}
+              iconColor="#60a5fa"
+              iconBg="rgba(96,165,250,0.15)"
               title="Smart Insights"
               description="Personalized observations and flags based on your actual transaction data."
               bullets={['Trend shifts detected', 'Merchant clustering hidden', 'Priority flags locked']}
