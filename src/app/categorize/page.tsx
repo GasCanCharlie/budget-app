@@ -2281,8 +2281,16 @@ export default function CategorizePage() {
               setRuleAskQueue([]); setRuleAsk(null); setSelectedIds(new Set()); setAnchorId(null)
             }}
             onJustOne={() => {
-              updateMutation.mutate({ id: ruleAsk.tx.id, appCategory: ruleAsk.category.name, applyToAll: false })
-              popRuleAsk(); setSelectedIds(new Set()); setAnchorId(null)
+              const allItems = [ruleAsk, ...ruleAskQueue]
+              bulkAssignMutation.mutate(
+                allItems.map(item => ({
+                  txId:       item.tx.id,
+                  appCategory: item.category.name,
+                  applyToAll: false,
+                  createRule: false,
+                }))
+              )
+              setRuleAskQueue([]); setRuleAsk(null); setSelectedIds(new Set()); setAnchorId(null)
             }}
             onCancel={() => { setRuleAskQueue([]); setRuleAsk(null) }}
           />
