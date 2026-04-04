@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, FileText, Tags } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, FileText, Tags, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
@@ -12,7 +12,7 @@ import { format } from 'date-fns'
 import { ReconciliationShield } from '@/components/ReconciliationShield'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
-// ─── Category colors (matches CATEGORY_STYLES in summaries.ts) ───────────────
+// ─── Category colors ──────────────────────────────────────────────────────────
 
 const CAT_COLORS: Record<string, string> = {
   'Food & Dining': '#f97316', 'Groceries': '#22c55e', 'Housing': '#f59e0b',
@@ -70,7 +70,6 @@ interface ReconciliationResult {
   checks:        ReconciliationCheck[]
   discrepancies: Discrepancy[]
   summary:       ReconciliationSummary
-  // v2 fields
   balanceModel?:  'AFTER' | 'BEFORE'
   needsReview?:   boolean
   deltaStats?: {
@@ -167,7 +166,7 @@ interface Issue {
   transaction:     IssueTx | null
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtAmt(s: string | number | null | undefined) {
   if (s == null) return '—'
@@ -181,7 +180,6 @@ function fmtDate(s: string | null | undefined) {
   try { return format(new Date(s), 'MMM d, yyyy') } catch { return s }
 }
 
-/** Format a check expected/actual value — only currency-format if it's a pure number string */
 function fmtCheckValue(s: string | null | undefined): string {
   if (s == null) return '—'
   const n = Number(s)
@@ -190,9 +188,9 @@ function fmtCheckValue(s: string | null | undefined): string {
 }
 
 const ISSUE_SEVERITY: Record<string, { cls: string; icon: React.ReactNode }> = {
-  ERROR:   { cls: 'bg-red-100 text-red-700',    icon: <AlertCircle size={12}/> },
-  WARNING: { cls: 'bg-yellow-100 text-yellow-700', icon: <AlertTriangle size={12}/> },
-  INFO:    { cls: 'bg-blue-100 text-blue-700',   icon: <Info size={12}/> },
+  ERROR:   { cls: 'bg-red-500/20 text-red-300 border border-red-500/30',    icon: <AlertCircle size={12}/> },
+  WARNING: { cls: 'bg-amber-500/20 text-amber-300 border border-amber-500/30', icon: <AlertTriangle size={12}/> },
+  INFO:    { cls: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',   icon: <Info size={12}/> },
 }
 
 const ISSUE_TYPE_LABEL: Record<string, string> = {
@@ -219,15 +217,6 @@ const MODE_LABEL: Record<string, string> = {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StatChip({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex-1 min-w-0">
-      <p className={clsx('text-xs font-semibold uppercase tracking-wide', accent ?? 'text-slate-500')}>{label}</p>
-      <p className={clsx('text-xl font-black mt-0.5', accent ?? 'text-slate-800')}>{value}</p>
-    </div>
-  )
-}
-
 function ReconciliationPanel({ report, status }: { report: ReconciliationReport | null; status: string }) {
   const [open, setOpen]             = useState(true)
   const [showAllBreaks, setShowAll] = useState(false)
@@ -238,144 +227,116 @@ function ReconciliationPanel({ report, status }: { report: ReconciliationReport 
   const PREVIEW = 5
 
   return (
-    <section className="card space-y-3">
+    <section style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: '20px 24px' }}>
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between"
       >
-        <h2 className="font-bold text-slate-700 flex items-center gap-2">
+        <h2 style={{ fontWeight: 700, fontSize: 15, color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: 8 }}>
           Statement Integrity
           <ReconciliationShield status={status} size="sm" />
         </h2>
-        {open ? <ChevronDown size={16} className="text-slate-400"/> : <ChevronRight size={16} className="text-slate-400"/>}
+        {open
+          ? <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.4)' }}/>
+          : <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.4)' }}/>}
       </button>
 
       {open && report && recon && (
-        <div className="space-y-4">
-
-          {/* ── Summary strip ───────────────────────────────────────────── */}
+        <div className="space-y-4 mt-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-            <div className="bg-slate-50 rounded-lg px-3 py-2">
-              <p className="text-slate-500 uppercase font-semibold tracking-wide text-[10px]">Mode</p>
-              <p className="font-bold text-slate-700 mt-0.5">{MODE_LABEL[recon.mode] ?? recon.mode}</p>
+            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '8px 12px' }}>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.12em' }}>Mode</p>
+              <p style={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{MODE_LABEL[recon.mode] ?? recon.mode}</p>
             </div>
             {recon.balanceModel && (
-              <div className={clsx('rounded-lg px-3 py-2', recon.needsReview ? 'bg-amber-50' : 'bg-slate-50')}>
-                <p className="text-slate-500 uppercase font-semibold tracking-wide text-[10px]">Balance Model</p>
-                <p className={clsx('font-bold mt-0.5', recon.needsReview ? 'text-amber-700' : 'text-slate-700')}>
+              <div style={{ background: recon.needsReview ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '8px 12px' }}>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.12em' }}>Balance Model</p>
+                <p style={{ fontWeight: 700, color: recon.needsReview ? '#fbbf24' : 'rgba(255,255,255,0.85)', marginTop: 2 }}>
                   {recon.balanceModel === 'AFTER' ? 'After transaction' : 'Before transaction'}
                   {recon.needsReview && ' ⚠'}
                 </p>
               </div>
             )}
             {typeof recon.rowsReordered === 'number' && (
-              <div className="bg-slate-50 rounded-lg px-3 py-2">
-                <p className="text-slate-500 uppercase font-semibold tracking-wide text-[10px]">Reordered</p>
-                <p className="font-bold text-slate-700 mt-0.5">
+              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '8px 12px' }}>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.12em' }}>Reordered</p>
+                <p style={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>
                   {recon.rowsReordered === 0 ? 'No (already sorted)' : `${recon.rowsReordered} rows`}
                 </p>
               </div>
             )}
             {report.periodStart && report.periodEnd && (
-              <div className="bg-slate-50 rounded-lg px-3 py-2 col-span-2 sm:col-span-1">
-                <p className="text-slate-500 uppercase font-semibold tracking-wide text-[10px]">Period</p>
-                <p className="font-bold text-slate-700 mt-0.5">{fmtDate(report.periodStart)} – {fmtDate(report.periodEnd)}</p>
+              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '8px 12px', gridColumn: 'span 2 / span 2' }}>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.12em' }}>Period</p>
+                <p style={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{fmtDate(report.periodStart)} – {fmtDate(report.periodEnd)}</p>
               </div>
             )}
           </div>
 
-          {/* ── Sums ────────────────────────────────────────────────────── */}
           <div className="grid grid-cols-3 gap-3 text-sm">
             {([
-              ['Credits', report.sums.totalCredits,  'text-green-700'],
-              ['Debits',  report.sums.totalDebits,   'text-red-700'],
-              ['Net',     report.sums.netChange,      'text-slate-800'],
-            ] as [string, string, string][]).map(([label, val, cls]) => (
-              <div key={label} className="bg-slate-50 rounded-lg p-3">
-                <p className="text-xs uppercase text-slate-500 font-semibold">{label}</p>
-                <p className={clsx('font-bold mt-0.5', cls)}>{fmtAmt(val)}</p>
+              ['Credits', report.sums.totalCredits,  '#34d399'],
+              ['Debits',  report.sums.totalDebits,   '#f87171'],
+              ['Net',     report.sums.netChange,      'rgba(255,255,255,0.85)'],
+            ] as [string, string, string][]).map(([label, val, color]) => (
+              <div key={label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 12 }}>
+                <p style={{ fontSize: 10, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '0.12em' }}>{label}</p>
+                <p style={{ fontWeight: 700, marginTop: 2, color }}>{fmtAmt(val)}</p>
               </div>
             ))}
           </div>
 
-          {/* ── Balance range (Mode A) ───────────────────────────────────── */}
           {(recon.summary.startBalance || recon.summary.endBalance) && (
             <div className="grid grid-cols-2 gap-3 text-sm">
               {[
                 ['Opening Balance', recon.summary.startBalance],
                 ['Closing Balance', recon.summary.endBalance],
               ].map(([label, val]) => val && (
-                <div key={label} className="bg-slate-50 rounded-lg p-3">
-                  <p className="text-xs uppercase text-slate-500 font-semibold">{label}</p>
-                  <p className="font-bold text-slate-800 mt-0.5">{fmtAmt(val)}</p>
+                <div key={label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 12 }}>
+                  <p style={{ fontSize: 10, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '0.12em' }}>{label}</p>
+                  <p style={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{fmtAmt(val)}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* ── Checks ──────────────────────────────────────────────────── */}
           {recon.checks.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase text-slate-500">Checks</p>
-              {recon.checks.map((c, i) => (
-                <div key={i} className={clsx('flex items-start gap-2 text-sm rounded-lg px-3 py-2',
-                  c.passed ? 'bg-green-50' : 'bg-red-50'
-                )}>
-                  {c.passed
-                    ? <CheckCircle2 size={14} className="text-green-600 mt-0.5 flex-shrink-0"/>
-                    : <AlertCircle  size={14} className="text-red-500 mt-0.5 flex-shrink-0"/>
-                  }
-                  <div className="min-w-0">
-                    <p className={clsx('font-medium', c.passed ? 'text-green-800' : 'text-red-800')}>{c.name}</p>
-                    {!c.passed && c.expected != null && c.actual != null && (
-                      <p className="text-xs text-red-600 mt-0.5">
-                        Expected {fmtCheckValue(c.expected)} · Got {fmtCheckValue(c.actual)}
+              <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.4)' }}>Checks</p>
+              {recon.checks.map((chk, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${chk.passed ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)'}` }}>
+                  <span style={{ fontSize: 13, marginTop: 1 }}>{chk.passed ? '✓' : '✗'}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: chk.passed ? '#34d399' : '#f87171' }}>{chk.name}</p>
+                    {(!chk.passed && (chk.expected || chk.actual)) && (
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                        Expected {fmtCheckValue(chk.expected)} · Got {fmtCheckValue(chk.actual)}
                       </p>
                     )}
-                    {c.details && <p className="text-xs text-slate-500 mt-0.5">{c.details}</p>}
+                    {chk.details && (
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, fontStyle: 'italic' }}>{chk.details}</p>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* ── Constant-offset banner ──────────────────────────────────── */}
-          {delta?.isConstantOffset && delta.offsetValue && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-1.5">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-amber-600 flex-shrink-0" />
-                <p className="text-sm font-semibold text-amber-800">Constant offset detected</p>
-              </div>
-              <p className="text-sm text-amber-700">
-                All {delta.offsetCount} balance breaks share the same delta ({fmtAmt(delta.offsetValue)}).
-                This usually means the statement export started mid-period — transactions before the
-                export window are missing, causing a systematic offset.
-              </p>
-              <p className="text-xs text-amber-600 font-medium">
-                To resolve: re-export starting from an earlier date, or set the opening balance below.
-              </p>
-            </div>
-          )}
-
-          {/* ── Discrepancy list ────────────────────────────────────────── */}
-          {breaks.length > 0 && !delta?.isConstantOffset && (
+          {breaks.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase text-red-500">
-                {breaks.length} Balance Break{breaks.length !== 1 ? 's' : ''}
+              <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.4)' }}>
+                Balance Chain Breaks ({breaks.length})
               </p>
-              {(showAllBreaks ? breaks : breaks.slice(0, PREVIEW)).map((d, i) => (
-                <div key={i} className="bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-sm text-red-800">
-                  <p className="font-medium">{d.description}</p>
-                  <p className="text-xs text-red-600 mt-0.5">
-                    Expected {fmtAmt(d.expected)} · Got {fmtAmt(d.actual)} · delta {fmtAmt(d.magnitude)}
-                    {d.rowIndex != null && ` · Position ${d.rowIndex + 1}`}
-                  </p>
+              {(showAllBreaks ? breaks : breaks.slice(0, PREVIEW)).map((b, i) => (
+                <div key={i} style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
+                  {b.description}
+                  {b.rowIndex != null && <span style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>Row {b.rowIndex}</span>}
                 </div>
               ))}
               {breaks.length > PREVIEW && (
                 <button
                   onClick={() => setShowAll(s => !s)}
-                  className="text-xs text-slate-500 hover:text-slate-700 underline transition"
+                  style={{ fontSize: 12, color: 'rgba(108,124,255,0.9)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
                   {showAllBreaks ? 'Show fewer' : `Show all ${breaks.length} breaks`}
                 </button>
@@ -383,29 +344,19 @@ function ReconciliationPanel({ report, status }: { report: ReconciliationReport 
             </div>
           )}
 
-          {/* ── All-constant-offset: collapsed discrepancy list ─────────── */}
-          {breaks.length > 0 && delta?.isConstantOffset && (
-            <div className="space-y-1.5">
-              <button
-                onClick={() => setShowAll(s => !s)}
-                className="text-xs text-slate-500 hover:text-slate-700 underline transition"
-              >
-                {showAllBreaks ? 'Hide individual breaks' : `Show all ${breaks.length} breaks (same delta)`}
-              </button>
-              {showAllBreaks && (showAllBreaks ? breaks : breaks.slice(0, PREVIEW)).map((d, i) => (
-                <div key={i} className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-xs text-amber-800">
-                  <span className="font-mono">pos {(d.rowIndex ?? 0) + 1}</span>{' '}
-                  {fmtAmt(d.expected)} → {fmtAmt(d.actual)}
-                </div>
-              ))}
+          {delta && (
+            <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+              Coverage: <strong style={{ color: 'rgba(255,255,255,0.8)' }}>{delta.coveragePercent}%</strong>
+              {delta.isConstantOffset && delta.offsetValue && (
+                <> · Constant offset: <strong style={{ color: '#fbbf24' }}>{fmtAmt(delta.offsetValue)}</strong> ({delta.offsetCount} rows)</>
+              )}
             </div>
           )}
-
         </div>
       )}
 
       {open && !report && (
-        <p className="text-sm text-slate-400">No reconciliation report available.</p>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginTop: 12 }}>No reconciliation report available.</p>
       )}
     </section>
   )
@@ -420,54 +371,55 @@ function IssueCard({
   onResolve: (id: string, resolved: boolean) => void
   resolving: boolean
 }) {
-  const sevCfg  = ISSUE_SEVERITY[issue.severity]  ?? ISSUE_SEVERITY.INFO
+  const sevCfg   = ISSUE_SEVERITY[issue.severity] ?? ISSUE_SEVERITY.INFO
   const typeLabel = ISSUE_TYPE_LABEL[issue.issueType] ?? issue.issueType
 
   return (
-    <div className={clsx(
-      'border rounded-xl p-4 space-y-2 transition',
-      issue.resolved ? 'border-slate-100 bg-slate-50/50 opacity-70' : 'border-slate-200 bg-white'
-    )}>
-      <div className="flex items-start gap-2">
-        {/* Badges */}
+    <div style={{
+      borderRadius: 14,
+      padding: '14px 16px',
+      background: issue.resolved ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
+      border: `1px solid ${issue.resolved ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.1)'}`,
+      opacity: issue.resolved ? 0.65 : 1,
+    }}>
+      <div className="flex items-start gap-2 flex-wrap">
         <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0', sevCfg.cls)}>
           {sevCfg.icon}{issue.severity}
         </span>
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium flex-shrink-0">
+        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600 }}>
           {typeLabel}
         </span>
-        <div className="flex-1"/>
+        <div style={{ flex: 1 }} />
         <button
           disabled={resolving}
           onClick={() => onResolve(issue.id, !issue.resolved)}
-          className={clsx(
-            'text-xs font-semibold px-3 py-1 rounded-lg transition flex items-center gap-1 flex-shrink-0',
-            issue.resolved
-              ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              : 'bg-accent-500 text-white hover:bg-accent-600'
-          )}
+          style={{
+            fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 8, cursor: 'pointer',
+            background: issue.resolved ? 'rgba(255,255,255,0.08)' : 'rgba(108,124,255,0.85)',
+            color: issue.resolved ? 'rgba(255,255,255,0.6)' : '#fff',
+            border: 'none', display: 'inline-flex', alignItems: 'center', gap: 4,
+          }}
         >
           {resolving ? <Loader2 size={12} className="animate-spin"/> : null}
           {issue.resolved ? 'Re-open' : 'Mark resolved'}
         </button>
       </div>
 
-      <p className="text-sm text-slate-700">{issue.description}</p>
+      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 8 }}>{issue.description}</p>
 
       {issue.suggestedAction && (
-        <p className="text-xs text-slate-500 italic">{issue.suggestedAction}</p>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontStyle: 'italic' }}>{issue.suggestedAction}</p>
       )}
 
-      {/* Transaction context */}
       {issue.transaction && (
-        <div className="mt-1 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 text-xs text-slate-600 flex flex-wrap gap-x-4 gap-y-0.5">
-          <span><strong>Date:</strong> {fmtDate(issue.transaction.date)}</span>
-          <span><strong>Desc:</strong> {issue.transaction.description}</span>
-          <span className={clsx('font-mono', issue.transaction.amount < 0 ? 'text-red-600' : 'text-green-700')}>
+        <div style={{ marginTop: 8, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', flexWrap: 'wrap', gap: '2px 16px' }}>
+          <span><strong style={{ color: 'rgba(255,255,255,0.7)' }}>Date:</strong> {fmtDate(issue.transaction.date)}</span>
+          <span><strong style={{ color: 'rgba(255,255,255,0.7)' }}>Desc:</strong> {issue.transaction.description}</span>
+          <span style={{ color: issue.transaction.amount < 0 ? '#f87171' : '#34d399', fontFamily: 'monospace' }}>
             {fmtAmt(issue.transaction.amount)}
           </span>
           {issue.transaction.dateAmbiguity === 'AMBIGUOUS_MMDD_DDMM' && (
-            <span className="text-amber-600">
+            <span style={{ color: '#fbbf24' }}>
               MM/DD: {fmtDate(issue.transaction.dateInterpretationA)} · DD/MM: {fmtDate(issue.transaction.dateInterpretationB)}
             </span>
           )}
@@ -475,7 +427,7 @@ function IssueCard({
       )}
 
       {issue.resolved && issue.resolvedAt && (
-        <p className="text-xs text-slate-400">
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>
           Resolved {issue.resolvedBy === 'USER' ? 'by you' : 'automatically'} on {fmtDate(issue.resolvedAt)}
         </p>
       )}
@@ -483,7 +435,7 @@ function IssueCard({
   )
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function UploadDetailPage() {
   const { id }       = useParams<{ id: string }>()
@@ -492,10 +444,11 @@ export default function UploadDetailPage() {
   const { apiFetch } = useApi()
   const qc           = useQueryClient()
 
-  const [tab, setTab] = useState<'open' | 'resolved'>('open')
+  const [tab, setTab]               = useState<'open' | 'resolved'>('open')
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [pendingOrder, setPendingOrder] = useState<'MDY' | 'DMY' | null>(null)
-  const [showAllCats, setShowAllCats] = useState(false)
+  const [pendingOrder, setPendingOrder]   = useState<'MDY' | 'DMY' | null>(null)
+  const [showAllCats, setShowAllCats]     = useState(false)
+  const [showParserDetails, setShowParserDetails] = useState(false)
 
   const deleteMutation = useMutation({
     mutationFn: () => apiFetch(`/api/uploads/${id}`, { method: 'DELETE' }),
@@ -528,8 +481,13 @@ export default function UploadDetailPage() {
   const catBreakdown: Array<{ category: string; total: number; pct: number }> =
     scanData?.findings?.categoryBreakdown ?? []
   const spendingBreakdown = catBreakdown.filter(c => c.category !== 'Income')
+  const incomeTotal   = catBreakdown.filter(c => c.category === 'Income').reduce((s, c) => s + Math.abs(c.total), 0)
+  const spendingTotal = spendingBreakdown.reduce((s, c) => s + Math.abs(c.total), 0)
+  const netTotal      = incomeTotal - spendingTotal
+
   const openIssues     = allIssues.filter(i => !i.resolved)
   const resolvedIssues = allIssues.filter(i =>  i.resolved)
+  const displayIssues  = tab === 'open' ? openIssues : resolvedIssues
 
   const [resolvingId, setResolvingId] = useState<string | null>(null)
 
@@ -560,12 +518,9 @@ export default function UploadDetailPage() {
       qc.invalidateQueries({ queryKey: ['upload', id] })
       qc.invalidateQueries({ queryKey: ['uploads'] })
     },
-    onError: () => {
-      setPendingOrder(null)
-    },
+    onError: () => { setPendingOrder(null) },
   })
 
-  // Legacy mutation for pre-v2 uploads that still have per-row DATE_AMBIGUOUS issues
   const resolvePerRowAmbiguousMutation = useMutation({
     mutationFn: (dateFormat: 'MM/DD' | 'DD/MM') =>
       apiFetch(`/api/uploads/${id}/issues/resolve-all`, {
@@ -578,9 +533,7 @@ export default function UploadDetailPage() {
       qc.invalidateQueries({ queryKey: ['upload', id] })
       qc.invalidateQueries({ queryKey: ['uploads'] })
     },
-    onError: () => {
-      setPendingOrder(null)
-    },
+    onError: () => { setPendingOrder(null) },
   })
 
   if (!user) return null
@@ -588,8 +541,8 @@ export default function UploadDetailPage() {
   if (loadingUpload) {
     return (
       <AppShell>
-        <main className="max-w-2xl mx-auto px-4 py-8 flex justify-center">
-          <Loader2 size={32} className="animate-spin text-slate-400"/>
+        <main className="flex justify-center py-16">
+          <Loader2 size={32} className="animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }}/>
         </main>
       </AppShell>
     )
@@ -599,286 +552,398 @@ export default function UploadDetailPage() {
     return (
       <AppShell>
         <main className="max-w-2xl mx-auto px-4 py-8">
-          <p className="text-slate-500">Upload not found.</p>
+          <p style={{ color: 'rgba(255,255,255,0.4)' }}>Upload not found.</p>
         </main>
       </AppShell>
     )
   }
 
-  const reconStatus = upload.reconciliationStatus
-  const displayIssues = tab === 'open' ? openIssues : resolvedIssues
+  const reconStatus    = upload.reconciliationStatus
+  const hasIssues      = openIssues.length > 0
+  const categorizedPct = upload.rowCountAccepted > 0
+    ? Math.round(((upload.rowCountAccepted - upload.totalRowsUnresolved) / upload.rowCountAccepted) * 100)
+    : 0
 
   return (
     <AppShell>
-      <main className="max-w-2xl mx-auto px-4 py-8 pb-24 space-y-5">
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 80px' }}>
 
-        {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div>
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 28 }}>
           <button
             onClick={() => router.push('/upload')}
-            className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-3 transition"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             <ArrowLeft size={14}/> Back to uploads
           </button>
 
-          <div className="flex items-start gap-3">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-black text-slate-800 truncate">{upload.filename}</h1>
-              <p className="text-sm text-slate-500 mt-0.5">
-                {upload.account.name} · Uploaded {fmtDate(upload.createdAt)}
-                {upload.formatDetected && <> · {upload.formatDetected}</>}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 999, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', padding: '3px 12px', fontSize: 11, letterSpacing: '0.2em', color: 'rgba(148,196,255,0.8)', marginBottom: 10 }}>
+                Statement Analysis
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: '#fff', margin: 0 }}>
+                  {upload.filename}
+                </h1>
+                <ReconciliationShield status={reconStatus} size="md" />
+              </div>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
+                {upload.account.name}
+                {upload.account.institution ? ` · ${upload.account.institution}` : ''}
+                {' · '}Uploaded {fmtDate(upload.createdAt)}
+                {upload.formatDetected ? ` · ${upload.formatDetected}` : ''}
               </p>
-            </div>
-            <ReconciliationShield status={reconStatus} size="md" />
-          </div>
-        </div>
-
-        {/* ── Stats row ──────────────────────────────────────────────────── */}
-        <div className="flex gap-2 flex-wrap">
-          <StatChip label="Imported"   value={upload.rowCountAccepted}    accent="text-green-700"/>
-          <StatChip label="Rejected"   value={upload.rowCountRejected}    accent={upload.rowCountRejected   > 0 ? 'text-red-600'    : undefined}/>
-          <StatChip label="Unresolved" value={upload.totalRowsUnresolved} accent={upload.totalRowsUnresolved > 0 ? 'text-amber-600'  : undefined}/>
-          {upload.issueBreakdown.byType['POSSIBLE_DUPLICATE'] != null && (
-            <StatChip label="Duplicates" value={upload.issueBreakdown.byType['POSSIBLE_DUPLICATE']} accent="text-purple-600"/>
-          )}
-        </div>
-
-        {/* ── Scan Report CTA ─────────────────────────────────────────────── */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={() => router.push(`/reports/${id}`)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition"
-            style={{ background: 'linear-gradient(135deg,#6c7cff,#8794ff)', color: '#fff', border: 'none', cursor: 'pointer' }}
-          >
-            <FileText size={16} />
-            View Scan Report
-          </button>
-          <button
-            onClick={() => router.push(`/categorize/${id}`)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
-          >
-            <Tags size={16} />
-            Categorize
-          </button>
-        </div>
-
-        {/* ── Date range ─────────────────────────────────────────────────── */}
-        {upload.dateRangeStart && upload.dateRangeEnd && (
-          <div className="text-sm text-slate-500">
-            Statement period: <strong className="text-slate-700">{fmtDate(upload.dateRangeStart)} – {fmtDate(upload.dateRangeEnd)}</strong>
-          </div>
-        )}
-
-        {/* ── Reconciliation ─────────────────────────────────────────────── */}
-        <ReconciliationPanel report={upload.reconciliationReport} status={reconStatus}/>
-
-        {/* ── Issues ─────────────────────────────────────────────────────── */}
-        {allIssues.length > 0 || loadingIssues ? (
-          <section className="card space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-slate-700">Issues</h2>
-              <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5 text-xs">
-                <button
-                  onClick={() => setTab('open')}
-                  className={clsx('px-3 py-1 rounded-md font-semibold transition',
-                    tab === 'open' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'
-                  )}
-                >
-                  Open{openIssues.length > 0 && ` (${openIssues.length})`}
-                </button>
-                <button
-                  onClick={() => setTab('resolved')}
-                  className={clsx('px-3 py-1 rounded-md font-semibold transition',
-                    tab === 'resolved' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'
-                  )}
-                >
-                  Resolved{resolvedIssues.length > 0 && ` (${resolvedIssues.length})`}
-                </button>
-              </div>
-            </div>
-
-            {loadingIssues ? (
-              <div className="flex justify-center py-6">
-                <Loader2 size={24} className="animate-spin text-slate-400"/>
-              </div>
-            ) : displayIssues.length === 0 ? (
-              <p className="text-sm text-slate-400 py-4 text-center">
-                {tab === 'open' ? 'No open issues — all clear!' : 'No resolved issues yet.'}
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {displayIssues.map(issue => (
-                  <IssueCard
-                    key={issue.id}
-                    issue={issue}
-                    onResolve={(issueId, resolved) => resolveMutation.mutate({ issueId, resolved })}
-                    resolving={resolvingId === issue.id}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        ) : (
-          <div className="card text-center py-6">
-            <CheckCircle2 size={28} className="mx-auto text-green-500 mb-2"/>
-            <p className="font-semibold text-green-800">No issues found</p>
-            <p className="text-sm text-slate-400 mt-1">This upload was clean — no ambiguous dates, duplicates, or balance breaks.</p>
-          </div>
-        )}
-
-        {/* ── Spending by category pie ────────────────────────────────────── */}
-        {spendingBreakdown.length > 0 && (() => {
-          const totalSpend = spendingBreakdown.reduce((s, c) => s + Math.abs(c.total), 0)
-          const visibleData = (showAllCats ? spendingBreakdown : spendingBreakdown.slice(0, 8)).map((c, i) => ({
-            name:  c.category,
-            value: Math.abs(c.total),
-            color: getCatColor(c.category, i),
-            pct:   c.pct,
-            total: c.total,
-          }))
-          // For the pie chart we always use top 8 slices; legend shows the expanded list
-          const pieData = spendingBreakdown.slice(0, 8).map((c, i) => ({
-            name: c.category, value: Math.abs(c.total), color: getCatColor(c.category, i),
-          }))
-          return (
-            <div className="card space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="font-bold text-slate-700">Spending by Category</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Total spend: <strong className="text-slate-600">{fmtPie(totalSpend)}</strong></p>
-                </div>
-                <button
-                  onClick={() => router.push(`/categorize/${id}`)}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
-                >
-                  Categorize →
-                </button>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
-                      {pieData.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} stroke="transparent" />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number, name: string) => [fmtPie(value), name]}
-                      contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                {/* Center label */}
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                  <span className="text-xs text-slate-400">Spend</span>
-                  <span className="text-sm font-bold text-slate-700">{fmtPie(totalSpend)}</span>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                {visibleData.map((c, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }} />
-                    <span className="flex-1 text-slate-700 truncate">{c.name}</span>
-                    <span className="text-slate-500 text-xs">{fmtPie(c.total)}</span>
-                    <span className="text-slate-400 text-xs w-8 text-right">{c.pct}%</span>
-                  </div>
-                ))}
-              </div>
-              {spendingBreakdown.length > 8 && (
-                <button
-                  onClick={() => setShowAllCats(s => !s)}
-                  className="text-xs text-slate-500 hover:text-slate-700 underline transition w-full text-center"
-                >
-                  {showAllCats ? 'Show fewer' : `View all ${spendingBreakdown.length} categories`}
-                </button>
+              {upload.dateRangeStart && upload.dateRangeEnd && (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>
+                  {fmtDate(upload.dateRangeStart)} – {fmtDate(upload.dateRangeEnd)}
+                </p>
               )}
             </div>
-          )
-        })()}
 
-        {/* ── Parser metadata ─────────────────────────────────────────────── */}
-        <details className="card text-sm text-slate-500">
-          <summary className="font-semibold text-slate-600 cursor-pointer select-none">Parser details</summary>
-          <div className="mt-3 space-y-1 pl-2">
-            <p>Parser version: <strong className="text-slate-700">{upload.parserVersion}</strong></p>
-            <p>Raw rows: <strong className="text-slate-700">{upload.rowCountRaw}</strong> · Parsed: <strong className="text-slate-700">{upload.rowCountParsed}</strong></p>
-            {upload.statementOpenBalance  && <p>Statement open:  <strong className="text-slate-700">{fmtAmt(upload.statementOpenBalance)}</strong></p>}
-            {upload.statementCloseBalance && <p>Statement close: <strong className="text-slate-700">{fmtAmt(upload.statementCloseBalance)}</strong></p>}
-            {upload.statementTotalCredits && <p>Declared credits: <strong className="text-slate-700">{fmtAmt(upload.statementTotalCredits)}</strong></p>}
-            {upload.statementTotalDebits  && <p>Declared debits:  <strong className="text-slate-700">{fmtAmt(upload.statementTotalDebits)}</strong></p>}
-            {upload.warnings.length > 0 && (
-              <div className="mt-2">
-                <p className="font-semibold text-amber-600 mb-1">Parser warnings ({upload.warnings.length})</p>
-                <ul className="space-y-0.5 text-xs">
-                  {upload.warnings.slice(0, 10).map((w, i) => (
-                    <li key={i} className="text-amber-700">Row {w.rowIndex ?? '—'}: {w.message}</li>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => router.push('/upload')}
+                style={{ borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', padding: '10px 18px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}
+              >
+                All uploads
+              </button>
+              <button
+                onClick={() => router.push(`/reports/${id}`)}
+                style={{ borderRadius: 14, border: '1px solid rgba(108,124,255,0.3)', background: 'linear-gradient(135deg,rgba(108,124,255,0.9),rgba(135,148,255,0.85))', padding: '10px 20px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              >
+                <FileText size={15}/> Scan Report
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Two-column layout ────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }} className="lg:grid-cols-[1.4fr_1fr] xl:grid-cols-[1.5fr_.9fr]">
+
+          {/* ── LEFT column ─────────────────────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* Stat cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }} className="sm:grid-cols-4">
+              {[
+                { label: 'Imported',   value: upload.rowCountAccepted,    color: '#34d399', Icon: TrendingUp },
+                { label: 'Rejected',   value: upload.rowCountRejected,    color: upload.rowCountRejected > 0 ? '#f87171' : 'rgba(255,255,255,0.5)', Icon: TrendingDown },
+                { label: 'Unresolved', value: upload.totalRowsUnresolved, color: upload.totalRowsUnresolved > 0 ? '#fbbf24' : 'rgba(255,255,255,0.5)', Icon: AlertTriangle },
+                { label: 'Transactions', value: upload.transactionCount,  color: 'rgba(255,255,255,0.85)', Icon: Minus },
+              ].map(({ label, value, color, Icon }) => (
+                <div key={label} style={{ borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: '18px 20px' }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.4)', margin: 0 }}>{label}</p>
+                  <p style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color, marginTop: 10, marginBottom: 0 }}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Income / Spending / Net — only if scan data available */}
+            {catBreakdown.length > 0 && (
+              <div style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+                <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(148,196,255,0.7)', margin: 0 }}>Overview</p>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '6px 0 0' }}>Month at a glance</h2>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 0 }}>
+                  {[
+                    { label: 'Income',   value: fmtPie(incomeTotal),   color: '#34d399' },
+                    { label: 'Spending', value: fmtPie(spendingTotal), color: '#f87171' },
+                    { label: 'Net',      value: (netTotal >= 0 ? '+' : '') + fmtPie(netTotal), color: netTotal >= 0 ? '#34d399' : '#f87171' },
+                  ].map(({ label, value, color }, i) => (
+                    <div key={label} style={{ padding: '18px 20px', borderRight: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', margin: 0 }}>{label}</p>
+                      <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color, marginTop: 8, marginBottom: 0 }}>{value}</p>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
-          </div>
-        </details>
 
-        {/* ── Danger Zone ──────────────────────────────────────────────────── */}
-        <section className="border border-red-200 rounded-xl p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-red-600 uppercase tracking-wide">Danger Zone</h2>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-slate-800">Delete this upload</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Permanently removes this upload and all {upload.transactionCount} associated transactions.
-                Month summaries will be recomputed. This cannot be undone.
+            {/* Reconciliation */}
+            <ReconciliationPanel report={upload.reconciliationReport} status={reconStatus} />
+
+            {/* Issues */}
+            {allIssues.length > 0 || loadingIssues ? (
+              <section style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: '20px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h2 style={{ fontWeight: 700, fontSize: 15, color: 'rgba(255,255,255,0.9)', margin: 0 }}>Issues</h2>
+                  <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 3 }}>
+                    {(['open', 'resolved'] as const).map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setTab(t)}
+                        style={{
+                          padding: '4px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none',
+                          background: tab === t ? 'rgba(108,124,255,0.85)' : 'transparent',
+                          color: tab === t ? '#fff' : 'rgba(255,255,255,0.45)',
+                        }}
+                      >
+                        {t === 'open' ? `Open${openIssues.length > 0 ? ` (${openIssues.length})` : ''}` : `Resolved${resolvedIssues.length > 0 ? ` (${resolvedIssues.length})` : ''}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {loadingIssues ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
+                    <Loader2 size={24} className="animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }}/>
+                  </div>
+                ) : displayIssues.length === 0 ? (
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', textAlign: 'center', padding: '16px 0' }}>
+                    {tab === 'open' ? 'No open issues — all clear!' : 'No resolved issues yet.'}
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {displayIssues.map(issue => (
+                      <IssueCard
+                        key={issue.id}
+                        issue={issue}
+                        onResolve={(issueId, resolved) => resolveMutation.mutate({ issueId, resolved })}
+                        resolving={resolvingId === issue.id}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+            ) : (
+              <div style={{ borderRadius: 20, border: '1px solid rgba(52,211,153,0.2)', background: 'rgba(52,211,153,0.06)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <CheckCircle2 size={22} style={{ color: '#34d399', flexShrink: 0 }}/>
+                <div>
+                  <p style={{ fontWeight: 700, color: '#34d399', fontSize: 14, margin: 0 }}>No issues found</p>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '3px 0 0' }}>Clean upload — no ambiguous dates, duplicates, or balance breaks.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Spending pie chart */}
+            {spendingBreakdown.length > 0 && (() => {
+              const totalSpend = spendingBreakdown.reduce((s, c) => s + Math.abs(c.total), 0)
+              const visibleData = (showAllCats ? spendingBreakdown : spendingBreakdown.slice(0, 8)).map((c, i) => ({
+                name: c.category, value: Math.abs(c.total), color: getCatColor(c.category, i), pct: c.pct, total: c.total,
+              }))
+              const pieData = spendingBreakdown.slice(0, 8).map((c, i) => ({
+                name: c.category, value: Math.abs(c.total), color: getCatColor(c.category, i),
+              }))
+              return (
+                <section style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: '20px 24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <div>
+                      <h2 style={{ fontWeight: 700, fontSize: 15, color: 'rgba(255,255,255,0.9)', margin: 0 }}>Spending by Category</h2>
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 }}>
+                        Total spend: <strong style={{ color: 'rgba(255,255,255,0.6)' }}>{fmtPie(totalSpend)}</strong>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => router.push(`/categorize/${id}`)}
+                      style={{ fontSize: 12, fontWeight: 700, color: 'rgba(108,124,255,0.9)', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Categorize →
+                    </button>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
+                          {pieData.map((entry, i) => <Cell key={i} fill={entry.color} stroke="transparent" />)}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: number, name: string) => [fmtPie(value), name]}
+                          contentStyle={{ background: 'rgba(10,15,30,0.95)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, fontSize: 12, color: '#fff' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Spend</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{fmtPie(totalSpend)}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                    {visibleData.map((c, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: c.color }} />
+                        <span style={{ flex: 1, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{fmtPie(c.total)}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, width: 30, textAlign: 'right' }}>{c.pct}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  {spendingBreakdown.length > 8 && (
+                    <button
+                      onClick={() => setShowAllCats(s => !s)}
+                      style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 8, width: '100%', textAlign: 'center' }}
+                    >
+                      {showAllCats ? 'Show fewer' : `View all ${spendingBreakdown.length} categories`}
+                    </button>
+                  )}
+                </section>
+              )
+            })()}
+          </div>
+
+          {/* ── RIGHT sidebar ───────────────────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* Categorize CTA */}
+            <section style={{ borderRadius: 20, border: '1px solid rgba(108,124,255,0.25)', background: 'linear-gradient(135deg,rgba(108,124,255,0.12),rgba(135,148,255,0.08))', padding: '22px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 14 }}>
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(148,196,255,0.7)', margin: 0 }}>Categorization</p>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: '#fff', margin: '6px 0 0' }}>
+                    {upload.totalRowsUnresolved === 0 ? 'All categorized' : `${upload.rowCountAccepted - upload.totalRowsUnresolved} of ${upload.rowCountAccepted}`}
+                  </h3>
+                </div>
+                <div style={{
+                  borderRadius: 10, padding: '6px 12px', fontSize: 14, fontWeight: 700,
+                  background: upload.totalRowsUnresolved === 0 ? 'rgba(52,211,153,0.15)' : 'rgba(251,191,36,0.15)',
+                  color: upload.totalRowsUnresolved === 0 ? '#34d399' : '#fbbf24',
+                  border: `1px solid ${upload.totalRowsUnresolved === 0 ? 'rgba(52,211,153,0.25)' : 'rgba(251,191,36,0.25)'}`,
+                }}>
+                  {categorizedPct}%
+                </div>
+              </div>
+
+              <div style={{ height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: 14 }}>
+                <div style={{
+                  height: '100%', borderRadius: 999,
+                  width: `${categorizedPct}%`,
+                  background: categorizedPct === 100
+                    ? 'linear-gradient(90deg,#34d399,#10b981)'
+                    : 'linear-gradient(90deg,#6c7cff,#8794ff)',
+                  transition: 'width 0.5s ease',
+                }} />
+              </div>
+
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 16, lineHeight: 1.5 }}>
+                {upload.totalRowsUnresolved === 0
+                  ? 'Ready to generate full insights and Financial Autopsy.'
+                  : 'Categorize to unlock Money Personality, Financial Autopsy, and anomaly detection.'}
               </p>
-            </div>
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white border border-red-300 text-red-600 hover:bg-red-50 font-semibold rounded-lg text-sm transition"
-            >
-              <Trash2 size={14} /> Delete
-            </button>
-          </div>
-        </section>
 
+              <button
+                onClick={() => router.push(`/categorize/${id}`)}
+                style={{
+                  width: '100%', borderRadius: 14, padding: '12px 0', fontSize: 14, fontWeight: 700,
+                  background: 'linear-gradient(135deg,#6c7cff,#8794ff)',
+                  color: '#fff', border: 'none', cursor: 'pointer',
+                  boxShadow: '0 12px 32px rgba(108,124,255,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                <Tags size={16}/>
+                {upload.totalRowsUnresolved === 0 ? 'Review categories' : 'Categorize now →'}
+              </button>
+            </section>
+
+            {/* Scan Report CTA */}
+            <section style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: '22px 24px' }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', margin: '0 0 8px' }}>Full Report</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.9)', margin: '0 0 8px' }}>Statement Scan Report</h3>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '0 0 16px', lineHeight: 1.5 }}>
+                Full parse diagnostics, integrity checks, and pipeline lineage for this upload.
+              </p>
+              <button
+                onClick={() => router.push(`/reports/${id}`)}
+                style={{
+                  width: '100%', borderRadius: 12, padding: '10px 0', fontSize: 13, fontWeight: 700,
+                  background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                <FileText size={15}/> View Scan Report
+              </button>
+            </section>
+
+            {/* Parser details */}
+            <section style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', overflow: 'hidden' }}>
+              <button
+                onClick={() => setShowParserDetails(s => !s)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', margin: 0 }}>Parser details</p>
+                {showParserDetails
+                  ? <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.3)' }}/>
+                  : <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.3)' }}/>}
+              </button>
+              {showParserDetails && (
+                <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                  <p>Parser: <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{upload.parserVersion}</strong></p>
+                  <p>Raw rows: <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{upload.rowCountRaw}</strong> · Parsed: <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{upload.rowCountParsed}</strong></p>
+                  {upload.statementOpenBalance  && <p>Open balance:  <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{fmtAmt(upload.statementOpenBalance)}</strong></p>}
+                  {upload.statementCloseBalance && <p>Close balance: <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{fmtAmt(upload.statementCloseBalance)}</strong></p>}
+                  {upload.statementTotalCredits && <p>Credits:  <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{fmtAmt(upload.statementTotalCredits)}</strong></p>}
+                  {upload.statementTotalDebits  && <p>Debits:   <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{fmtAmt(upload.statementTotalDebits)}</strong></p>}
+                  {upload.warnings.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <p style={{ fontWeight: 700, color: '#fbbf24', marginBottom: 4 }}>Parser warnings ({upload.warnings.length})</p>
+                      {upload.warnings.slice(0, 10).map((w, i) => (
+                        <p key={i} style={{ color: 'rgba(251,191,36,0.7)', fontSize: 11 }}>Row {w.rowIndex ?? '—'}: {w.message}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* Danger Zone */}
+            <section style={{ borderRadius: 20, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.04)', padding: '18px 22px' }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(239,68,68,0.7)', margin: '0 0 10px' }}>Danger Zone</p>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.8)', margin: 0 }}>Delete this upload</p>
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
+                    Removes {upload.transactionCount} transactions permanently.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.1)', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  <Trash2 size={13}/> Delete
+                </button>
+              </div>
+            </section>
+
+          </div>
+        </div>
       </main>
 
-      {/* ── Delete confirmation modal ─────────────────────────────────── */}
+      {/* ── Delete confirmation modal ────────────────────────────────────── */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <Trash2 size={18} className="text-red-600" />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', padding: 16 }}>
+          <div style={{ borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(10,15,28,0.97)', maxWidth: 420, width: '100%', padding: '28px 28px 24px', boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Trash2 size={18} style={{ color: '#f87171' }} />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900">Delete upload?</h3>
-                <p className="text-sm text-slate-500">{upload.filename}</p>
+                <h3 style={{ fontWeight: 700, color: '#fff', margin: 0, fontSize: 16 }}>Delete upload?</h3>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '3px 0 0' }}>{upload.filename}</p>
               </div>
             </div>
-            <p className="text-sm text-slate-600">
-              This will permanently delete <strong>{upload.transactionCount} transactions</strong> and all
-              associated reconciliation data. Month summaries will be updated. This cannot be undone.
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 20 }}>
+              This will permanently delete <strong style={{ color: 'rgba(255,255,255,0.85)' }}>{upload.transactionCount} transactions</strong> and all associated reconciliation data. This cannot be undone.
             </p>
-            <div className="flex gap-3 pt-1">
+            <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}
               >
                 Cancel
               </button>
               <button
                 onClick={() => deleteMutation.mutate()}
                 disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', background: '#dc2626', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: deleteMutation.isPending ? 0.6 : 1 }}
               >
                 {deleteMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 {deleteMutation.isPending ? 'Deleting…' : 'Delete permanently'}
               </button>
             </div>
             {deleteMutation.isError && (
-              <p className="text-xs text-red-600 text-center">
-                Delete failed — please try again.
-              </p>
+              <p style={{ fontSize: 12, color: '#f87171', textAlign: 'center', marginTop: 10 }}>Delete failed — please try again.</p>
             )}
           </div>
         </div>
