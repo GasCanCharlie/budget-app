@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import {
   LayoutDashboard, FileText, ArrowLeftRight, Tags, Layers,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, FlaskConical, Settings,
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, FlaskConical, Settings, Unlock,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
@@ -131,7 +131,9 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
           boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
           whiteSpace: 'nowrap',
         }}>
-          <span style={{ fontSize: 18 }}>🎉</span>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(52,211,153,0.2)', border: '1px solid rgba(52,211,153,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#34d399' }}>
+            <Unlock size={16} />
+          </div>
           <span style={{ fontSize: 14, fontWeight: 700, color: '#d1fae5' }}>
             Insights unlocked! Your spending analysis is now ready.
           </span>
