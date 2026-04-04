@@ -490,7 +490,7 @@ export default function HomePage() {
               <div style={{ position: 'absolute', inset: -40, borderRadius: 999, background: 'radial-gradient(circle, rgba(110,168,255,.18), transparent 65%)', filter: 'blur(30px)', pointerEvents: 'none' }} />
               <div className="p-hero-card">
                 <img
-                  src="/personalities/quiet_millionaire.webp"
+                  src="/personalities/quiet_millionaire_v2.webp"
                   alt="The Quiet Millionaire personality card"
                   className="p-hero-img"
                 />
