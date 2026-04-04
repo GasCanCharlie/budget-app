@@ -747,8 +747,11 @@ export default function HomePage() {
         <section className="section" id="pricing">
           <div className="wrap">
             <h2 style={{ textAlign: 'center', marginBottom: '8px' }}>Simple, honest pricing</h2>
-            <p className="lead" style={{ textAlign: 'center', margin: '0 auto 28px' }}>
-              Start free. Upgrade when you need more.
+            <p className="lead" style={{ textAlign: 'center', margin: '0 auto 8px' }}>
+              Free during beta — all features unlocked, no credit card needed.
+            </p>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', margin: '0 auto 28px' }}>
+              Pro tier coming soon. Early users lock in a lower rate.
             </p>
             <div className="pricing-grid">
               {/* Free tier */}
@@ -760,10 +763,10 @@ export default function HomePage() {
                 <p className="pricing-tagline">Free forever — no credit card needed.</p>
                 <hr className="pricing-divider" />
                 <ul className="pricing-features">
-                  <li><span className="fcheck">✓</span>Upload &amp; analyze up to 2 statements / month</li>
+                  <li><span className="fcheck">✓</span>Upload &amp; analyze statements</li>
                   <li><span className="fcheck">✓</span>Full AI scan report (subscriptions, duplicates, anomalies)</li>
                   <li><span className="fcheck">✓</span>Category management &amp; vendor rules</li>
-                  <li><span className="fcheck">✓</span>Basic spending dashboard</li>
+                  <li><span className="fcheck">✓</span>Smart spending insights &amp; dashboard</li>
                   <li><span className="fcheck">✓</span>CSV / OFX / QFX / QBO import</li>
                 </ul>
                 <div className="pricing-cta">
@@ -771,9 +774,9 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Pro tier */}
-              <div className="pricing-card pro">
-                <div className="popular-badge"><span className="pdot" />Most popular</div>
+              {/* Pro tier — coming soon */}
+              <div className="pricing-card pro" style={{ opacity: 0.6 }}>
+                <div className="popular-badge"><span className="pdot" />Coming soon</div>
                 <div className="pricing-tier">Pro</div>
                 <div className="pricing-price">
                   <span className="amount">$9</span>
@@ -790,7 +793,7 @@ export default function HomePage() {
                   <li><span className="fcheck">✓</span>Priority support</li>
                 </ul>
                 <div className="pricing-cta">
-                  <Link href="/login" className="btn btn-primary">Start free trial</Link>
+                  <button disabled className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '13px 16px', borderRadius: 14, fontSize: 15, opacity: 0.5, cursor: 'not-allowed' }}>Coming soon</button>
                 </div>
               </div>
             </div>
