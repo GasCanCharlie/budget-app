@@ -158,13 +158,14 @@ function buildNarrative(metrics: ComputedInsightMetrics): {
   let action_label = 'View transactions'
   let actionSentence = ''
 
+  const STORYLINE_NON_ACTIONABLE = ['Housing', 'Rent', 'Mortgage', 'Insurance']
   if (net < 0) {
-    const bigCat = expCats[0]
+    const bigCat = expCats.find(c => !STORYLINE_NON_ACTIONABLE.includes(c.categoryName))
     if (bigCat) {
       actionSentence = `To get back to positive, start with ${bigCat.categoryName} — it's your biggest lever.`
       action_label = `Review ${bigCat.categoryName}`
     } else {
-      actionSentence = 'Review your largest expense categories to find the easiest reductions.'
+      actionSentence = 'Review your variable expense categories to find the easiest reductions.'
     }
   } else if (newSubscriptions.length > 0) {
     actionSentence = 'Confirm whether the new recurring charge is expected and set to continue.'

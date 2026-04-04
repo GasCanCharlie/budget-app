@@ -37,9 +37,9 @@ function getIcon(suggestion: string) {
 
 const CONFIDENCE_STYLES: Record<string, React.CSSProperties> = {
   high: {
-    background: 'var(--success-muted, rgba(46,229,157,0.12))',
-    color: 'var(--success)',
-    border: '1px solid var(--success-muted, rgba(46,229,157,0.20))',
+    background: 'rgba(248,113,113,0.12)',
+    color: '#f87171',
+    border: '1px solid rgba(248,113,113,0.25)',
   },
   medium: {
     background: 'var(--warn-muted, rgba(251,191,36,0.12))',
@@ -47,9 +47,9 @@ const CONFIDENCE_STYLES: Record<string, React.CSSProperties> = {
     border: '1px solid var(--warn-muted, rgba(251,191,36,0.20))',
   },
   low: {
-    background: 'var(--surface2)',
-    color: 'var(--text3)',
-    border: '1px solid var(--border)',
+    background: 'rgba(52,211,153,0.10)',
+    color: '#34d399',
+    border: '1px solid rgba(52,211,153,0.22)',
   },
 }
 

@@ -108,6 +108,10 @@ Return ONLY a valid JSON array with exactly 4 objects. Each object must have:
 
 Focus on variety — cover different aspects: one on spending patterns, one on a specific merchant or category, one on a saving opportunity or behavior, one surprising or noteworthy finding. Use specific dollar amounts. Do not repeat the same insight type.
 
+IMPORTANT RULES:
+- Never recommend reducing or reviewing Housing, Rent, Mortgage, or Insurance as a savings lever. These are fixed costs most people cannot change. Focus only on discretionary and variable spending.
+- When linking to specific transactions, always reference the merchant or category name precisely as it appears in the data.
+
 Return only the JSON array, no other text.`
 
   try {

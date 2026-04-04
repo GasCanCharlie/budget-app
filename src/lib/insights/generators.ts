@@ -158,10 +158,14 @@ export function generateOverBudgetDiagnosis(metrics: ComputedInsightMetrics): In
   const top3Total = top3.reduce((s, c) => s + c.currentMonthTotal, 0)
   const top3Pct = totalSpending > 0 ? (top3Total / totalSpending) * 100 : 0
 
+  const NON_ACTIONABLE = ['Housing', 'Rent', 'Mortgage', 'Insurance']
+
   // Find a single-category fix: which category, if removed, restores net >= 0?
+  // Skip non-actionable categories (things people can't easily change)
   let singleFixCategory: string | null = null
   let singleFixAmount: number | null = null
   for (const cat of expenseCats) {
+    if (NON_ACTIONABLE.includes(cat.categoryName)) continue
     if (cat.currentMonthTotal >= deficit) {
       singleFixCategory = cat.categoryName
       singleFixAmount = cat.currentMonthTotal
@@ -245,9 +249,12 @@ export function generateCategorySpikes(metrics: ComputedInsightMetrics): Insight
   const DELTA_PCT_THRESHOLD = 20
   const DELTA_DOLLAR_THRESHOLD = 50
 
+  const SPIKE_NON_ACTIONABLE = ['Housing', 'Rent', 'Mortgage', 'Insurance']
+
   const candidates = categories
     .filter(c => {
       if (c.isIncome) return false
+      if (SPIKE_NON_ACTIONABLE.includes(c.categoryName)) return false
       if (c.deltaPercent === null || c.deltaPercent <= DELTA_PCT_THRESHOLD) return false
       if (c.delta === null || c.delta <= DELTA_DOLLAR_THRESHOLD) return false
       if (!c.threeMonthAvg || c.threeMonthAvg <= 0) return false
@@ -289,7 +296,7 @@ export function generateCategorySpikes(metrics: ComputedInsightMetrics): Insight
       summary,
       data,
       [
-        viewTransactionsAction(`/transactions?category=${encodeURIComponent(top.categoryName)}`),
+        viewTransactionsAction(`/transactions?category=${encodeURIComponent(top.categoryName)}&year=${year}&month=${month}`),
         dismissAction(),
       ],
       confidence,
@@ -939,10 +946,11 @@ export function generateFixOpportunity(metrics: ComputedInsightMetrics): Insight
     })
   }
 
-  // Scenario source C: dominant spending category > 40% of total
+  // Scenario source C: dominant spending category > 40% of total (skip non-actionable)
   const DOMINANT_THRESHOLD = 40
+  const FIX_NON_ACTIONABLE = ['Housing', 'Rent', 'Mortgage', 'Insurance']
   const dominantCats = categories
-    .filter(c => !c.isIncome && c.pctOfSpending > DOMINANT_THRESHOLD)
+    .filter(c => !c.isIncome && !FIX_NON_ACTIONABLE.includes(c.categoryName) && c.pctOfSpending > DOMINANT_THRESHOLD)
     .sort((a, b) => b.pctOfSpending - a.pctOfSpending)
 
   for (const cat of dominantCats) {
