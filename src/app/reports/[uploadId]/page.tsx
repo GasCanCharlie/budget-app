@@ -109,22 +109,26 @@ function Spinner() {
 }
 
 function StatCard({ label, value, color, sub }: { label: string; value: string; color?: string; sub?: string }) {
+  const tint = color === 'var(--success)' ? 'rgba(52,211,153,0.07)'
+    : color === 'var(--danger)' ? 'rgba(248,113,113,0.07)'
+    : 'rgba(255,255,255,0.03)'
+  const borderTint = color === 'var(--success)' ? 'rgba(52,211,153,0.18)'
+    : color === 'var(--danger)' ? 'rgba(248,113,113,0.18)'
+    : 'rgba(255,255,255,0.07)'
   return (
     <div style={{
-      background: 'var(--card)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-lg)',
-      boxShadow: 'var(--shadow-soft)',
-      padding: '18px 20px',
-      textAlign: 'center',
+      background: tint,
+      border: `1px solid ${borderTint}`,
+      borderRadius: 20,
+      padding: '20px 22px',
     }}>
-      <p style={{ margin: 0, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
+      <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.38)' }}>
         {label}
       </p>
-      <p style={{ margin: '6px 0 0', fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em', color: color ?? 'var(--text)' }}>
+      <p style={{ margin: '10px 0 0', fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', color: color ?? 'rgba(255,255,255,0.88)' }}>
         {value}
       </p>
-      {sub && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--subtle)' }}>{sub}</p>}
+      {sub && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{sub}</p>}
     </div>
   )
 }
@@ -138,56 +142,53 @@ function LockIcon({ size = 18 }: { size?: number }) {
   )
 }
 
-function LockedFeatureCard({ icon, title, description, teaser }: { icon: string; title: string; description: string; teaser: string }) {
+function LockedFeatureCard({ icon, title, description, bullets }: { icon: string; title: string; description: string; bullets: string[] }) {
   return (
     <div style={{
-      background: 'var(--card)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-lg)',
-      boxShadow: 'var(--shadow-soft)',
-      overflow: 'hidden',
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.09)',
+      borderRadius: 24,
+      padding: '22px 22px 20px',
       flex: 1,
       minWidth: 0,
       position: 'relative',
+      backdropFilter: 'blur(12px)',
     }}>
       {/* locked badge */}
       <div style={{
-        position: 'absolute', top: 12, right: 12,
+        position: 'absolute', top: 14, right: 14,
         display: 'flex', alignItems: 'center', gap: 4,
-        padding: '3px 8px', borderRadius: 999,
-        background: 'rgba(0,0,0,0.35)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        color: 'var(--muted)', fontSize: 10, fontWeight: 700,
-        letterSpacing: '0.05em', textTransform: 'uppercase',
+        padding: '3px 9px', borderRadius: 999,
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase',
       }}>
-        <LockIcon size={10} />
+        <LockIcon size={9} />
         Locked
       </div>
 
-      <div style={{ padding: '20px 20px 0' }}>
-        <div style={{ fontSize: 28, marginBottom: 10 }}>{icon}</div>
-        <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>{title}</p>
-        <p style={{ margin: '5px 0 14px', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{description}</p>
-      </div>
+      <div style={{ fontSize: 26, marginBottom: 12 }}>{icon}</div>
+      <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.92)', letterSpacing: '-0.02em' }}>{title}</p>
+      <p style={{ margin: '6px 0 16px', fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>{description}</p>
 
-      {/* blurred preview area */}
       <div style={{
-        margin: '0 12px',
-        borderRadius: 10,
-        background: 'var(--card2)',
-        border: '1px solid var(--border)',
+        borderRadius: 14,
+        border: '1px dashed rgba(255,255,255,0.12)',
+        background: 'rgba(0,0,0,0.2)',
         padding: '12px 14px',
-        filter: 'blur(4px)',
-        userSelect: 'none',
-        pointerEvents: 'none',
       }}>
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--text)', lineHeight: 1.6 }}>{teaser}</p>
-      </div>
-
-      <div style={{ padding: '10px 20px 16px', textAlign: 'center' }}>
-        <p style={{ margin: 0, fontSize: 11, color: 'var(--subtle)', fontStyle: 'italic' }}>
-          Unlocks after categorizing transactions
+        <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'rgba(255,255,255,0.3)' }}>
+          Included when unlocked
         </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {bullets.map((b, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(148,196,255,0.7)', flexShrink: 0 }} />
+              {b}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -653,28 +654,28 @@ export default function ScanReportPage() {
 
       {/* ── Header bar ─────────────────────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)',
-        borderBottom: '1px solid var(--border)',
-        padding: '20px 24px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        padding: '24px 28px',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 16,
       }}>
         <div>
           <button
             onClick={() => router.push(`/upload/${uploadId}`)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', padding: '0 0 10px', transition: 'color 0.15s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'rgba(255,255,255,0.38)', fontSize: 13, cursor: 'pointer', padding: '0 0 12px' }}
           >
             ← Back to upload
           </button>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 999, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', padding: '3px 12px', fontSize: 11, letterSpacing: '0.2em', color: 'rgba(148,196,255,0.8)', marginBottom: 10 }}>
+            Statement Analysis
+          </div>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em', color: '#fff' }}>
             Statement Scan Report
           </h1>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--muted)' }}>
+          <p style={{ margin: '5px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
             Generated {genDate}
           </p>
         </div>
@@ -684,19 +685,19 @@ export default function ScanReportPage() {
             download
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '8px 16px', borderRadius: 999,
-              background: 'var(--card)', border: '1px solid var(--border)',
-              color: 'var(--text)', fontSize: 13, fontWeight: 600,
+              padding: '10px 18px', borderRadius: 14,
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: 600,
               textDecoration: 'none', cursor: 'pointer',
             }}
           >
             ↓ Download PDF
           </a>
           <span style={{
-            display: 'inline-flex', alignItems: 'center', padding: '3px 9px',
-            borderRadius: 999, fontSize: 11, fontWeight: 600,
-            background: 'var(--accent-muted)', color: 'var(--accent)',
-            border: '1px solid rgba(124,137,255,0.25)',
+            display: 'inline-flex', alignItems: 'center', padding: '6px 14px',
+            borderRadius: 14, fontSize: 12, fontWeight: 700,
+            background: 'linear-gradient(135deg,rgba(108,124,255,0.85),rgba(135,148,255,0.8))',
+            color: '#fff',
           }}>
             BudgetLens AI
           </span>
@@ -776,19 +777,19 @@ export default function ScanReportPage() {
               icon="🔬"
               title="Financial Autopsy"
               description="A brutally honest breakdown of exactly what happened to your money this month."
-              teaser="Housing took 42% of your spending. Three subscriptions you forgot about cost you $67. Your coffee habit runs $4.20/day on average."
+              bullets={['Cash flow pressure detected', 'Largest outflows identified', 'Month-over-month context hidden']}
             />
             <LockedFeatureCard
               icon="🧠"
               title="Money Personality"
               description="Discover your financial archetype based on real spending patterns, not a quiz."
-              teaser="Savvy Spender · Fork & Knife — You control your money well and lean toward food experiences over material goods."
+              bullets={['Pattern recognition ready', 'Trait scoring complete', 'Card art waiting to unlock']}
             />
             <LockedFeatureCard
               icon="✨"
               title="Smart Insights"
               description="Personalized observations and flags based on your actual transaction data."
-              teaser="Your subscription spend is up 18% vs last month. You have 3 recurring charges on the same day — potential cash flow squeeze."
+              bullets={['Trend shifts detected', 'Merchant clustering hidden', 'Priority flags locked']}
             />
           </div>
         </div>
