@@ -485,23 +485,23 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* ── Hero card: Glowing Broke ── */}
+            {/* ── Hero card: The Quiet Millionaire ── */}
             <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: -40, borderRadius: 999, background: 'radial-gradient(circle, rgba(251,191,36,.15), transparent 65%)', filter: 'blur(30px)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', inset: -40, borderRadius: 999, background: 'radial-gradient(circle, rgba(110,168,255,.18), transparent 65%)', filter: 'blur(30px)', pointerEvents: 'none' }} />
               <div className="p-hero-card">
                 <img
-                  src="/personalities/glowing-broke.webp"
-                  alt="Glowing Broke personality card"
+                  src="/personalities/quiet_millionaire.webp"
+                  alt="The Quiet Millionaire personality card"
                   className="p-hero-img"
                 />
                 <div className="p-hero-body">
                   <div className="p-hero-eyebrow">Money Personality</div>
-                  <div className="p-hero-name">Glowing Broke</div>
-                  <div className="p-hero-line">You&apos;re moisturized, exfoliated, and financially exposed.</div>
+                  <div className="p-hero-name">The Quiet Millionaire</div>
+                  <div className="p-hero-line">High income, low spend, says nothing. The most dangerous kind of wealthy.</div>
                   <div className="p-hero-tags">
-                    <span className="p-hero-tag">Skincare &amp; beauty</span>
-                    <span className="p-hero-tag">High-frequency spend</span>
-                    <span className="p-hero-tag">Emotion-driven</span>
+                    <span className="p-hero-tag">High income</span>
+                    <span className="p-hero-tag">Disciplined spend</span>
+                    <span className="p-hero-tag">Quietly winning</span>
                   </div>
                 </div>
               </div>
