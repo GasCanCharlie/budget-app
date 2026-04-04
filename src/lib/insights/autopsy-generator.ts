@@ -150,7 +150,7 @@ export function generateAutopsyMerchantConcentration(
   if (pct < 20) return []
 
   const confidence: InsightCard['confidence'] =
-    pct >= 40 ? 'high' : pct >= 30 ? 'medium' : 'low'
+    pct >= 30 ? 'high' : pct >= 20 ? 'medium' : 'low'
 
   const summary =
     `${top.merchantDisplay} represents ${Math.round(pct)}% of your total spending ` +

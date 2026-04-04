@@ -205,7 +205,7 @@ export function generateMonthlyStoryline(
 
   if (totalSpending <= 0) return []
 
-  const { summary, numbers_used, action_label } = buildNarrative(metrics)
+  const { summary, numbers_used } = buildNarrative(metrics)
 
   const expCats = categories.filter(c => !c.isIncome && c.currentMonthTotal > 0)
   const topCat = expCats[0] ?? null
@@ -228,11 +228,6 @@ export function generateMonthlyStoryline(
   const priority = net < 0 ? 2 : 1
 
   const actions: InsightCardAction[] = [
-    {
-      label: action_label,
-      action_key: 'view_transactions',
-      href: '/transactions',
-    },
     { label: 'Dismiss', action_key: 'dismiss' },
   ]
 
