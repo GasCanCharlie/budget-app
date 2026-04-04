@@ -467,7 +467,9 @@ function AutopsyPanel({ autopsy, uploadId }: { autopsy: AutopsyState | null; upl
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           backdropFilter: 'blur(12px)', maxWidth: 260,
         }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>🔬</div>
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(167,139,250,0.18)', border: '1px solid rgba(167,139,250,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', color: '#a78bfa' }}>
+            <Microscope size={26} />
+          </div>
           <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#fff' }}>
             Auto-generates after categorizing
           </p>
