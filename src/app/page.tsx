@@ -278,6 +278,71 @@ const CSS = `
 .lp .pricing-cta { margin-top: auto; position: relative; }
 .lp .pricing-cta .btn { width: 100%; justify-content: center; padding: 13px 16px; border-radius: 14px; font-size: 15px; }
 
+.lp .persona-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 28px;
+}
+.lp .persona-card {
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+  cursor: default;
+}
+.lp .persona-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(110,168,255,.30);
+  background: rgba(110,168,255,.06);
+}
+.lp .persona-card:before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: radial-gradient(280px 140px at 0% 0%, rgba(110,168,255,.12), transparent 60%);
+  pointer-events: none;
+}
+.lp .persona-name {
+  font-size: 14px;
+  font-weight: 850;
+  color: var(--text);
+  margin-bottom: 6px;
+  position: relative;
+}
+.lp .persona-tagline {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+  position: relative;
+}
+.lp .persona-label {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  color: var(--brand);
+  background: rgba(110,168,255,.12);
+  border: 1px solid rgba(110,168,255,.22);
+  border-radius: 999px;
+  padding: 3px 9px;
+  margin-bottom: 10px;
+  position: relative;
+}
+.lp .persona-cta {
+  margin-top: 32px;
+  text-align: center;
+}
+.lp .persona-cta p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
 @media (max-width: 980px) {
   .lp .hero-grid { grid-template-columns: 1fr; }
   .lp .grid3 { grid-template-columns: 1fr; }
@@ -285,6 +350,10 @@ const CSS = `
   .lp .nav-links { display: none; }
   .lp .testimonials { grid-template-columns: 1fr; }
   .lp .pricing-grid { grid-template-columns: 1fr; max-width: 440px; }
+  .lp .persona-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 580px) {
+  .lp .persona-grid { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lp .logo:after { animation: none; }
@@ -423,6 +492,7 @@ export default function HomePage() {
           <nav className="nav-links" aria-label="Primary">
             <a href="#scan">What it finds</a>
             <a href="#how">How it works</a>
+            <a href="#personality">Money Personality</a>
             <a href="#pricing">Pricing</a>
             <a href="#privacy">Privacy</a>
           </nav>
@@ -649,6 +719,47 @@ export default function HomePage() {
                 <div className="top"><div className="ic">3</div><h3>Get clarity and callouts</h3></div>
                 <p>Once categorized, you get grounded insights, unusual transaction flags, and clean breakdowns.</p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Money Personality ────────────────────────────────────────────── */}
+        <section className="section" id="personality">
+          <div className="wrap">
+            <div className="kicker" style={{ marginBottom: 16 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 999, background: 'var(--brand)', boxShadow: '0 0 0 6px rgba(110,168,255,.14)', display: 'inline-block' }} />
+              33 archetypes · Detected automatically
+            </div>
+            <h2>Your money has a personality.<br />We figure out which one.</h2>
+            <p className="lead">
+              Once you categorize a statement, BudgetLens analyzes your patterns and assigns you one of 33 financial archetypes — from spending behavior to savings style to credit habits. No quiz. No self-reporting. Just your actual data.
+            </p>
+
+            <div className="persona-grid">
+              {[
+                { name: 'The Quiet Millionaire', tagline: 'High income, low spend, says nothing. The most dangerous kind of wealthy.' },
+                { name: 'The Full Send', tagline: 'You spent more than you earned this month. No judgment — just awareness.' },
+                { name: 'The Subscription Collector', tagline: 'Your subscriptions are stacking up. A quick audit could pay off.' },
+                { name: 'The Wire Dancer', tagline: 'You cleared the month by the skin of your teeth.' },
+                { name: 'Grind Setter', tagline: 'Business tools, software, and workspace costs signal someone building something.' },
+                { name: 'The Points Chaser', tagline: 'High volume, smart category use, paid in full. You\'re playing the system and winning.' },
+                { name: 'Digital Native', tagline: 'SaaS, apps, streaming, and tech subscriptions define your spending DNA.' },
+                { name: 'The Smooth Operator', tagline: 'Controlled spending, zero surprises. You make it look easy.' },
+                { name: 'Social Butterfly', tagline: 'Dining out, events, and gifts paint a picture of someone who shows up for people.' },
+              ].map((p) => (
+                <div key={p.name} className="persona-card">
+                  <div className="persona-label">Money Personality</div>
+                  <div className="persona-name">{p.name}</div>
+                  <div className="persona-tagline">{p.tagline}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="persona-cta">
+              <p>Upload a statement and categorize your transactions to unlock yours.</p>
+              <Link href="/login?mode=register" className="btn btn-primary" style={{ padding: '12px 24px', borderRadius: 14, fontSize: 15 }}>
+                Find my Money Personality
+              </Link>
             </div>
           </div>
         </section>
