@@ -485,25 +485,15 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* ── Hero card: The Quiet Millionaire ── */}
+            {/* ── Hero image: Where Did It All Go ── */}
             <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: -40, borderRadius: 999, background: 'radial-gradient(circle, rgba(110,168,255,.18), transparent 65%)', filter: 'blur(30px)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', inset: -40, borderRadius: 999, background: 'radial-gradient(circle, rgba(251,146,60,.12), transparent 65%)', filter: 'blur(30px)', pointerEvents: 'none' }} />
               <div className="p-hero-card">
                 <img
-                  src="/personalities/quiet_millionaire_v2.webp"
-                  alt="The Quiet Millionaire personality card"
-                  className="p-hero-img"
+                  src="/personalities/where_did_it_go.webp"
+                  alt="Where did it all go?"
+                  style={{ width: '100%', display: 'block', borderRadius: 28 }}
                 />
-                <div className="p-hero-body">
-                  <div className="p-hero-eyebrow">Money Personality</div>
-                  <div className="p-hero-name">The Quiet Millionaire</div>
-                  <div className="p-hero-line">High income, low spend, says nothing. The most dangerous kind of wealthy.</div>
-                  <div className="p-hero-tags">
-                    <span className="p-hero-tag">High income</span>
-                    <span className="p-hero-tag">Disciplined spend</span>
-                    <span className="p-hero-tag">Quietly winning</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
