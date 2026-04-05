@@ -52,13 +52,13 @@ export function assertPdfProcessable(
 ): void {
   if (classification.isEncrypted) {
     throw new Error(
-      `PDF_ENCRYPTED: "${fileName}" is password-protected. Remove the password and re-upload, or export a CSV from your bank instead.`,
+      `PDF_ENCRYPTED: This PDF is password-protected. Remove the password and re-upload, or export a CSV from your bank instead.`,
     )
   }
 
   if (!classification.isText) {
     throw new Error(
-      `PDF_SCANNED: "${fileName}" appears to be a scanned image rather than a text-based PDF. ` +
+      `PDF_SCANNED: This PDF appears to be a scanned image rather than a text-based PDF. ` +
       `BudgetLens can only read text PDFs. Log into your bank and download a fresh statement — ` +
       `banks generate text-based PDFs by default when you export directly.`,
     )
@@ -66,7 +66,7 @@ export function assertPdfProcessable(
 
   if (classification.pageCount > PDF_LIMITS.MAX_PAGES) {
     throw new Error(
-      `PDF_TOO_LONG: "${fileName}" has approximately ${classification.pageCount} pages, but the limit is ${PDF_LIMITS.MAX_PAGES}. ` +
+      `PDF_TOO_LONG: This PDF has approximately ${classification.pageCount} pages, but the limit is ${PDF_LIMITS.MAX_PAGES}. ` +
       `Split the statement into smaller date ranges and upload each separately.`,
     )
   }

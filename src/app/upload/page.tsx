@@ -110,7 +110,6 @@ export default function StatementsPage() {
     },
     onError: (err: Error) => {
       setErrorMsg(err.message)
-      setUploadResult({ success: false, error: err.message })
     },
   })
 
