@@ -21,6 +21,8 @@ import { runReconciliation } from '@/lib/ingestion/stage4-reconcile'
 import { computeCanonicalRowHash, type ImportReport } from '@/lib/ingestion/import-report'
 import type { CsvXlsxSourceLocator } from '@/types/ingestion'
 import { dryRunRules } from '@/lib/rules/dry-run'
+import { ingestPdf } from '@/lib/ingestion/pdf'
+import { PDF_LIMITS } from '@/lib/ingestion/pdf/types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -108,9 +110,274 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const rawText  = acceptance.decodedText!
     const fileHash = acceptance.fileHash
     const encoding = acceptance.encoding ?? 'utf-8'
+
+    // ── PDF pipeline (bypasses CSV stages 1–2) ────────────────────────────────
+    if (acceptance.sourceType === 'PDF') {
+      // ingestPdf handles classification, extraction, reconciliation.
+      // It throws with a user-friendly message if the PDF is scanned/encrypted/too long.
+      let pdfResult
+      try {
+        pdfResult = await ingestPdf(buffer, file.name, 'tmp')
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'PDF processing failed.'
+        return NextResponse.json({ error: message }, { status: 422 })
+      }
+
+      const { candidates, classification, reconciliationIssues } = pdfResult
+
+      // Separate high-confidence (auto-import) from low-confidence (review queue)
+      const highConfidence = candidates.filter(
+        (c) => c.confidence >= PDF_LIMITS.MIN_CONFIDENCE,
+      )
+      const lowConfidence = candidates.filter(
+        (c) => c.confidence < PDF_LIMITS.MIN_CONFIDENCE,
+      )
+
+      if (lowConfidence.length > 0) {
+        // TODO: review queue UI — store low-confidence candidates for manual review
+        console.log(
+          `[pdf/upload] ${lowConfidence.length} low-confidence candidates skipped for review:`,
+          lowConfidence.map((c) => ({
+            id: c.id,
+            date: c.parsedDate,
+            amount: c.parsedAmount,
+            desc: c.parsedDescription?.slice(0, 50),
+            confidence: c.confidence.toFixed(2),
+          })),
+        )
+      }
+
+      // Version-stamp if re-upload of same file
+      let pdfUploadVersion = 1
+      if (acceptance.isDuplicate && acceptance.previousUploadId) {
+        const prevUpload = await prisma.upload.findUnique({
+          where: { id: acceptance.previousUploadId },
+          select: { version: true },
+        })
+        pdfUploadVersion = (prevUpload?.version ?? 0) + 1
+        await prisma.upload.update({
+          where: { id: acceptance.previousUploadId },
+          data: { superseded: true },
+        })
+      }
+
+      const pdfParserConfig = {
+        type: 'PDF',
+        totalPages: classification.pageCount,
+        tableRegions: [],
+        ocrRequired: false,
+        ocrConfidenceThreshold: 0,
+      }
+
+      const pdfUpload = await prisma.upload.create({
+        data: {
+          userId:              payload.userId,
+          accountId,
+          filename:            file.name,
+          fileHash,
+          formatDetected:      'PDF',
+          version:             pdfUploadVersion,
+          reprocessedFromId:   acceptance.previousUploadId ?? undefined,
+          rowCountRaw:         candidates.length,
+          rowCountParsed:      highConfidence.length,
+          status:              'processing',
+          warnings:            JSON.stringify(reconciliationIssues.map((i) => ({
+            code: i.code,
+            message: i.message,
+          }))),
+          parserVersion:       PARSER_VERSION,
+          parserConfig:        JSON.stringify(pdfParserConfig),
+          reconciliationStatus: 'PENDING',
+          dateOrderUsed:       'YMD',
+          dateOrderSource:     'PDF_EXTRACTED',
+          dateOrderConfidence: 1,
+          statementOpenBalance:  openingBalance,
+          statementCloseBalance: closingBalance,
+          statementTotalCredits,
+          statementTotalDebits,
+        },
+      })
+
+      // Re-run ingestPdf with the real uploadId for stable candidate IDs
+      // (The first call used 'tmp' — now re-map with the real uploadId)
+      // In practice, IDs are only used internally; uploadId on records is what matters.
+
+      let pdfAccepted = 0
+      let pdfRejected = 0
+      const pdfValidDates: Date[] = []
+
+      for (let i = 0; i < highConfidence.length; i++) {
+        const candidate = highConfidence[i]
+
+        // Apply direction to amount (positive = credit, negative = debit)
+        const signedAmount = candidate.parsedAmount !== null
+          ? (candidate.direction === 'debit' ? -candidate.parsedAmount : candidate.parsedAmount)
+          : 0
+
+        const parsedDate = candidate.parsedDate
+          ? new Date(candidate.parsedDate + 'T00:00:00Z')
+          : new Date()
+
+        // Idempotency: dedup by (accountId + sourceText + parsedDate + parsedAmount)
+        const rawLineForHash = candidate.sourceLines.join(' ').slice(0, 200)
+        const sourceRowHash = createHash('sha256')
+          .update(`${accountId}|pdf:${candidate.parsedDate}:${candidate.parsedAmount}:${rawLineForHash}`)
+          .digest('hex')
+
+        const existingRaw = await prisma.transactionRaw.findUnique({ where: { sourceRowHash } })
+        if (existingRaw) { pdfRejected++; continue }
+
+        const descRaw = candidate.parsedDescription ?? candidate.rawDescription ?? ''
+        const merchantNorm = normalizeMerchant(descRaw)
+        const isTransfer = isTransferDescription(descRaw)
+
+        const pdfSourceLocator: import('@/types/ingestion').PdfSourceLocator = {
+          type: 'PDF',
+          pageNumber: candidate.pageSpan.start,
+          lineId: `p${candidate.pageSpan.start}_l${i}`,
+        }
+
+        try {
+          const raw = await prisma.transactionRaw.create({
+            data: {
+              uploadId:       pdfUpload.id,
+              accountId,
+              rawDate:        candidate.rawDate ?? '',
+              rawDescription: descRaw,
+              rawAmount:      candidate.rawAmount ?? String(Math.abs(signedAmount)),
+              rawCredit:      candidate.direction === 'credit' ? String(candidate.parsedAmount ?? 0) : '',
+              rawDebit:       candidate.direction === 'debit'  ? String(candidate.parsedAmount ?? 0) : '',
+              rawBalance:     candidate.rawBalance ?? '',
+              sourceRowHash,
+              sourceLocator:  JSON.stringify(pdfSourceLocator),
+              rawLine:        rawLineForHash,
+              parseOrder:     i,
+              rawFields:      JSON.stringify({
+                extractionMethod: candidate.extractionMethod,
+                confidence:       candidate.confidence.toFixed(3),
+                flags:            candidate.flags.join(','),
+                direction:        candidate.direction,
+              }),
+            },
+          })
+
+          await prisma.transaction.create({
+            data: {
+              rawId:                raw.id,
+              accountId,
+              uploadId:             pdfUpload.id,
+              date:                 parsedDate,
+              description:          descRaw,
+              merchantNormalized:   merchantNorm,
+              amount:               signedAmount,
+              isTransfer,
+              isForeignCurrency:    false,
+              foreignAmount:        null,
+              foreignCurrency:      null,
+              postedDate:           parsedDate,
+              transactionDate:      parsedDate,
+              dateRaw:              candidate.rawDate ?? '',
+              dateAmbiguity:        'RESOLVED',
+              dateInterpretationA:  null,
+              dateInterpretationB:  null,
+              amountRaw:            candidate.rawAmount ?? String(Math.abs(signedAmount)),
+              currencyCode:         undefined,
+              currencyDetected:     false,
+              descriptionRaw:       descRaw,
+              descriptionNormalized: descRaw || undefined,
+              transformations:      '[]',
+              runningBalance:       candidate.parsedBalance !== null ? String(candidate.parsedBalance) : null,
+              runningBalanceRaw:    candidate.rawBalance ?? null,
+              checkNumber:          null,
+              bankTransactionId:    candidate.id,
+              pendingFlag:          false,
+              bankFingerprint:      undefined,
+              ingestionStatus:      'VALID',
+              bankCategoryRaw:      null,
+              bankCategoryNormalized: null,
+              canonicalRowHash: computeCanonicalRowHash(
+                candidate.rawDate ?? '',
+                descRaw,
+                candidate.rawAmount ?? '',
+                null,
+                i,
+              ),
+            },
+          })
+
+          pdfAccepted++
+          pdfValidDates.push(parsedDate)
+        } catch {
+          pdfRejected++
+        }
+      }
+
+      const sortedPdfDates = [...pdfValidDates].sort((a, b) => a.getTime() - b.getTime())
+      await prisma.upload.update({
+        where: { id: pdfUpload.id },
+        data: {
+          rowCountAccepted:    pdfAccepted,
+          rowCountRejected:    pdfRejected + lowConfidence.length,
+          totalRowsUnresolved: lowConfidence.length,
+          status:              'complete',
+          completedAt:         new Date(),
+          dateRangeStart:      sortedPdfDates[0] ?? null,
+          dateRangeEnd:        sortedPdfDates[sortedPdfDates.length - 1] ?? null,
+        },
+      })
+
+      const pdfDedupResult = await runDedup(pdfUpload.id, accountId)
+      const pdfReconcileResult = await runReconciliation(pdfUpload.id)
+
+      const pdfAvailableMonths = await getAvailableMonths(payload.userId)
+      for (const { year, month } of pdfAvailableMonths.slice(0, 12)) {
+        await computeMonthSummary(payload.userId, year, month)
+      }
+
+      await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
+
+      return NextResponse.json(
+        {
+          uploadId:             pdfUpload.id,
+          accepted:             pdfAccepted,
+          rejected:             pdfRejected,
+          totalUnresolved:      lowConfidence.length,
+          possibleDuplicates:   pdfDedupResult.possibleDuplicatesFound,
+          crossUploadDuplicates: pdfDedupResult.crossUploadMatches,
+          withinUploadDuplicates: pdfDedupResult.withinUploadMatches,
+          formatDetected:       'PDF',
+          formatMismatch:       false,
+          contentSniffedType:   null,
+          dateAmbiguous:        false,
+          dateFormatSample:     [],
+          warnings:             reconciliationIssues.map((i) => ({ code: i.code, message: i.message })),
+          transactionCount:     pdfAccepted,
+          parserVersion:        PARSER_VERSION,
+          fileHashTruncated:    `${fileHash.slice(0, 8)}…${fileHash.slice(-8)}`,
+          reconciliationStatus: pdfReconcileResult.status,
+          reconciliationMode:   pdfReconcileResult.mode,
+          dateOrderUsed:        'YMD',
+          dateOrderSource:      'PDF_EXTRACTED',
+          dateOrderConfidence:  1,
+          bankDetected:         false,
+          bankKey:              null,
+          dateOrderNeedsConfirmation: false,
+          pdfReviewRequired:    pdfResult.reviewRequired,
+          pdfLowConfidenceCount: lowConfidence.length,
+          pdfClassification:    {
+            pageCount:        classification.pageCount,
+            estimatedAccount: classification.estimatedAccount,
+            statementStart:   classification.statementStart,
+            statementEnd:     classification.statementEnd,
+          },
+        },
+        { status: 201 },
+      )
+    }
+
+    const rawText  = acceptance.decodedText!
 
     // ── OFX fast-path (bypasses CSV stages 1–2) ───────────────────────────────
     if (acceptance.sourceType === 'OFX' || acceptance.sourceType === 'QFX' || acceptance.sourceType === 'QBO') {

@@ -178,11 +178,9 @@ export async function acceptFile(
       'XLSX_REJECTED: Excel uploads aren\'t supported yet — but getting a CSV takes 30 seconds. In your bank\'s export dialog, choose "CSV" or "Comma Separated Values" instead of Excel format, then re-upload.'
     return result
   }
-  if (sourceType === 'PDF') {
-    result.rejectionReason =
-      'PDF_REJECTED: PDF uploads aren\'t supported yet — but getting a CSV takes 30 seconds. Log into your bank, go to transaction history, and look for a Download or Export option. Choose CSV format and re-upload.'
-    return result
-  }
+  // PDF: pass through — the upload route handles PDF via the PDF ingestion pipeline.
+  // Stage 0 does NOT reject PDFs anymore; classification (text vs scanned, page count, etc.)
+  // happens inside src/lib/ingestion/pdf/classify.ts.
 
   result.sourceType = sourceType
 
@@ -206,6 +204,16 @@ export async function acceptFile(
     result.previousUploadId = existingUpload.id
     result.existingUploadId = existingUpload.id
     // DO NOT set accepted = false — reprocessing is allowed
+  }
+
+  // ── PDF early return ─────────────────────────────────────────────────────
+  //  PDFs are binary — skip text encoding, content-sniff, and truncation checks.
+  //  The upload route will call the PDF pipeline directly with the raw buffer.
+  if (sourceType === 'PDF') {
+    result.accepted = true
+    result.encoding = null
+    // decodedText intentionally omitted for PDF — route uses raw buffer
+    return result
   }
 
   // ── 6. Encoding detection + decode ──────────────────────────────────────
