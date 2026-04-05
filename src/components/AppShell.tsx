@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import {
   LayoutDashboard, FileText, ArrowLeftRight, Tags, Layers,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, FlaskConical, Settings, Unlock,
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, FlaskConical, Settings, Unlock, User,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
@@ -56,7 +56,20 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
   const [justUnlocked, setJustUnlocked] = useState(false)
   const [showUnlockToast, setShowUnlockToast] = useState(false)
   const [insightsTooltip, setInsightsTooltip] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const tooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showMobileMenu) return
+    function handleClick(e: MouseEvent) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setShowMobileMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showMobileMenu])
 
   useEffect(() => {
     if (unlockLoading) return
@@ -378,6 +391,43 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
                 {user?.email}
               </div>
               <ThemeToggle />
+              {/* Mobile user menu */}
+              <div className="relative md:hidden" ref={mobileMenuRef}>
+                <button
+                  onClick={() => setShowMobileMenu(v => !v)}
+                  className="p-1.5 rounded-md"
+                  style={{ background: showMobileMenu ? 'var(--surface2)' : 'transparent', color: 'var(--text-secondary)' }}
+                  aria-label="User menu"
+                >
+                  <User size={18} />
+                </button>
+                {showMobileMenu && (
+                  <div style={{
+                    position: 'absolute', top: '110%', right: 0, zIndex: 200,
+                    background: 'var(--card)', border: '1px solid var(--border)',
+                    borderRadius: 12, minWidth: 180,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    overflow: 'hidden',
+                  }}>
+                    {user?.email && (
+                      <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', fontSize: 11, color: 'var(--muted)', wordBreak: 'break-all' }}>
+                        {user.email}
+                      </div>
+                    )}
+                    <Link href="/settings" onClick={() => setShowMobileMenu(false)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', fontSize: 14, color: 'var(--text)', textDecoration: 'none' }}
+                    >
+                      <Settings size={15} /> Settings
+                    </Link>
+                    <button
+                      onClick={() => { setShowMobileMenu(false); handleLogout() }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', fontSize: 14, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', width: '100%', borderTop: '1px solid var(--border)' }}
+                    >
+                      <LogOut size={15} /> Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
