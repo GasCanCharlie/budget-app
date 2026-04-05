@@ -24,6 +24,8 @@ import { dryRunRules } from '@/lib/rules/dry-run'
 import { ingestPdf } from '@/lib/ingestion/pdf'
 import { PDF_LIMITS } from '@/lib/ingestion/pdf/types'
 
+export const maxDuration = 120 // seconds — PDF extraction via Claude can take 30–60s
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────

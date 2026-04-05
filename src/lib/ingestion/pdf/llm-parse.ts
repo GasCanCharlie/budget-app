@@ -1,12 +1,13 @@
 /**
  * PDF LLM Extraction
  *
- * Sends the PDF buffer directly to Claude via the native document API.
- * No text pre-extraction needed — Claude reads the PDF natively.
+ * Extracts text from the PDF using pdf-parse (handles permissions-encrypted PDFs),
+ * then sends the extracted text to Claude for structured transaction extraction.
  */
 
 import Anthropic from '@anthropic-ai/sdk'
-import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
 import { createHash } from 'crypto'
 import type { CandidateTransaction } from './types'
 
@@ -125,32 +126,35 @@ function mapToCandidate(row: ExtractedRow, statementId: string): CandidateTransa
 }
 
 /**
- * Send the entire PDF buffer to Claude as a native document and extract transactions.
+ * Extract text from PDF using pdf-parse, then send to Claude for structured extraction.
+ * Using text extraction first handles permissions-encrypted PDFs that Claude can't read natively.
  */
 export async function llmParsePdf(
   buffer: Buffer,
   statementId: string,
 ): Promise<CandidateTransaction[]> {
+  // Extract text via pdf-parse (handles permissions-encrypted bank PDFs)
+  let pdfText: string
+  try {
+    const data = await pdfParse(buffer)
+    pdfText = data.text?.trim() ?? ''
+  } catch (err) {
+    console.warn('[pdf/llm-parse] pdf-parse failed:', err)
+    return []
+  }
+
+  if (!pdfText || pdfText.length < 50) {
+    console.warn('[pdf/llm-parse] Extracted text too short — likely a scanned PDF')
+    return []
+  }
+
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 16000,
     messages: [
       {
         role: 'user',
-        content: [
-          {
-            type: 'document',
-            source: {
-              type: 'base64',
-              media_type: 'application/pdf',
-              data: buffer.toString('base64'),
-            },
-          } as ContentBlockParam,
-          {
-            type: 'text',
-            text: EXTRACTION_PROMPT,
-          } as ContentBlockParam,
-        ],
+        content: `${EXTRACTION_PROMPT}\n\n---\nSTATEMENT TEXT:\n${pdfText}`,
       },
     ],
   })
