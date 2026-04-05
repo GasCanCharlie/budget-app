@@ -210,10 +210,10 @@ export default function StatementsPage() {
                 ) : (
                   <>
                     <Upload size={24} style={{ color: 'var(--muted)', marginBottom: 8 }} />
-                    <p style={{ margin: 0, ...S.muted(14) }}>Drop a CSV or OFX file here, or click to browse</p>
+                    <p style={{ margin: 0, ...S.muted(14) }}>Drop a CSV, OFX, or PDF file here, or click to browse</p>
                   </>
                 )}
-                <input ref={fileRef} type="file" accept=".csv,.ofx,.qfx" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) setSelectedFile(f) }} />
+                <input ref={fileRef} type="file" accept=".csv,.ofx,.qfx,.qbo,.pdf" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) setSelectedFile(f) }} />
               </div>
 
               {errorMsg && (
