@@ -15,7 +15,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 const PIPELINE_STAGES = [
   { label: 'File received',         detail: 'SHA-256 fingerprint computed' },
   { label: 'Format detection',      detail: 'Identifying bank and schema' },
-  { label: 'Parsing & normalizing', detail: 'Extracting transaction records' },
+  { label: 'AI reading statement',  detail: 'Claude is extracting transactions — this takes 20–40s for PDFs' },
   { label: 'Deduplication',         detail: 'Cross-upload hash check' },
   { label: 'Reconciliation',        detail: 'Verifying statement totals' },
 ]
@@ -123,7 +123,8 @@ export default function StatementsPage() {
   useEffect(() => {
     if (!uploadMutation.isPending) { setPipelineStage(-1); return }
     setPipelineStage(0)
-    const timings = [350, 1050, 1950, 3050, 4250]
+    // Stage 2 (AI reading) intentionally stays active for a long time — PDF extraction takes 20–40s
+    const timings = [400, 1200, 60000, 62000, 64000]
     const timeouts = timings.map((delay, i) => setTimeout(() => setPipelineStage(i + 1), delay))
     return () => timeouts.forEach(clearTimeout)
   }, [uploadMutation.isPending])
