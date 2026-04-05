@@ -175,12 +175,12 @@ export async function acceptFile(
 
   if (sourceType === 'XLSX') {
     result.rejectionReason =
-      'Excel (XLSX) support is coming soon. Please export your bank statement as CSV or OFX/QFX/QBO and re-upload.'
+      'XLSX_REJECTED: Excel uploads aren\'t supported yet — but getting a CSV takes 30 seconds. In your bank\'s export dialog, choose "CSV" or "Comma Separated Values" instead of Excel format, then re-upload.'
     return result
   }
   if (sourceType === 'PDF') {
     result.rejectionReason =
-      'PDF statement parsing is coming in Phase 2. Please export your bank statement as CSV or OFX/QFX/QBO and re-upload.'
+      'PDF_REJECTED: PDF uploads aren\'t supported yet — but getting a CSV takes 30 seconds. Log into your bank, go to transaction history, and look for a Download or Export option. Choose CSV format and re-upload.'
     return result
   }
 

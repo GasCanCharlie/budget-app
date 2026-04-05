@@ -216,7 +216,18 @@ export default function StatementsPage() {
                 <input ref={fileRef} type="file" accept=".csv,.ofx,.qfx" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) setSelectedFile(f) }} />
               </div>
 
-              {errorMsg && <div style={{ ...S.flex(8), color: 'var(--danger)', fontSize: 14 }}><AlertCircle size={15} /> {errorMsg}</div>}
+              {errorMsg && (
+                <>
+                  <div style={{ ...S.flex(8), color: 'var(--danger)', fontSize: 14 }}>
+                    <AlertCircle size={15} />
+                    {errorMsg.startsWith('PDF_REJECTED:') || errorMsg.startsWith('XLSX_REJECTED:')
+                      ? errorMsg.replace(/^(PDF_REJECTED|XLSX_REJECTED):\s*/, '')
+                      : errorMsg}
+                  </div>
+                  {errorMsg.startsWith('PDF_REJECTED:') && <PdfHelpPanel />}
+                  {errorMsg.startsWith('XLSX_REJECTED:') && <XlsxHelpPanel />}
+                </>
+              )}
 
               {/* ── Pipeline progress ───────────────────────────────── */}
               {uploadMutation.isPending && pipelineStage >= 0 && (
@@ -463,6 +474,51 @@ interface RowProps {
   onNavigate: () => void
   fmtDate:    (iso: string) => string
 }
+
+// ─── PDF help panel ────────────────────────────────────────────────────────────
+
+const PDF_BANKS = [
+  { name: 'Chase',          steps: 'Accounts → Download activity → Date range → .CSV' },
+  { name: 'Bank of America', steps: 'Accounts → Transactions → Download → Microsoft Excel format (CSV)' },
+  { name: 'Wells Fargo',    steps: 'Account History → Download Account Activity → Spreadsheet (CSV)' },
+  { name: 'Capital One',    steps: 'Transactions → Download → CSV' },
+  { name: 'Citi',           steps: 'Account Details → Download → CSV' },
+  { name: 'American Express', steps: 'Statements & Activity → Download → CSV' },
+]
+
+function PdfHelpPanel() {
+  return (
+    <div style={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface, var(--card))', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>How to export a CSV from your bank</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {PDF_BANKS.map((bank, i) => (
+          <div key={bank.name} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 0', borderBottom: i < PDF_BANKS.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', minWidth: 110, flexShrink: 0 }}>{bank.name}</span>
+            <span style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{bank.steps}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+        Not listed? Look for a <strong style={{ color: 'var(--text)' }}>Download</strong> or <strong style={{ color: 'var(--text)' }}>Export</strong> button near your transaction history and select <strong style={{ color: 'var(--text)' }}>CSV</strong> or <strong style={{ color: 'var(--text)' }}>Comma Separated Values</strong>.
+      </div>
+    </div>
+  )
+}
+
+// ─── XLSX help panel ───────────────────────────────────────────────────────────
+
+function XlsxHelpPanel() {
+  return (
+    <div style={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface, var(--card))', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Switch to CSV format</div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+        Go back to your bank&rsquo;s export dialog and select <strong style={{ color: 'var(--text)' }}>CSV</strong> or <strong style={{ color: 'var(--text)' }}>Comma Separated Values</strong> instead of Excel. Most banks offer both options in the same download menu.
+      </div>
+    </div>
+  )
+}
+
+// ─── Statement row ─────────────────────────────────────────────────────────────
 
 function StatementRow({ upload: u, isLast, onDelete, onNavigate, fmtDate }: RowProps) {
   const [hov, setHov] = useState(false)
