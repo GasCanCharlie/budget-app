@@ -1,64 +1,55 @@
 /**
  * PDF LLM Extraction
  *
- * Calls Claude API to extract transactions from preprocessed page text chunks.
- * Returns CandidateTransaction[] with provenance metadata.
+ * Sends the PDF buffer directly to Claude via the native document API.
+ * No text pre-extraction needed — Claude reads the PDF natively.
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages'
 import { createHash } from 'crypto'
 import type { CandidateTransaction } from './types'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-// Strict schema for model output — what we ask the model to return
 interface ExtractedRow {
   rowKey: string
   sourcePage: number
   sourceText: string
-  date: string | null          // ISO format YYYY-MM-DD
+  date: string | null
   description: string | null
-  amount: number | null        // always positive
+  amount: number | null
   balance: number | null
   direction: 'debit' | 'credit' | 'unknown'
-  confidence: number           // 0–1, model's own estimate
+  confidence: number
   notes: string[]
 }
 
-const EXTRACTION_PROMPT = `You are a precise financial data extractor. Extract ALL transactions from the bank statement text below.
+const EXTRACTION_PROMPT = `You are a precise financial data extractor. Extract ALL transactions from this bank statement PDF.
 
 Output ONLY a valid JSON array of transaction objects. No explanation, no markdown, no code blocks — just the raw JSON array.
 
 Each object must have exactly these fields:
 {
-  "rowKey": "<unique string key for this row, e.g. row_1>",
-  "sourcePage": <integer page number from PAGE markers in text>,
-  "sourceText": "<verbatim line(s) from the input that produced this transaction>",
+  "rowKey": "<unique string key, e.g. row_1>",
+  "sourcePage": <integer page number>,
+  "sourceText": "<verbatim text from the statement that produced this transaction>",
   "date": "<YYYY-MM-DD format, or null if not found>",
-  "description": "<merchant/payee name and description, or null if not found>",
-  "amount": <positive number, or null if not found>,
+  "description": "<merchant or payee name and description, or null>",
+  "amount": <positive number, or null>,
   "balance": <running balance as positive number, or null if not shown>,
   "direction": "<debit|credit|unknown> — debit=money out, credit=money in",
-  "confidence": <0.0 to 1.0 — your confidence this is a real transaction>,
+  "confidence": <0.0 to 1.0>,
   "notes": ["<any parsing notes or ambiguities>"]
 }
 
 Rules:
-- amount must ALWAYS be positive — use direction field to indicate sign
+- amount must ALWAYS be positive — use direction field for sign
 - date must be ISO format YYYY-MM-DD
-- sourceText must be verbatim from the input (preserve exactly as-is)
-- Skip totals, subtotals, and balance-forward rows — those are not transactions
-- Skip header rows and footer rows
-- If a line is a continuation of the previous transaction, merge it into that transaction's description
-- Set confidence < 0.75 if the date, amount, or description is unclear
+- Skip totals, subtotals, balance-forward rows, headers, and footers
+- If a description spans multiple lines, merge into one transaction
+- Set confidence < 0.75 if date, amount, or description is unclear`
 
-Text to extract from:
-`
-
-/**
- * Validate that a value is a well-formed ExtractedRow array.
- * Returns only the valid rows; logs and drops malformed ones.
- */
 function validateExtractedRows(raw: unknown): ExtractedRow[] {
   if (!Array.isArray(raw)) return []
 
@@ -66,13 +57,11 @@ function validateExtractedRows(raw: unknown): ExtractedRow[] {
   for (const item of raw) {
     if (typeof item !== 'object' || item === null) continue
     const row = item as Record<string, unknown>
-
-    // Required: rowKey must be a string
     if (typeof row['rowKey'] !== 'string') continue
 
-    const extracted: ExtractedRow = {
+    valid.push({
       rowKey: String(row['rowKey']),
-      sourcePage: typeof row['sourcePage'] === 'number' ? row['sourcePage'] : 0,
+      sourcePage: typeof row['sourcePage'] === 'number' ? row['sourcePage'] : 1,
       sourceText: typeof row['sourceText'] === 'string' ? row['sourceText'] : '',
       date: typeof row['date'] === 'string' ? row['date'] : null,
       description: typeof row['description'] === 'string' ? row['description'] : null,
@@ -85,52 +74,23 @@ function validateExtractedRows(raw: unknown): ExtractedRow[] {
         ? Math.min(1, Math.max(0, row['confidence']))
         : 0.5,
       notes: Array.isArray(row['notes'])
-        ? (row['notes'] as unknown[]).filter((n) => typeof n === 'string') as string[]
+        ? (row['notes'] as unknown[]).filter((n): n is string => typeof n === 'string')
         : [],
-    }
-
-    valid.push(extracted)
+    })
   }
   return valid
 }
 
-/**
- * Compute basic validity score from parsed fields (0–1).
- * Used to average with the model's self-reported confidence.
- */
 function basicValidityScore(row: ExtractedRow): number {
   let score = 0
-  let checks = 0
-
-  // Date parsed and valid ISO format
-  checks++
-  if (row.date && /^\d{4}-\d{2}-\d{2}$/.test(row.date)) {
-    score++
-  }
-
-  // Amount present and positive
-  checks++
+  if (row.date && /^\d{4}-\d{2}-\d{2}$/.test(row.date)) score++
   if (row.amount !== null && row.amount > 0) score++
-
-  // Description not empty
-  checks++
   if (row.description && row.description.trim().length > 0) score++
-
-  // Direction not unknown
-  checks++
   if (row.direction !== 'unknown') score++
-
-  return checks > 0 ? score / checks : 0
+  return score / 4
 }
 
-/**
- * Map an ExtractedRow to a CandidateTransaction.
- */
-function mapToCandidate(
-  row: ExtractedRow,
-  statementId: string,
-  chunkPageStart: number,
-): CandidateTransaction {
+function mapToCandidate(row: ExtractedRow, statementId: string): CandidateTransaction {
   const validityScore = basicValidityScore(row)
   const combinedConfidence = (row.confidence + validityScore) / 2
 
@@ -139,17 +99,15 @@ function mapToCandidate(
   if (!row.date) flags.push('missing_date')
   if (row.amount === null) flags.push('missing_amount')
 
-  // Stable ID based on content
-  const idInput = `${statementId}:${row.sourcePage}:${row.sourceText.slice(0, 80)}`
-  const id = createHash('sha256').update(idInput).digest('hex').slice(0, 16)
+  const id = createHash('sha256')
+    .update(`${statementId}:${row.sourcePage}:${row.sourceText.slice(0, 80)}`)
+    .digest('hex')
+    .slice(0, 16)
 
   return {
     id,
     statementId,
-    pageSpan: {
-      start: row.sourcePage || chunkPageStart,
-      end: row.sourcePage || chunkPageStart,
-    },
+    pageSpan: { start: row.sourcePage, end: row.sourcePage },
     sourceLines: row.sourceText ? [row.sourceText] : [],
     rawDate: row.date,
     rawDescription: row.description,
@@ -167,32 +125,36 @@ function mapToCandidate(
 }
 
 /**
- * Call the Claude API to extract transactions from a text chunk.
- *
- * @param chunkText    The preprocessed page text for this chunk
- * @param statementId  Unique ID for this upload/statement (for stable candidate IDs)
- * @param chunkPageStart  1-based page number of the first page in this chunk
+ * Send the entire PDF buffer to Claude as a native document and extract transactions.
  */
-export async function llmParseChunk(
-  chunkText: string,
+export async function llmParsePdf(
+  buffer: Buffer,
   statementId: string,
-  chunkPageStart: number,
 ): Promise<CandidateTransaction[]> {
-  const prompt = EXTRACTION_PROMPT + chunkText
-
   const response = await client.messages.create({
-    model: 'claude-opus-4-5',
-    max_tokens: 4000,
-    temperature: 0,
+    model: 'claude-sonnet-4-6',
+    max_tokens: 8000,
     messages: [
       {
         role: 'user',
-        content: prompt,
+        content: [
+          {
+            type: 'document',
+            source: {
+              type: 'base64',
+              media_type: 'application/pdf',
+              data: buffer.toString('base64'),
+            },
+          } as ContentBlockParam,
+          {
+            type: 'text',
+            text: EXTRACTION_PROMPT,
+          } as ContentBlockParam,
+        ],
       },
     ],
   })
 
-  // Extract text content from response
   const content = response.content[0]
   if (content.type !== 'text') {
     console.warn('[pdf/llm-parse] Unexpected response content type:', content.type)
@@ -201,21 +163,19 @@ export async function llmParseChunk(
 
   const rawText = content.text.trim()
 
-  // Parse the JSON response
   let parsed: unknown
   try {
-    // Strip any accidental markdown code fences if model added them
     const jsonText = rawText
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/\s*```\s*$/, '')
       .trim()
     parsed = JSON.parse(jsonText)
   } catch (err) {
-    console.warn('[pdf/llm-parse] Failed to parse LLM JSON response:', err)
+    console.warn('[pdf/llm-parse] Failed to parse JSON response:', err)
     console.warn('[pdf/llm-parse] Raw response (first 500 chars):', rawText.slice(0, 500))
     return []
   }
 
   const rows = validateExtractedRows(parsed)
-  return rows.map((row) => mapToCandidate(row, statementId, chunkPageStart))
+  return rows.map((row) => mapToCandidate(row, statementId))
 }
