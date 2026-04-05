@@ -219,9 +219,7 @@ export default function StatementsPage() {
                 <>
                   <div style={{ ...S.flex(8), color: 'var(--danger)', fontSize: 14 }}>
                     <AlertCircle size={15} />
-                    {errorMsg.startsWith('PDF_REJECTED:') || errorMsg.startsWith('XLSX_REJECTED:')
-                      ? errorMsg.replace(/^(PDF_REJECTED|XLSX_REJECTED):\s*/, '')
-                      : errorMsg}
+                    {errorMsg.replace(/^(PDF_REJECTED|XLSX_REJECTED|PDF_ENCRYPTED|PDF_SCANNED|PDF_TOO_LONG):\s*/, '')}
                   </div>
                   {errorMsg.startsWith('PDF_REJECTED:') && <PdfHelpPanel />}
                   {errorMsg.startsWith('XLSX_REJECTED:') && <XlsxHelpPanel />}
