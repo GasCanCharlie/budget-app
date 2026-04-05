@@ -183,11 +183,13 @@ function TxCard({
   isSelected,
   isDragSource,
   onClick,
+  isMobile,
 }: {
   tx: Transaction
   isSelected: boolean
   isDragSource: boolean
   onClick: (tx: Transaction, e: React.MouseEvent) => void
+  isMobile?: boolean
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `tx-${tx.id}`,
@@ -201,14 +203,15 @@ function TxCard({
     <div
       ref={setNodeRef}
       {...attributes}
-      {...listeners}
+      {...(isMobile ? {} : listeners)}
       onClick={e => onClick(tx, e)}
       tabIndex={0}
       data-source={isSource ? 'true' : undefined}
       data-selected={isSelected ? 'true' : undefined}
       className={clsx(
-        'transaction-card touch-none select-none',
-        isSource ? 'dragging cursor-grabbing' : isSelected ? 'selected cursor-grab' : 'cursor-grab',
+        'transaction-card select-none',
+        !isMobile && 'touch-none',
+        isSource ? 'dragging cursor-grabbing' : isSelected ? 'selected cursor-grab' : isMobile ? 'cursor-pointer' : 'cursor-grab',
       )}
       style={undefined}
     >
@@ -338,6 +341,81 @@ function CategoryBucket({
         )}
       </div>
     </div>
+  )
+}
+
+// ─── Mobile Category Picker (bottom sheet) ──────────────────────────────────
+
+function MobileCategoryPicker({
+  tx,
+  categories,
+  onAssign,
+  onClose,
+}: {
+  tx: Transaction
+  categories: Category[]
+  onAssign: (tx: Transaction, catId: string) => void
+  onClose: () => void
+}) {
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+      />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
+        background: 'var(--card)',
+        borderRadius: '20px 20px 0 0',
+        border: '1px solid var(--border)',
+        maxHeight: '82vh',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 -12px 48px rgba(0,0,0,0.55)',
+      }}>
+        {/* Drag handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+        </div>
+        {/* Transaction summary */}
+        <div style={{ padding: '10px 20px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {tx.merchantNormalized || tx.description}
+              </p>
+              <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--muted)' }}>
+                {fmtDate(tx.date)}
+                {tx.appCategory && <span style={{ marginLeft: 6, color: 'var(--accent)' }}>· {tx.appCategory}</span>}
+              </p>
+            </div>
+            <span style={{ fontSize: 17, fontWeight: 700, color: tx.amount < 0 ? '#FF5B78' : '#2EE59D', flexShrink: 0 }}>
+              {fmtAmt(tx.amount)}
+            </span>
+          </div>
+        </div>
+        {/* Category grid */}
+        <div style={{ overflowY: 'auto', padding: '14px 16px 48px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => onAssign(tx, cat.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '14px 14px', borderRadius: 12,
+                  background: tx.appCategory === cat.name ? 'rgba(108,124,255,0.15)' : 'var(--surface2)',
+                  border: tx.appCategory === cat.name ? '1px solid rgba(108,124,255,0.4)' : '1px solid var(--border)',
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <CategoryIcon name={cat.icon} color={cat.color} size={20} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{cat.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -1022,6 +1100,10 @@ export default function CategorizePage() {
   const [touchCatId, setTouchCatId] = useState<string | null>(null)
   const catRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
+  // Mobile UX
+  const [isMobile, setIsMobile] = useState(false)
+  const [mobilePicker, setMobilePicker] = useState<Transaction | null>(null)
+
   // Sort + vendor filter state (persisted to localStorage)
   const [sortKey, setSortKey] = useState<CatSortKey>(() => {
     try { return (localStorage.getItem('budgetlens:cat-sort-key') as CatSortKey) || 'date' }
@@ -1348,6 +1430,10 @@ export default function CategorizePage() {
 
   // ── Click handler (multi-select) ──
   const handleTxClick = useCallback((tx: Transaction, e: React.MouseEvent) => {
+    if (isMobile) {
+      setMobilePicker(tx)
+      return
+    }
     const isCtrl = e.ctrlKey || e.metaKey
     const isShift = e.shiftKey
 
@@ -1373,7 +1459,7 @@ export default function CategorizePage() {
       setSelectedIds(new Set([tx.id]))
       setAnchorId(tx.id)
     }
-  }, [anchorId, sortedQueueTxs])
+  }, [isMobile, anchorId, sortedQueueTxs])
 
   // ── handleDrop (used by dnd-kit onDragEnd and click-assign) ──
   const handleDrop = useCallback((categoryId: string, txsToDrop: string[], primaryTx: Transaction | null) => {
@@ -1578,6 +1664,15 @@ export default function CategorizePage() {
     window.addEventListener('keydown', onKey)
     return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', onKey) }
   }, [catCtxMenu])
+
+  // Mobile detection
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   // Auto-select first visible item if none selected
   useEffect(() => {
@@ -2000,7 +2095,7 @@ export default function CategorizePage() {
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
               {/* LEFT: Category drop targets */}
-              <div>
+              <div className="hidden md:block">
                 {/* Category rows — grouped into pairs so accordion expands inline */}
                 <div className={clsx('categories-panel px-1 py-0.5', isDraggingTx && 'drag-mode')}>
                   <SortableContext items={sortableCatIds} strategy={verticalListSortingStrategy}>
@@ -2109,6 +2204,7 @@ export default function CategorizePage() {
                       isSelected={selectedIds.has(tx.id)}
                       isDragSource={draggingIds.includes(tx.id)}
                       onClick={handleTxClick}
+                      isMobile={isMobile}
                     />
                   ))}
                   {sortedQueueTxs.length === 0 && vendorQuery && (
@@ -2123,6 +2219,19 @@ export default function CategorizePage() {
           )}
 
         </main>
+
+        {/* Mobile category picker */}
+        {mobilePicker && (
+          <MobileCategoryPicker
+            tx={mobilePicker}
+            categories={categories}
+            onAssign={(tx, catId) => {
+              setMobilePicker(null)
+              initiateAssign(tx, catId)
+            }}
+            onClose={() => setMobilePicker(null)}
+          />
+        )}
 
         {/* Touch ghost element */}
         <TouchGhost tx={touchTx} pos={touchPos} />
