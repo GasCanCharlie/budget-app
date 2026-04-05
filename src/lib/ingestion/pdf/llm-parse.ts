@@ -133,7 +133,7 @@ export async function llmParsePdf(
 ): Promise<CandidateTransaction[]> {
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 8000,
+    max_tokens: 16000,
     messages: [
       {
         role: 'user',
@@ -170,10 +170,24 @@ export async function llmParsePdf(
       .replace(/\s*```\s*$/, '')
       .trim()
     parsed = JSON.parse(jsonText)
-  } catch (err) {
-    console.warn('[pdf/llm-parse] Failed to parse JSON response:', err)
-    console.warn('[pdf/llm-parse] Raw response (first 500 chars):', rawText.slice(0, 500))
-    return []
+  } catch {
+    // Try to salvage a truncated array by closing it at the last complete object
+    try {
+      const jsonText = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+      const lastBrace = jsonText.lastIndexOf('},')
+      if (lastBrace > 0) {
+        parsed = JSON.parse(jsonText.slice(0, lastBrace + 1) + ']')
+        console.warn('[pdf/llm-parse] Salvaged truncated JSON response')
+      } else {
+        console.warn('[pdf/llm-parse] Failed to parse JSON response')
+        console.warn('[pdf/llm-parse] Raw response (first 500 chars):', rawText.slice(0, 500))
+        return []
+      }
+    } catch {
+      console.warn('[pdf/llm-parse] Failed to parse JSON response')
+      console.warn('[pdf/llm-parse] Raw response (first 500 chars):', rawText.slice(0, 500))
+      return []
+    }
   }
 
   const rows = validateExtractedRows(parsed)
