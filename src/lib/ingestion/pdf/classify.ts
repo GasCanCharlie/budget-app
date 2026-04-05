@@ -50,12 +50,6 @@ export function assertPdfProcessable(
   classification: PdfClassification,
   fileName: string,
 ): void {
-  if (classification.isEncrypted) {
-    throw new Error(
-      `PDF_ENCRYPTED: This PDF is password-protected. Remove the password and re-upload, or export a CSV from your bank instead.`,
-    )
-  }
-
   if (!classification.isText) {
     throw new Error(
       `PDF_SCANNED: This PDF appears to be a scanned image rather than a text-based PDF. ` +
