@@ -1916,12 +1916,14 @@ export default function CategorizePage() {
             </div>
           </div>
 
-          {/* ── Categorization tips panel ─────────────────────────────────── */}
+          {/* ── Categorization tips panel — desktop only ─────────────────── */}
+          <div className="hidden md:block">
           <CategorizationTips
             onSortAmount={() => { handleCatSort('amount'); setSamePriceOnly(false) }}
             onSortVendor={() => { handleCatSort('vendor'); setSamePriceOnly(false) }}
             onSortSamePrice={() => { setSamePriceOnly(true); setSortKey('amount'); setSortDir('desc') }}
           />
+          </div>
 
           {queueTxs.length === 0 ? (
             txTotal === 0 ? (
@@ -1992,8 +1994,8 @@ export default function CategorizePage() {
             <>
               {/* ── Shared toolbar row (categories label + sort controls on one line) ── */}
               <div className="mb-2 flex items-center gap-3">
-                {/* Left half: category label + save + apply-rules */}
-                <div className="flex flex-1 items-center gap-2 min-w-0">
+                {/* Left half: category label + save + apply-rules — desktop only */}
+                <div className="hidden md:flex flex-1 items-center gap-2 min-w-0">
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                     Categories
                   </span>
@@ -2029,8 +2031,19 @@ export default function CategorizePage() {
                     <span className="text-xs font-semibold text-green-400 whitespace-nowrap">{applyRulesMsg}</span>
                   )}
                 </div>
-                {/* Right half: sort controls */}
-                <div className="flex flex-1 items-center gap-1.5 justify-end min-w-0">
+                {/* Mobile: apply rules only */}
+                <div className="flex md:hidden items-center gap-2">
+                  <button
+                    onClick={() => applyRulesMutation.mutate()}
+                    disabled={applyRulesMutation.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition whitespace-nowrap"
+                  >
+                    {applyRulesMutation.isPending ? <><Loader2 size={12} className="animate-spin" /> Applying…</> : <><Zap size={12} /> Apply Rules</>}
+                  </button>
+                  {applyRulesMsg && <span className="text-xs font-semibold text-green-400">{applyRulesMsg}</span>}
+                </div>
+                {/* Right half: sort controls — desktop only */}
+                <div className="hidden md:flex flex-1 items-center gap-1.5 justify-end min-w-0">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">Sort:</span>
                   {(['date', 'amount', 'vendor'] as CatSortKey[]).map(key => {
                     const active = sortKey === key
