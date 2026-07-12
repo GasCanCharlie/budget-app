@@ -461,7 +461,7 @@ export default function DashboardPage() {
                 onClick={() => setActiveTab(tab)}
                 className="px-4 py-2.5 text-sm font-semibold -mb-px transition-all"
                 style={activeTab === tab
-                  ? { borderBottom: '2px solid #6366F1', color: '#a5b4fc', marginBottom: -1 }
+                  ? { borderBottom: '2px solid var(--accent)', color: 'var(--accent2)', marginBottom: -1 }
                   : { borderBottom: '2px solid transparent', color: '#6B7280', marginBottom: -1 }
                 }
               >

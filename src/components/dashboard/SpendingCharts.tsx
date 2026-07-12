@@ -62,8 +62,8 @@ function GradientBar(props: {
     <g>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#4F46E5" />
-          <stop offset="100%" stopColor="#818CF8" />
+          <stop offset="0%" style={{ stopColor: 'var(--accent)' }} />
+          <stop offset="100%" style={{ stopColor: 'var(--accent2)' }} />
         </linearGradient>
       </defs>
       <rect
@@ -126,7 +126,7 @@ export function SpendingCharts({ categories }: Props) {
               <XAxis
                 type="number"
                 tickFormatter={(v: number) => `$${v.toLocaleString()}`}
-                tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                tick={{ fontSize: 11, fill: 'var(--muted)' }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -134,7 +134,7 @@ export function SpendingCharts({ categories }: Props) {
                 type="category"
                 dataKey="name"
                 width={100}
-                tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                tick={{ fontSize: 11, fill: 'var(--muted)' }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -187,7 +187,7 @@ export function SpendingCharts({ categories }: Props) {
               <Legend
                 iconType="circle"
                 iconSize={7}
-                wrapperStyle={{ fontSize: 11, color: '#9CA3AF' }}
+                wrapperStyle={{ fontSize: 11, color: 'var(--muted)' }}
               />
               <Tooltip
                 formatter={(v: number) => [`$${v.toLocaleString()}`, 'Spent']}
