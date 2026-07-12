@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
+  experimental: {
+    serverComponentsExternalPackages: [
+      '@prisma/client',
+      'bcryptjs',
+      '@react-pdf/renderer',
+      'html2canvas',
+      'jspdf',
+    ],
+  },
   eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [
