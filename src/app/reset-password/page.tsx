@@ -4,11 +4,13 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LogoMark } from '@/components/LogoMark'
+import { useAuthStore } from '@/store/auth'
 import '@/styles/auth.css'
 
 function ResetPasswordForm() {
   const params   = useSearchParams()
   const router   = useRouter()
+  const logout   = useAuthStore(s => s.logout)
   const token    = params.get('token') ?? ''
 
   const [password,  setPassword]  = useState('')
@@ -35,6 +37,7 @@ function ResetPasswordForm() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Something went wrong')
+      logout()
       setSuccess(true)
       setTimeout(() => router.push('/login'), 3000)
     } catch (err) {
