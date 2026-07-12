@@ -527,7 +527,7 @@ export default function HomePage() {
             <div className="privacy-panel">
               <div>
                 <div className="section-kicker">Privacy first</div>
-                <h2>No bank connections. No creepy feeling.</h2>
+                <h2>No bank connections. Total control.</h2>
                 <p className="lead">We never ask for your bank password. You upload a statement file and stay in control of your data.</p>
               </div>
               <div className="chips">
