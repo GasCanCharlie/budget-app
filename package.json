@@ -31,7 +31,7 @@
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.408.0",
-    "next": "14.2.5",
+    "next": "14.2.35",
     "openai": "^4.53.0",
     "papaparse": "^5.4.1",
     "pdf-parse": "^2.4.5",
