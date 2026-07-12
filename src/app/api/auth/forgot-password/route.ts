@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       if (process.env.RESEND_API_KEY) {
         const resend = new Resend(process.env.RESEND_API_KEY)
         await resend.emails.send({
-          from:    'Financial Autopsy <onboarding@resend.dev>',
+          from:    'Financial Autopsy <support@financialautopsy.com>',
           to:      email,
           subject: 'Reset your Financial Autopsy password',
           html: `
