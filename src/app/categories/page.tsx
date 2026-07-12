@@ -232,10 +232,8 @@ export default function CategoriesPage() {
                     <button
                       key={ico}
                       onClick={() => { setNewIcon(ico); setCustomIcon('') }}
-                      className={clsx(
-                        'w-9 h-9 rounded-lg text-lg flex items-center justify-center border-2 transition',
-                        (customIcon ? false : newIcon === ico) ? 'border-accent-500 bg-accent-50' : 'border-slate-200 hover:border-slate-300'
-                      )}
+                      className="w-9 h-9 rounded-lg text-lg flex items-center justify-center transition"
+                      style={(customIcon ? false : newIcon === ico) ? { border: '2px solid var(--accent)', background: 'var(--accent-muted)' } : { border: '1px solid var(--border)', background: 'transparent' }}
                     >
                       {ico}
                     </button>
@@ -414,8 +412,8 @@ export default function CategoriesPage() {
                         <div className="flex flex-wrap gap-1.5">
                           {PRESET_ICONS.map(ico => (
                             <button key={ico} onClick={() => { setEditIcon(ico); setEditCustomIcon('') }}
-                              className={clsx('w-9 h-9 rounded-lg text-lg flex items-center justify-center border-2 transition',
-                                (!editCustomIcon && editIcon === ico) ? 'border-accent-500 bg-accent-50' : 'border-slate-200 hover:border-slate-300')}>
+                              className="w-9 h-9 rounded-lg text-lg flex items-center justify-center transition"
+                              style={(!editCustomIcon && editIcon === ico) ? { border: '2px solid var(--accent)', background: 'var(--accent-muted)' } : { border: '1px solid var(--border)', background: 'transparent' }}>
                               {ico}
                             </button>
                           ))}

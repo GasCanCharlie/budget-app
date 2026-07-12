@@ -388,11 +388,11 @@ function TransactionsPageInner() {
         {yearFilter && monthFilter && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Month:</span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 border border-indigo-200">
+            <span style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               {new Date(Number(yearFilter), Number(monthFilter) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               <button
                 onClick={() => { setYearFilter(''); setMonthFilter(''); setPage(1) }}
-                className="ml-0.5 hover:text-indigo-900 leading-none"
+                className="ml-0.5 leading-none"
                 aria-label="Clear month filter"
               >
                 ×
@@ -405,11 +405,11 @@ function TransactionsPageInner() {
         {displayCategory && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Category filter:</span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 border border-blue-200">
+            <span style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               {displayCategory}
               <button
                 onClick={() => { setDisplayCategory(''); setPage(1) }}
-                className="ml-0.5 hover:text-blue-900 leading-none"
+                className="ml-0.5 leading-none"
                 aria-label="Clear category filter"
               >
                 ×
@@ -604,7 +604,7 @@ function TransactionsPageInner() {
 
       {/* ── Toast ────────────────────────────────────────────────────────── */}
       {toast && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50 animate-fade-in">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 text-sm font-medium px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50 animate-fade-in" style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)' }}>
           <Check size={16} className="text-green-400" />
           {toast}
           {undoStack.length > 0 && (
