@@ -204,11 +204,9 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
 
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-        <Link href={ctaHref} style={{
-          display: 'inline-flex', alignItems: 'center', gap: 9,
-          padding: '11px 28px', borderRadius: 12,
-          background: 'linear-gradient(135deg, #6c7cff 0%, #8b6fff 100%)',
-          color: '#ffffff', fontWeight: 700, fontSize: 14,
+        <Link href={ctaHref} className="btn-primary" style={{
+          gap: 9, padding: '11px 28px', borderRadius: 12,
+          fontWeight: 700, fontSize: 14,
           textDecoration: 'none',
           boxShadow: '0 4px 20px rgba(124,137,255,0.38), 0 1px 4px rgba(0,0,0,0.18)',
           transition: 'transform 150ms ease, box-shadow 150ms ease',

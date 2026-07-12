@@ -149,7 +149,7 @@ export default function StatementsPage() {
 
         {/* Header */}
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Statements</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Uploads</h1>
           <p style={{ margin: '4px 0 0', ...S.muted(14) }}>Upload bank statements to analyze your spending.</p>
         </div>
 
@@ -157,7 +157,7 @@ export default function StatementsPage() {
         <FormatGuide />
 
         {/* Upload card */}
-        <div style={S.card}>
+        <div className="card">
           {!showForm ? (
             <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: '14px 18px', ...S.ghost, ...S.flex(8), justifyContent: 'center', color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>
               <Upload size={16} /> Upload a Statement
@@ -174,7 +174,7 @@ export default function StatementsPage() {
                 <div style={S.col(6)}>
                   <label style={S.muted(13)}>Account</label>
                   <div style={S.flex(8)}>
-                    <select value={accountId} onChange={e => setAccountId(e.target.value)} style={{ ...S.input, flex: 1 }}>
+                    <select value={accountId} onChange={e => setAccountId(e.target.value)} className="input" style={{ flex: 1 }}>
                       {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                     </select>
                     <button onClick={() => setShowNewAcct(true)} style={{ ...S.ghost, whiteSpace: 'nowrap', fontSize: 13, color: 'var(--accent)' }}>+ New account</button>
@@ -183,8 +183,8 @@ export default function StatementsPage() {
               ) : (
                 <div style={S.col(8)}>
                   <label style={S.muted(13)}>New Account</label>
-                  <input placeholder="Account name (e.g. Chase Checking)" value={newName} onChange={e => setNewName(e.target.value)} style={S.input} />
-                  <select value={newType} onChange={e => setNewType(e.target.value)} style={S.input}>
+                  <input placeholder="Account name (e.g. Chase Checking)" value={newName} onChange={e => setNewName(e.target.value)} className="input" />
+                  <select value={newType} onChange={e => setNewType(e.target.value)} className="input">
                     <option value="checking">Checking</option>
                     <option value="savings">Savings</option>
                     <option value="credit">Credit Card</option>
@@ -321,7 +321,7 @@ export default function StatementsPage() {
 
         {/* What's next hint */}
         {uploads.length > 0 && (
-          <div style={{ ...S.card, padding: '16px 20px', ...S.flex(14), flexWrap: 'wrap' as const }}>
+          <div className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' as const }}>
             <div style={{ flex: 1, minWidth: 200, ...S.col(4) }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', ...S.flex(6) }}>
                 <Tags size={15} style={{ color: 'var(--accent)' }} />
@@ -345,7 +345,7 @@ export default function StatementsPage() {
 
         {/* Spending pie chart */}
         {hasData && (
-          <div style={S.card}>
+          <div className="card">
             <div style={S.hdr}>
               <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)' }}>Spending This Month</span>
             </div>
@@ -365,7 +365,7 @@ export default function StatementsPage() {
         )}
 
         {/* Statements list */}
-        <div style={S.card}>
+        <div className="card">
           <div style={S.hdr}>
             <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)' }}>Your Statements</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 99, padding: '2px 8px' }}>{uploads.length}</span>

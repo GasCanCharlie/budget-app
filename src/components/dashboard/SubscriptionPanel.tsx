@@ -256,11 +256,11 @@ export function SubscriptionPanel({ userId }: { userId: string | undefined }) {
           </div>
           <button
             onClick={() => router.push('/rules')}
+            className="btn-secondary"
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '8px 16px', borderRadius: 8,
+              gap: 6, padding: '8px 16px', borderRadius: 8,
               background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
-              color: '#818CF8', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              color: '#818CF8', fontWeight: 600,
             }}
           >
             Set up rules <ArrowRight size={13} />
