@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { Resend } from 'resend'
 import prisma from '@/lib/db'
 import { hashPassword, signToken } from '@/lib/auth'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
@@ -34,6 +35,16 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.create({ data: { email, passwordHash } })
 
     const token = signToken({ userId: user.id, email: user.email })
+
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      resend.emails.send({
+        from:    'Financial Autopsy <support@financialautopsy.com>',
+        to:      'chad.hamman@mauilegalservesolutions.com',
+        subject: '🧬 New signup — Financial Autopsy',
+        html:    `<p><strong>${email}</strong> just signed up.</p>`,
+      }).catch(() => {}) // fire-and-forget, never block registration
+    }
 
     const res = NextResponse.json({ user: { id: user.id, email: user.email }, token }, { status: 201 })
     res.cookies.set('token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 })
