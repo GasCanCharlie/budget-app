@@ -432,7 +432,7 @@ export default function HomePage() {
           <div className="brand">
             <div className="bl-logo-container" style={{ width: 36, height: 36, borderRadius: 12 }}><LogoMark size={20} /></div>
             <div>
-              <div className="brand-name">BudgetLens</div>
+              <div className="brand-name">Financial Autopsy</div>
               <div className="brand-sub">Financial personality, revealed</div>
             </div>
           </div>
@@ -510,7 +510,7 @@ export default function HomePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div className="why-col">
                   Most finance tools demand discipline before they give you anything interesting.
-                  BudgetLens flips that — the reward comes first. A result you want to react to,
+                  Financial Autopsy flips that — the reward comes first. A result you want to react to,
                   argue with, and send to someone else.
                 </div>
                 <div className="why-col">
@@ -708,7 +708,7 @@ export default function HomePage() {
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <div className="bl-logo-container" style={{ width: 28, height: 28, borderRadius: 8 }}><LogoMark size={16} /></div>
               <div>
-                <div style={{ fontWeight: 800, color: 'rgba(255,255,255,.85)', fontSize: 13 }}>BudgetLens</div>
+                <div style={{ fontWeight: 800, color: 'rgba(255,255,255,.85)', fontSize: 13 }}>Financial Autopsy</div>
                 <div style={{ fontSize: 11, color: 'var(--muted2)' }}>© <span id="lp-year" /> · Financial Personality, Revealed</div>
               </div>
             </div>
@@ -717,7 +717,7 @@ export default function HomePage() {
               <a href="#personalities">Personalities</a>
               <Link href="/privacy">Privacy</Link>
               <Link href="/terms">Terms</Link>
-              <span style={{ color: 'rgba(255,255,255,.55)' }}>support@budgetlens.app</span>
+              <span style={{ color: 'rgba(255,255,255,.55)' }}>support@financialautopsy.com</span>
               <a href="#lp-top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>↑ Top</a>
             </div>
           </div>

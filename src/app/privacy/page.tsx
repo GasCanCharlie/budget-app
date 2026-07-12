@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { LogoMark } from '@/components/LogoMark'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — BudgetLens',
-  description: 'How BudgetLens handles your data. Privacy-first financial intelligence — no bank login, no data sold, email stored only as a SHA-256 hash.',
+  title: 'Privacy Policy — Financial Autopsy',
+  description: 'How Financial Autopsy handles your data. Privacy-first financial intelligence — no bank login, no data sold, email stored only as a SHA-256 hash.',
 }
 
 const CSS = `
@@ -200,7 +200,7 @@ export default function PrivacyPage() {
               }}>
                 <LogoMark size={18} />
               </div>
-              <span style={{ fontSize: '14px' }}>BudgetLens</span>
+              <span style={{ fontSize: '14px' }}>Financial Autopsy</span>
             </Link>
             <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--muted)' }}>
               <Link href="/terms" style={{ color: 'var(--muted)' }}>Terms</Link>
@@ -213,7 +213,7 @@ export default function PrivacyPage() {
 
           {/* Back */}
           <Link href="/" className="policy-back">
-            ← Back to BudgetLens
+            ← Back to Financial Autopsy
           </Link>
 
           {/* Header */}
@@ -224,7 +224,7 @@ export default function PrivacyPage() {
             </div>
             <h1>Privacy Policy</h1>
             <p>
-              BudgetLens is built privacy-first. This policy explains exactly what data we
+              Financial Autopsy is built privacy-first. This policy explains exactly what data we
               collect, how we use it, and the steps we take to keep it safe.
             </p>
           </div>
@@ -282,7 +282,7 @@ export default function PrivacyPage() {
               <span className="sec-icon" aria-hidden="true">⚙️</span>
               2. How we use your data
             </h2>
-            <p>Your data is used solely to provide the BudgetLens service:</p>
+            <p>Your data is used solely to provide the Financial Autopsy service:</p>
             <ul>
               <li>Authenticating you when you sign in</li>
               <li>Displaying your transaction history, summaries, and spending charts</li>
@@ -338,7 +338,7 @@ export default function PrivacyPage() {
               4. Third-party services
             </h2>
             <p>
-              BudgetLens uses a small number of third-party services. We do not sell your data
+              Financial Autopsy uses a small number of third-party services. We do not sell your data
               to any third party, ever.
             </p>
             <ul>
@@ -382,13 +382,13 @@ export default function PrivacyPage() {
               5. No bank connection
             </h2>
             <p>
-              BudgetLens does not connect to your bank account. We have no integration with
+              Financial Autopsy does not connect to your bank account. We have no integration with
               Plaid, Yodlee, or any open banking API. You upload statement files (CSV or OFX)
               manually — we never have access to your banking credentials, account numbers,
               or real-time account data.
             </p>
             <div className="highlight">
-              Your bank login details are never requested, stored, or transmitted by BudgetLens.
+              Your bank login details are never requested, stored, or transmitted by Financial Autopsy.
             </div>
           </div>
 
@@ -405,7 +405,7 @@ export default function PrivacyPage() {
             <ul>
               <li>
                 Email us at{' '}
-                support@budgetlens.app with
+                support@financialautopsy.com with
                 the subject line <em>&quot;Delete my account&quot;</em>.
               </li>
               <li>
@@ -431,7 +431,7 @@ export default function PrivacyPage() {
               7. Cookies &amp; local storage
             </h2>
             <p>
-              BudgetLens does not use third-party cookies or advertising cookies. We use
+              Financial Autopsy does not use third-party cookies or advertising cookies. We use
               browser local storage for:
             </p>
             <ul>
@@ -457,7 +457,7 @@ export default function PrivacyPage() {
             <ul>
               <li>
                 <strong style={{ color: 'var(--text)' }}>Email:</strong>{' '}
-                support@budgetlens.app
+                support@financialautopsy.com
               </li>
             </ul>
             <p style={{ marginTop: '12px' }}>
@@ -467,7 +467,7 @@ export default function PrivacyPage() {
 
           {/* Footer */}
           <div className="policy-footer">
-            <span>© {new Date().getFullYear()} BudgetLens. Privacy-first budgeting.</span>
+            <span>© {new Date().getFullYear()} Financial Autopsy. Privacy-first budgeting.</span>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
               <Link href="/terms">Terms of Service</Link>
               <Link href="/">Home</Link>

@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
                 <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2.5px solid rgba(255,255,255,0.90)', display: 'flex' }} />
               </div>
               <span style={{ fontSize: 20, fontWeight: 700, color: '#ffffff', letterSpacing: '-0.025em' }}>
-                BudgetLens
+                Financial Autopsy
               </span>
             </div>
             <div style={{
@@ -297,7 +297,7 @@ export async function GET(req: NextRequest) {
               borderTop: '1px solid rgba(255,255,255,0.10)',
               paddingTop: 16,
             }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.22)', display: 'flex' }}>budgetlens.app</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.22)', display: 'flex' }}>financialautopsy.com</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.01em', display: 'flex' }}>Statement Intelligence</span>
             </div>
           </div>
@@ -403,7 +403,7 @@ export async function GET(req: NextRequest) {
                 <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2.5px solid rgba(255,255,255,0.90)', display: 'flex' }} />
               </div>
               <span style={{ fontSize: 20, fontWeight: 700, color: '#ffffff', letterSpacing: '-0.025em' }}>
-                BudgetLens
+                Financial Autopsy
               </span>
             </div>
 
@@ -511,7 +511,7 @@ export async function GET(req: NextRequest) {
             paddingTop: 18,
           }}>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.18)', display: 'flex' }}>
-              budgetlens.app
+              financialautopsy.com
             </span>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.20)', letterSpacing: '0.01em', display: 'flex' }}>
               Statement Intelligence

@@ -18,4 +18,4 @@ Allow: /llms.txt
 User-agent: Googlebot
 Allow: /
 
-Sitemap: https://budgetapp-lyqzujzll-gascancharlies-projects.vercel.app/sitemap.xml
+Sitemap: https://financialautopsy.com/sitemap.xml

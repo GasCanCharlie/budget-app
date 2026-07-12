@@ -40,14 +40,14 @@ export async function POST(req: NextRequest) {
       if (process.env.RESEND_API_KEY) {
         const resend = new Resend(process.env.RESEND_API_KEY)
         await resend.emails.send({
-          from:    'BudgetLens <onboarding@resend.dev>',
+          from:    'Financial Autopsy <onboarding@resend.dev>',
           to:      email,
-          subject: 'Reset your BudgetLens password',
+          subject: 'Reset your Financial Autopsy password',
           html: `
             <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e5e7eb;border-radius:12px">
               <h2 style="margin:0 0 16px;font-size:20px;font-weight:700">Reset your password</h2>
               <p style="margin:0 0 24px;color:#9ca3af;font-size:14px;line-height:1.6">
-                We received a request to reset the password for your BudgetLens account.
+                We received a request to reset the password for your Financial Autopsy account.
                 Click the button below to choose a new password. This link expires in <strong style="color:#e5e7eb">1 hour</strong>.
               </p>
               <a href="${resetUrl}"

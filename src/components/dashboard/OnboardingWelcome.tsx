@@ -95,7 +95,7 @@ export function OnboardingWelcome({ uploadsDone, uncategorizedCount }: Props) {
           <BarChart2 size={22} style={{ color: 'var(--accent)' }} />
         </div>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-          Welcome to BudgetLens
+          Welcome to Financial Autopsy
         </h1>
         <p style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 8px', lineHeight: 1.55 }}>
           Discover your Money Personality, uncover what&apos;s really driving your spending, and run a full Financial Autopsy on your habits.

@@ -17,7 +17,7 @@ export default function NotFound() {
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#6c7cff,#8794ff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <LogoMark size={22} />
         </div>
-        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>BudgetLens</span>
+        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>Financial Autopsy</span>
       </Link>
 
       <div className="error-page-card" style={{

@@ -67,10 +67,10 @@ function LoginForm() {
         <div className="bl-logo-container" style={{ width: 36, height: 36, borderRadius: 10 }}><LogoMark size={22} /></div>
         <div>
           <div style={{ fontSize: '15px', fontWeight: 700, color: '#e5e7eb', letterSpacing: '.2px', lineHeight: '1' }}>
-            BudgetLens
+            Financial Autopsy
           </div>
           <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 600, marginTop: '3px' }}>
-            Statement Intelligence
+            Know Where It Went
           </div>
         </div>
       </Link>

@@ -1,10 +1,10 @@
-# BudgetLens
+# Financial Autopsy
 
 > Privacy-first personal finance app for uploading and analyzing bank/credit card statements. No bank login required — upload CSV or PDF statements directly.
 
 ## What it does
 
-BudgetLens lets users upload their bank and credit card statements, automatically categorizes every transaction, and provides AI-powered financial insights and Q&A. All data stays in the user's account — no third-party bank connections.
+Financial Autopsy lets users upload their bank and credit card statements, automatically categorizes every transaction, and provides AI-powered financial insights and Q&A. All data stays in the user's account — no third-party bank connections.
 
 ## Pages and features
 

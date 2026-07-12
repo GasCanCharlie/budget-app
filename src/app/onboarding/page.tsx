@@ -49,10 +49,10 @@ export default function OnboardingPage() {
         </div>
         <div>
           <div style={{ fontSize: '15px', fontWeight: 700, color: '#e5e7eb', letterSpacing: '.2px', lineHeight: 1 }}>
-            BudgetLens
+            Financial Autopsy
           </div>
           <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 600, marginTop: 3 }}>
-            Statement Intelligence
+            Know Where It Went
           </div>
         </div>
       </Link>
@@ -72,7 +72,7 @@ export default function OnboardingPage() {
             Account created
           </div>
           <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-.5px', margin: '0 0 10px', color: '#e5e7eb' }}>
-            Welcome to BudgetLens
+            Welcome to Financial Autopsy
           </h1>
           <p style={{ fontSize: 14, color: '#9ca3af', lineHeight: 1.6, margin: 0 }}>
             Here&apos;s how it works — you&apos;ll be set up in under 5 minutes.

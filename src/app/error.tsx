@@ -24,7 +24,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#6c7cff,#8794ff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <LogoMark size={22} />
         </div>
-        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>BudgetLens</span>
+        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>Financial Autopsy</span>
       </Link>
 
       <div className="error-page-card" style={{
@@ -40,7 +40,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           Something went wrong
         </h1>
         <p style={{ margin: '0 0 28px', fontSize: '14px', color: 'var(--text2)', lineHeight: 1.6 }}>
-          An unexpected error occurred. Try refreshing the page — if it keeps happening, contact support at support@budgetlens.app
+          An unexpected error occurred. Try refreshing the page — if it keeps happening, contact support at support@financialautopsy.com
         </p>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button

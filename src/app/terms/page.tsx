@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { LogoMark } from '@/components/LogoMark'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — BudgetLens',
-  description: 'Terms governing your use of BudgetLens, a personal finance and bank statement analysis tool.',
+  title: 'Terms of Service — Financial Autopsy',
+  description: 'Terms governing your use of Financial Autopsy, a personal finance and bank statement analysis tool.',
 }
 
 const CSS = `
@@ -202,7 +202,7 @@ export default function TermsPage() {
               }}>
                 <LogoMark size={18} />
               </div>
-              <span style={{ fontSize: '14px' }}>BudgetLens</span>
+              <span style={{ fontSize: '14px' }}>Financial Autopsy</span>
             </Link>
             <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--muted)' }}>
               <Link href="/privacy" style={{ color: 'var(--muted)' }}>Privacy</Link>
@@ -215,7 +215,7 @@ export default function TermsPage() {
 
           {/* Back */}
           <Link href="/" className="terms-back">
-            ← Back to BudgetLens
+            ← Back to Financial Autopsy
           </Link>
 
           {/* Header */}
@@ -226,7 +226,7 @@ export default function TermsPage() {
             </div>
             <h1>Terms of Service</h1>
             <p>
-              Please read these terms carefully before using BudgetLens. By creating an account
+              Please read these terms carefully before using Financial Autopsy. By creating an account
               or using the service, you agree to be bound by these terms.
             </p>
           </div>
@@ -237,14 +237,14 @@ export default function TermsPage() {
           <div className="terms-card">
             <h2>1. Acceptance of terms</h2>
             <p>
-              By accessing or using BudgetLens (&quot;the Service&quot;, &quot;we&quot;,
+              By accessing or using Financial Autopsy (&quot;the Service&quot;, &quot;we&quot;,
               &quot;us&quot;), you agree to these Terms of Service and our{' '}
               <Link href="/privacy">Privacy Policy</Link>. If you do not agree, do not use
               the Service.
             </p>
             <p>
               These terms apply to all users of the Service, including visitors, registered
-              users, and anyone who accesses or uses any part of BudgetLens.
+              users, and anyone who accesses or uses any part of Financial Autopsy.
             </p>
           </div>
 
@@ -252,7 +252,7 @@ export default function TermsPage() {
           <div className="terms-card">
             <h2>2. Service description</h2>
             <p>
-              BudgetLens is a personal finance analysis tool that allows you to:
+              Financial Autopsy is a personal finance analysis tool that allows you to:
             </p>
             <ul>
               <li>Upload bank statement files (CSV, OFX) for transaction analysis</li>
@@ -262,7 +262,7 @@ export default function TermsPage() {
               <li>Use an AI-powered chat interface to query and analyze your financial data</li>
             </ul>
             <div className="highlight">
-              BudgetLens does not connect to your bank account. No bank credentials are
+              Financial Autopsy does not connect to your bank account. No bank credentials are
               ever requested or stored. You upload files manually.
             </div>
           </div>
@@ -281,7 +281,7 @@ export default function TermsPage() {
             </ul>
             <div className="warn-box">
               You are responsible for the security of your account. Notify us immediately
-              at support@budgetlens.app if you suspect unauthorized access.
+              at support@financialautopsy.com if you suspect unauthorized access.
             </div>
           </div>
 
@@ -298,7 +298,7 @@ export default function TermsPage() {
             </ul>
             <p>
               You agree not to upload financial information belonging to other individuals
-              without their consent. BudgetLens is not responsible for disputes arising from
+              without their consent. Financial Autopsy is not responsible for disputes arising from
               improperly uploaded data.
             </p>
           </div>
@@ -307,7 +307,7 @@ export default function TermsPage() {
           <div className="terms-card">
             <h2>5. Your data</h2>
             <p>
-              You retain full ownership of all financial data you upload to BudgetLens.
+              You retain full ownership of all financial data you upload to Financial Autopsy.
               By uploading data, you grant us a limited, non-exclusive license to process
               that data solely for the purpose of providing the Service to you.
             </p>
@@ -333,12 +333,12 @@ export default function TermsPage() {
           <div className="terms-card">
             <h2>6. AI processing</h2>
             <p>
-              Certain features of BudgetLens use artificial intelligence services provided
+              Certain features of Financial Autopsy use artificial intelligence services provided
               by third-party providers.
             </p>
             <p>
               When AI features are used, limited contextual data may be transmitted to these
-              providers solely to generate responses. BudgetLens does not use your financial
+              providers solely to generate responses. Financial Autopsy does not use your financial
               data to train external AI models.
             </p>
             <p>
@@ -351,13 +351,13 @@ export default function TermsPage() {
           <div className="terms-card">
             <h2>7. Disclaimers</h2>
             <p>
-              BudgetLens is provided &quot;as is&quot; and &quot;as available&quot; without
+              Financial Autopsy is provided &quot;as is&quot; and &quot;as available&quot; without
               warranties of any kind, either express or implied.
             </p>
             <ul>
               <li>
                 <strong style={{ color: 'var(--text)' }}>Not financial advice</strong> — the
-                Service is a data organization and analysis tool. Nothing on BudgetLens
+                Service is a data organization and analysis tool. Nothing on Financial Autopsy
                 constitutes financial, investment, tax, or legal advice. Always consult a
                 qualified professional for financial decisions.
               </li>
@@ -382,7 +382,7 @@ export default function TermsPage() {
           <div className="terms-card">
             <h2>8. AI-generated output</h2>
             <p>
-              BudgetLens provides AI-powered tools that generate insights and responses based
+              Financial Autopsy provides AI-powered tools that generate insights and responses based
               on uploaded transaction data.
             </p>
             <p>AI-generated outputs:</p>
@@ -393,7 +393,7 @@ export default function TermsPage() {
             </ul>
             <p>
               Users remain responsible for verifying financial information and making their
-              own financial decisions. BudgetLens does not guarantee the accuracy,
+              own financial decisions. Financial Autopsy does not guarantee the accuracy,
               completeness, or reliability of AI-generated responses.
             </p>
           </div>
@@ -402,7 +402,7 @@ export default function TermsPage() {
           <div className="terms-card">
             <h2>9. Limitation of liability</h2>
             <p>
-              To the fullest extent permitted by applicable law, BudgetLens and its operators
+              To the fullest extent permitted by applicable law, Financial Autopsy and its operators
               shall not be liable for any indirect, incidental, special, consequential, or
               punitive damages, including but not limited to:
             </p>
@@ -465,7 +465,7 @@ export default function TermsPage() {
             <h2>12. Termination</h2>
             <p>
               You may stop using the Service and request account deletion at any time by
-              contacting support@budgetlens.app.
+              contacting support@financialautopsy.com.
             </p>
             <p>
               We reserve the right to suspend or terminate your access to the Service at
@@ -488,18 +488,18 @@ export default function TermsPage() {
             <ul>
               <li>
                 <strong style={{ color: 'var(--text)' }}>General inquiries:</strong>{' '}
-                support@budgetlens.app
+                support@financialautopsy.com
               </li>
               <li>
                 <strong style={{ color: 'var(--text)' }}>Privacy &amp; data requests:</strong>{' '}
-                <a href="mailto:privacy@budgetlens.app">privacy@budgetlens.app</a>
+                <a href="mailto:privacy@financialautopsy.com">privacy@financialautopsy.com</a>
               </li>
             </ul>
           </div>
 
           {/* Footer */}
           <div className="terms-footer">
-            <span>© {new Date().getFullYear()} BudgetLens. Privacy-first budgeting.</span>
+            <span>© {new Date().getFullYear()} Financial Autopsy. Privacy-first budgeting.</span>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
               <Link href="/privacy">Privacy Policy</Link>
               <Link href="/">Home</Link>

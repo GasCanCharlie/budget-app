@@ -115,7 +115,7 @@ export async function GET(
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Statement Scan Report</Text>
-          <Text style={styles.subtitle}>{upload.filename} · Generated {generatedAt} · BudgetLens</Text>
+          <Text style={styles.subtitle}>{upload.filename} · Generated {generatedAt} · Financial Autopsy</Text>
         </View>
 
         {/* Totals */}
@@ -204,7 +204,7 @@ export async function GET(
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>BudgetLens — Statement Intelligence</Text>
+          <Text>Financial Autopsy — Statement Intelligence</Text>
           <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
 

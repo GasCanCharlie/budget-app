@@ -9,24 +9,24 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://budgetapp-j00dr8m7n-gascancharlies-projects.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://financialautopsy.com'
 
 export const metadata: Metadata = {
-  title: 'BudgetLens — Financial Statement Intelligence',
-  description: 'Upload your bank statements and get instant spending breakdowns, trends, and financial health scores. Privacy-first — no bank login required.',
+  title: 'Financial Autopsy — Know Where Your Money Went',
+  description: 'Upload your bank statements and get instant spending breakdowns, money personality insights, and financial analysis. Privacy-first — no bank login required.',
   icons: { icon: '/favicon.svg', shortcut: '/favicon.svg' },
   metadataBase: new URL(APP_URL),
   openGraph: {
-    title:       'BudgetLens — Financial Statement Intelligence',
-    description: 'Upload your bank statements and get instant spending breakdowns, trends, and financial health scores. Privacy-first — no bank login required.',
+    title:       'Financial Autopsy — Know Where Your Money Went',
+    description: 'Upload your bank statements and get instant spending breakdowns, money personality insights, and financial analysis. Privacy-first — no bank login required.',
     url:         APP_URL,
-    siteName:    'BudgetLens',
+    siteName:    'Financial Autopsy',
     type:        'website',
   },
   twitter: {
     card:        'summary_large_image',
-    title:       'BudgetLens — Financial Statement Intelligence',
-    description: 'Upload your bank statements and get instant spending breakdowns, trends, and financial health scores. Privacy-first — no bank login required.',
+    title:       'Financial Autopsy — Know Where Your Money Went',
+    description: 'Upload your bank statements and get instant spending breakdowns, money personality insights, and financial analysis. Privacy-first — no bank login required.',
   },
 }
 

@@ -1,0 +1,112 @@
+# BudgetLens
+
+> Privacy-first personal finance app for uploading and analyzing bank/credit card statements. No bank login required — upload CSV or PDF statements directly.
+
+## What it does
+
+BudgetLens lets users upload their bank and credit card statements, automatically categorizes every transaction, and provides AI-powered financial insights and Q&A. All data stays in the user's account — no third-party bank connections.
+
+## Pages and features
+
+### / (Home / Landing)
+Public marketing page. Explains the app, sign up / log in links.
+
+### /login
+Email + password authentication. JWT-based sessions stored in browser.
+
+### /dashboard
+Main financial overview for a selected month. Shows:
+- Total income, total spending, net savings, savings rate
+- Spending breakdown by category (donut chart)
+- Month-over-month trend bar chart
+- Top merchants by spend
+- Month navigator (previous / next)
+- Categorization gate — prompts user to categorize before unlocking full analysis
+
+### /upload
+Upload bank or credit card statements (CSV or PDF). Supports:
+- Multiple accounts (checking, savings, credit card, etc.)
+- Auto-detection of statement format
+- Duplicate detection across uploads
+- Staging preview before committing transactions
+
+### /upload/[id]
+Upload detail page for a specific upload session.
+
+### /staging/[uploadId]
+Pre-commit review of parsed transactions from an upload. User can:
+- Review all detected transactions
+- Filter by status (categorized / needs review / uncategorized)
+- Manually assign categories before saving
+- Flag duplicates or transfers
+- Auto-categorize using AI
+
+### /transactions
+Full transaction list across all accounts and months. Supports:
+- Search by merchant name
+- Filter by category, account, date range
+- Sort by date, amount, merchant
+- Click any transaction for detail
+
+### /transactions/[id]
+Single transaction detail view. Shows merchant, amount, date, category, account, and allows manual override of category.
+
+### /categorize
+Drag-and-drop transaction categorization workspace. Features:
+- Uncategorized transactions on the left
+- Category buckets on the right
+- Drag transactions into categories
+- Bulk categorize by merchant
+- AI-assisted category suggestions
+- Save rules from categorization actions
+
+### /categories
+Manage spending categories. Create, rename, reorder, or delete categories. Categories are user-defined — no forced preset structure.
+
+### /rules
+Auto-categorization rules engine. Rules map merchant names (exact or pattern match) to categories. Rules run automatically on new uploads. Supports:
+- Keyword/merchant match rules
+- Category assignment
+- Enable/disable individual rules
+
+### /history
+Upload history log. Shows all past statement uploads with status, date, account, and transaction count. Click to review or re-process an upload.
+
+### /insights (Q&A)
+AI-powered financial Q&A powered by OpenAI GPT-4o. Features:
+- Ask natural language questions about spending (e.g. "Where did most of my money go?")
+- Full access to user's transaction data, category totals, merchant stats, subscriptions
+- Web search integration (Tavily) for real-time price comparisons and local deals
+- Month-specific context — switch months to ask about different periods
+- Conversation history maintained across messages
+- Starter prompts for common questions
+- Inline number chips with "view transactions" deep-links
+- Markdown-rendered responses (headers, bullets, bold)
+
+### /triage
+Flagged transaction review — transactions that need manual attention (ambiguous merchant, possible duplicate, unusual amount).
+
+## Tech stack
+
+- Next.js 14 (App Router), React 18, TypeScript
+- Prisma ORM + PostgreSQL (Neon)
+- Custom JWT auth (bcryptjs) — no Clerk, no OAuth
+- Tailwind CSS + CSS custom properties (dark/light theme)
+- TanStack Query for data fetching
+- OpenAI GPT-4o for AI chat
+- Tavily Search API for real-time web search
+- Recharts for data visualization
+- Vercel deployment
+
+## Privacy model
+
+- No bank login or OAuth connection required
+- Users upload statement files directly — files are parsed and discarded
+- No plaintext email stored — email hashed (SHA-256)
+- All data is per-user and never shared
+- Local-first design: the user controls their own data
+
+## Deployment
+
+Live at: budgetapp-lyqzujzll-gascancharlies-projects.vercel.app
+Source: github.com/GasCanCharlie/budget-app

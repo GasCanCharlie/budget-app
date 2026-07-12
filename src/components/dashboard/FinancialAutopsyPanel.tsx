@@ -92,7 +92,7 @@ async function sharePersonality(result: PersonalityResult, signals?: { income: n
   const name  = result.core.name
   const vibe  = result.core.vibe
   const trait = result.trait ? ` · ${result.trait.name}` : ''
-  const text  = `My BudgetLens Money Personality: ${name}${trait}\n"${vibe}"\n\nDiscover yours at budgetlens.app`
+  const text  = `My Financial Autopsy Money Personality: ${name}${trait}\n"${vibe}"\n\nDiscover yours at financialautopsy.com`
 
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {

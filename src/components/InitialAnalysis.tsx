@@ -360,7 +360,7 @@ export function InitialAnalysis({
             <div style={{ padding: '20px 22px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[
                 { n: 1, bg: 'rgba(89,199,255,0.16)', color: '#9adeff', title: 'Improve accuracy', body: 'Confirming categories helps separate true spending from transfers, income, refunds, and noisy merchant strings.' },
-                { n: 2, bg: 'rgba(63,214,131,0.16)', color: '#a7efc8', title: 'Unlock deeper analysis', body: 'Once categories are confirmed, BudgetLens can show cleaner breakdowns, trends, and recurring payment analysis.' },
+                { n: 2, bg: 'rgba(63,214,131,0.16)', color: '#a7efc8', title: 'Unlock deeper analysis', body: 'Once categories are confirmed, Financial Autopsy can show cleaner breakdowns, trends, and recurring payment analysis.' },
                 { n: 3, bg: 'rgba(242,187,72,0.16)', color: '#ffd98f', title: 'Make future imports faster', body: 'Confirmed categories help the system organize similar transactions better next time instead of starting from scratch.' },
                 { n: 4, bg: 'rgba(255,127,127,0.16)', color: '#ffb0b0', title: 'Catch what needs attention', body: 'Low-confidence merchants, unusual items, and unclear transactions can be reviewed before they distort your results.' },
               ].map(item => (

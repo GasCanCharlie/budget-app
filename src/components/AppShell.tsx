@@ -164,8 +164,8 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
             <LogoMark size={34} />
           </div>
           <div className="leading-tight">
-            <div className="text-sm font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>BudgetLens</div>
-            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Statement Intelligence</div>
+            <div className="text-sm font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>Financial Autopsy</div>
+            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Know Where It Went</div>
           </div>
         </div>
 
@@ -354,7 +354,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
               <div className="bl-logo-container" style={{ width: 30, height: 30 }}>
                 <LogoMark size={28} />
               </div>
-              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>BudgetLens</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Financial Autopsy</span>
             </div>
 
             {/* Desktop: month navigator */}

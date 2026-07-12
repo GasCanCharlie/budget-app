@@ -49,7 +49,7 @@ export function CookieConsent() {
         maxWidth: 640,
         flex: '1 1 280px',
       }}>
-        BudgetLens uses essential cookies to keep you signed in. Your uploaded
+        Financial Autopsy uses essential cookies to keep you signed in. Your uploaded
         statements are processed privately on our servers — we never sell, share,
         or train on your financial data.{' '}
         <Link href="/privacy" style={{ color: '#6c7cff', textDecoration: 'underline' }}>

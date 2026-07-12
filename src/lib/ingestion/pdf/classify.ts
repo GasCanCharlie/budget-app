@@ -53,7 +53,7 @@ export function assertPdfProcessable(
   if (!classification.isText) {
     throw new Error(
       `PDF_SCANNED: This PDF appears to be a scanned image rather than a text-based PDF. ` +
-      `BudgetLens can only read text PDFs. Log into your bank and download a fresh statement — ` +
+      `Financial Autopsy can only read text PDFs. Log into your bank and download a fresh statement — ` +
       `banks generate text-based PDFs by default when you export directly.`,
     )
   }

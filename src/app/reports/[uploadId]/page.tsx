@@ -704,7 +704,7 @@ export default function ScanReportPage() {
             background: 'linear-gradient(135deg,rgba(108,124,255,0.85),rgba(135,148,255,0.8))',
             color: '#fff',
           }}>
-            BudgetLens AI
+            Financial Autopsy AI
           </span>
         </div>
       </div>
