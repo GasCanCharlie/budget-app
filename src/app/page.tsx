@@ -6,390 +6,369 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { LogoMark } from '@/components/LogoMark'
 
+const PERSONALITIES = [
+  { name: 'Glowing Broke', line: "You're moisturized, exfoliated, and financially exposed.", detail: 'Luxury self-care meets zero restraint. You invest heavily in feeling good, regardless of the aftermath.', image: '/personalities/glowing-broke.webp' },
+  { name: 'The Full Send', line: 'Your spending has main-character energy.', detail: 'Big swipes, fast decisions, unforgettable months. You live large and you know it.', image: '/personalities/full-send.webp' },
+  { name: 'The Subscription Collector', line: 'Tiny charges. Silent chaos.', detail: 'Your money leaks in elegant little monthly drips from services you may have forgotten existed.', image: '/personalities/subscription-collector.webp' },
+  { name: 'The Wire Dancer', line: 'You cleared the month by the skin of your teeth.', detail: 'Tight margin, clean finish. You balance on the edge every month and somehow keep landing it.', image: '/personalities/wire-dancer.webp' },
+]
+
 const CSS = `
 .lp {
-  --bg: #07111f;
-  --bg2: #040d18;
-  --text: #f0f4ff;
-  --muted: #8b97c3;
-  --muted2: #6b7ab0;
-  --cyan: #67e8f9;
-  --cyan2: #22d3ee;
-  --brand: #6ea8ff;
-  --brand2: #8a7dff;
-  --good: #2ee59d;
-  --warn: #ffcc66;
-  --shadow: 0 24px 80px rgba(0,0,0,.65);
-  --shadow2: 0 10px 30px rgba(0,0,0,.40);
-  --radius-xl: 28px;
-  --max: 1140px;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  color: var(--text);
-  background: var(--bg);
-  overflow-x: hidden;
+  --bg: #06101d;
+  --bg-deep: #030a13;
+  --text: #f4f7ff;
+  --muted: #96a4c8;
+  --muted-2: #6f7da4;
+  --line: rgba(255,255,255,.10);
+  --cyan: #74efff;
+  --cyan-2: #2dd4ef;
+  --blue: #70a8ff;
+  --green: #46e3a1;
+  --orange: #ff9a44;
+  --radius: 24px;
+  --max: 1240px;
+  --shadow: 0 30px 90px rgba(0,0,0,.45);
   min-height: 100vh;
-}
-.lp a { color: inherit; text-decoration: none; }
-.lp button { font: inherit; color: inherit; }
-.lp .wrap { width: min(var(--max), calc(100% - 48px)); margin: 0 auto; }
-
-/* ── Ambient glows ── */
-.lp .glows {
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  z-index: 0;
-}
-.lp .glow-a {
-  position: absolute;
-  top: -120px; left: -8%;
-  width: 600px; height: 600px;
-  border-radius: 999px;
-  background: rgba(103,232,249,.10);
-  filter: blur(90px);
-}
-.lp .glow-b {
-  position: absolute;
-  top: 15%; right: -6%;
-  width: 700px; height: 700px;
-  border-radius: 999px;
-  background: rgba(110,168,255,.12);
-  filter: blur(100px);
-}
-.lp .glow-c {
-  position: absolute;
-  bottom: -8%; left: 22%;
-  width: 500px; height: 500px;
-  border-radius: 999px;
-  background: rgba(138,125,255,.08);
-  filter: blur(80px);
-}
-.lp .grid-overlay {
-  position: absolute;
-  inset: 0;
-  opacity: .045;
-  background-image: linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px);
-  background-size: 44px 44px;
-}
-
-/* ── Nav ── */
-.lp .nav {
-  position: sticky; top: 16px; z-index: 50;
-  margin: 16px auto 0;
-  width: min(var(--max), calc(100% - 48px));
-}
-.lp .nav-inner {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(7,17,31,.75);
-  backdrop-filter: blur(16px);
-}
-.lp .brand { display: flex; align-items: center; gap: 10px; }
-.lp .brand-name { font-size: 13px; font-weight: 700; letter-spacing: .25em; text-transform: uppercase; color: rgba(255,255,255,.60); }
-.lp .brand-sub { font-size: 11px; color: var(--muted2); margin-top: 1px; }
-.lp .nav-links { display: flex; align-items: center; gap: 6px; }
-.lp .nav-links a {
-  padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 550;
-  color: rgba(255,255,255,.65);
-  transition: color .15s, background .15s;
-}
-.lp .nav-links a:hover { color: var(--text); background: rgba(255,255,255,.07); }
-.lp .nav-cta { display: flex; gap: 8px; }
-
-/* ── Buttons ── */
-.lp .btn {
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.07);
-  padding: 10px 16px; border-radius: 14px; cursor: pointer;
-  transition: transform .15s, background .15s, border-color .15s;
-  font-weight: 650; font-size: 14px; display: inline-flex; align-items: center; gap: 6px;
-}
-.lp .btn:hover { transform: translateY(-1px); background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.22); }
-.lp .btn-primary {
-  background: #ffffff;
-  color: #07111f;
-  border-color: rgba(255,255,255,.90);
-  box-shadow: 0 0 40px rgba(255,255,255,.12);
-}
-.lp .btn-primary:hover { background: rgba(255,255,255,.92); transform: translateY(-1px); }
-.lp .btn-cyan {
-  background: rgba(103,232,249,.15);
-  border-color: rgba(103,232,249,.30);
-  color: var(--cyan);
-}
-.lp .btn-cyan:hover { background: rgba(103,232,249,.22); }
-
-/* ── Hero ── */
-.lp .hero { padding: 56px 0 32px; position: relative; z-index: 1; }
-.lp .hero-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 32px; align-items: center; }
-.lp .hero-kicker {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 7px 14px; border-radius: 999px;
-  border: 1px solid rgba(103,232,249,.22);
-  background: rgba(103,232,249,.08);
-  color: rgba(103,232,249,.90); font-weight: 650; font-size: 12px; letter-spacing: .3px;
-  margin-bottom: 18px;
-}
-.lp .hero-kicker .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--cyan2); box-shadow: 0 0 0 5px rgba(34,211,238,.15); }
-.lp h1 {
-  font-size: clamp(36px, 4.8vw, 66px);
-  line-height: .94;
-  letter-spacing: -2.5px;
-  font-weight: 950;
-  margin: 0 0 18px;
-}
-.lp h1 .grad {
-  background: linear-gradient(135deg, var(--cyan) 0%, #fff 50%, var(--brand) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.lp .hero-sub { color: var(--muted); font-size: 17px; line-height: 1.6; max-width: 52ch; margin: 0 0 28px; }
-.lp .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-.lp .hero-actions .btn { padding: 13px 20px; border-radius: 16px; font-size: 15px; }
-.lp .hero-proof { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
-.lp .hero-proof .pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 12px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.04);
-  font-size: 12px; color: rgba(255,255,255,.58);
-}
-
-/* ── Personality hero card ── */
-.lp .p-hero-card {
-  border-radius: 28px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(7,17,31,.85);
-  overflow: hidden;
-  box-shadow: 0 40px 140px rgba(0,0,0,.55), 0 0 0 1px rgba(103,232,249,.10);
+  color: var(--text);
+  background:
+    radial-gradient(circle at 8% 3%, rgba(45,212,239,.13), transparent 28%),
+    radial-gradient(circle at 92% 33%, rgba(112,168,255,.12), transparent 33%),
+    linear-gradient(180deg, #030a13, #06101d);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
   position: relative;
 }
-.lp .p-hero-card:before {
+.lp *, .lp *::before, .lp *::after { box-sizing: border-box; }
+.lp::before {
   content: "";
-  position: absolute; inset: -1px;
-  background: radial-gradient(500px 300px at 30% 0%, rgba(103,232,249,.15), transparent 60%);
-  pointer-events: none; z-index: 1;
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; opacity: .055;
+  background-image:
+    linear-gradient(rgba(255,255,255,.65) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.65) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 88%);
+  mask-image: linear-gradient(to bottom, #000, transparent 88%);
 }
-.lp .p-hero-img { width: 100%; height: 280px; object-fit: cover; display: block; }
-.lp .p-hero-body { padding: 20px; position: relative; }
-.lp .p-hero-eyebrow {
-  font-size: 10px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase;
-  color: var(--cyan2); margin-bottom: 8px;
+.lp a { color: inherit; text-decoration: none; }
+.lp button, .lp a { -webkit-tap-highlight-color: transparent; }
+.lp .shell { width: min(var(--max), calc(100% - 48px)); margin: 0 auto; }
+
+/* Nav */
+.lp .nav-wrap {
+  position: sticky; top: 14px; z-index: 100; padding-top: 14px;
 }
-.lp .p-hero-name { font-size: 26px; font-weight: 950; letter-spacing: -.5px; margin: 0 0 6px; }
-.lp .p-hero-line { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 0 14px; }
-.lp .p-hero-tags {
-  display: flex; gap: 6px; flex-wrap: wrap;
+.lp .nav {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 24px; min-height: 76px;
+  padding: 10px 14px 10px 16px;
+  border: 1px solid var(--line); border-radius: 26px;
+  background: rgba(4,14,26,.80);
+  box-shadow: 0 18px 55px rgba(0,0,0,.24);
+  backdrop-filter: blur(18px);
 }
-.lp .p-hero-tag {
-  font-size: 11px; color: rgba(255,255,255,.55);
-  border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.05);
-  border-radius: 999px; padding: 4px 10px;
+.lp .brand { display: flex; align-items: center; gap: 12px; min-width: 250px; }
+.lp .logo-box {
+  width: 44px; height: 44px; border-radius: 15px;
+  display: grid; place-items: center;
+  border: 1px solid rgba(112,168,255,.3);
+  background: linear-gradient(145deg, rgba(112,168,255,.18), rgba(112,168,255,.04));
+  box-shadow: inset 0 0 24px rgba(112,168,255,.07), 0 0 30px rgba(112,168,255,.08);
+  flex-shrink: 0;
+}
+.lp .brand-name { font-size: 14px; font-weight: 850; letter-spacing: .24em; text-transform: uppercase; }
+.lp .brand-sub { margin-top: 3px; font-size: 11px; color: var(--muted-2); }
+.lp .nav-links { display: flex; justify-content: center; gap: 3px; }
+.lp .nav-links a {
+  padding: 10px 13px; border-radius: 12px;
+  color: rgba(255,255,255,.67); font-size: 13px; font-weight: 650;
+  transition: .18s ease;
+}
+.lp .nav-links a:hover { color: #fff; background: rgba(255,255,255,.055); }
+.lp .nav-actions {
+  display: grid; grid-template-columns: repeat(2, minmax(118px, 1fr));
+  gap: 8px 10px; align-items: start;
+}
+.lp .nav-action { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
+.lp .nav-btn {
+  min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 18px;
+  border: 1px solid rgba(255,255,255,.15); border-radius: 14px;
+  font-size: 14px; font-weight: 800; font-family: inherit;
+  background: rgba(255,255,255,.045); transition: .18s ease; cursor: pointer;
+}
+.lp .nav-btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.27); }
+.lp .nav-btn.primary {
+  color: #03101b; border-color: transparent;
+  background: linear-gradient(120deg, #52cfff, #9ff8ef);
+  box-shadow: 0 9px 30px rgba(45,212,239,.16);
+}
+.lp .nav-beta-note {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  min-height: 21px; padding: 3px 8px;
+  border: 1px solid rgba(70,227,161,.22); border-radius: 999px;
+  background: rgba(70,227,161,.07);
+  color: #7df4be; font-size: 9px; line-height: 1; font-weight: 850;
+  letter-spacing: .045em; text-transform: uppercase; white-space: nowrap;
+}
+.lp .nav-beta-note::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 0 4px rgba(70,227,161,.09);
+  flex-shrink: 0;
 }
 
-/* ── Sections ── */
-.lp .section { padding: 40px 0; position: relative; z-index: 1; }
+/* Beta announcement */
+.lp .beta-announcement {
+  margin-top: 18px;
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 16px; min-height: 72px;
+  padding: 13px 18px;
+  border: 1px solid rgba(45,212,239,.25); border-radius: 22px;
+  background: linear-gradient(90deg, rgba(45,212,239,.095), rgba(8,21,37,.82) 38%, rgba(112,168,255,.055));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+}
+.lp .beta-chip {
+  min-width: 94px; min-height: 42px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 14px; color: #04111c;
+  background: linear-gradient(120deg, #43d1ff, #adfaef);
+  font-size: 15px; font-weight: 950; letter-spacing: .07em;
+}
+.lp .beta-copy strong { display: block; color: var(--cyan); font-size: 16px; }
+.lp .beta-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; }
+.lp .beta-mini {
+  padding: 8px 12px; border-radius: 999px;
+  border: 1px solid rgba(45,212,239,.22); color: var(--cyan);
+  font-size: 11px; font-weight: 800; white-space: nowrap;
+}
+
+/* Hero */
+.lp .hero { padding: 34px 0 30px; position: relative; z-index: 1; }
+.lp .hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0,.91fr) minmax(520px,1.09fr);
+  gap: 46px; align-items: center;
+}
 .lp .eyebrow {
-  font-size: 11px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase;
-  color: rgba(103,232,249,.65); margin-bottom: 10px;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid rgba(45,212,239,.2); border-radius: 999px;
+  background: rgba(45,212,239,.07); color: var(--cyan);
+  font-size: 11px; font-weight: 800;
 }
-.lp .section h2 { font-size: clamp(24px, 2.8vw, 36px); letter-spacing: -.5px; font-weight: 950; margin: 0 0 10px; }
-.lp .section p.lead { color: var(--muted); font-size: 15px; line-height: 1.65; max-width: 66ch; margin: 0 0 28px; }
-
-/* ── Why this works ── */
-.lp .why-grid {
-  display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 14px;
-  border-radius: 28px; border: 1px solid rgba(255,255,255,.09);
-  background: rgba(255,255,255,.035); padding: 28px; backdrop-filter: blur(8px);
+.lp .eyebrow-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--cyan-2); box-shadow: 0 0 0 5px rgba(45,212,239,.10);
+  flex-shrink: 0;
 }
-.lp .why-grid h2 { font-size: clamp(22px, 2.4vw, 30px); margin: 12px 0 0; }
-.lp .why-col { color: rgba(255,255,255,.68); font-size: 14px; line-height: 1.75; }
-
-/* ── Steps ── */
-.lp .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.lp .step-card {
-  border-radius: 24px; border: 1px solid rgba(255,255,255,.09);
-  background: rgba(255,255,255,.035); padding: 22px;
-  transition: transform .18s, background .18s;
+.lp h1 {
+  margin: 20px 0 20px; max-width: 720px;
+  font-size: clamp(44px, 5.25vw, 74px);
+  line-height: .98; letter-spacing: -.055em; font-weight: 950;
 }
-.lp .step-card:hover { transform: translateY(-3px); background: rgba(255,255,255,.06); }
-.lp .step-num { font-size: 11px; font-weight: 800; letter-spacing: .7px; color: rgba(103,232,249,.60); }
-.lp .step-title { font-size: 22px; font-weight: 900; margin: 14px 0 10px; }
-.lp .step-text { font-size: 14px; color: var(--muted); line-height: 1.7; }
-
-/* ── Personalities grid ── */
-.lp .p-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-.lp .p-card {
-  border-radius: 26px; border: 1px solid rgba(255,255,255,.09);
-  background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+.lp .gradient-text {
+  background: linear-gradient(120deg, #8df7ff 0%, #61c8ff 46%, #7aa3ff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lp .hero-copy { max-width: 620px; margin: 0 0 26px; color: var(--muted); font-size: 17px; line-height: 1.72; }
+.lp .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.lp .cta {
+  min-height: 54px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 22px; border-radius: 15px;
+  border: 1px solid rgba(255,255,255,.14);
+  font-size: 15px; font-weight: 850; font-family: inherit;
+  background: rgba(255,255,255,.05); transition: .18s ease; cursor: pointer;
+}
+.lp .cta:hover { transform: translateY(-2px); }
+.lp .cta.primary {
+  color: #04111c; border-color: transparent;
+  background: linear-gradient(120deg, #42c7ff, #9cf6ed);
+  box-shadow: 0 14px 42px rgba(45,212,239,.18);
+}
+.lp .cta small { font-size: 10px; opacity: .74; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+.lp .visual-wrap { position: relative; }
+.lp .visual-wrap::before {
+  content: ""; position: absolute;
+  inset: 7% -4% -8% 9%; z-index: -1;
+  background: radial-gradient(circle, rgba(255,145,54,.18), transparent 63%);
+  filter: blur(34px);
+}
+.lp .hero-visual {
+  position: relative; overflow: hidden; border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.14); background: #07111f;
+  box-shadow: var(--shadow), 0 0 0 1px rgba(45,212,239,.055);
+}
+.lp .hero-visual img { width: 100%; min-height: 410px; display: block; object-fit: cover; }
+.lp .visual-badge {
+  position: absolute; left: 18px; bottom: 18px;
+  padding: 10px 13px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.13);
+  background: rgba(3,10,19,.76); backdrop-filter: blur(12px);
+  color: #fff; font-size: 12px; font-weight: 800;
+}
+.lp .visual-badge span { color: var(--cyan); }
+.lp .trust-row {
+  grid-column: 1 / -1; margin-top: 8px;
+  display: grid; grid-template-columns: repeat(5, 1fr);
   overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08); border-radius: 18px;
+  background: rgba(255,255,255,.025);
+}
+.lp .trust-item {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 72px; padding: 14px 16px;
+  border-right: 1px solid rgba(255,255,255,.08);
+}
+.lp .trust-item:last-child { border-right: 0; }
+.lp .trust-icon {
+  width: 30px; height: 30px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  border-radius: 10px; border: 1px solid rgba(45,212,239,.18);
+  color: var(--cyan); background: rgba(45,212,239,.06);
+  font-size: 15px; font-weight: 900;
+}
+.lp .trust-label { font-size: 12px; font-weight: 850; }
+.lp .trust-sub { margin-top: 3px; color: var(--muted-2); font-size: 11px; }
+
+/* Sections */
+.lp section.content { padding: 52px 0; position: relative; z-index: 1; }
+.lp .section-head { max-width: 720px; margin-bottom: 24px; }
+.lp .section-kicker { color: var(--cyan); font-size: 11px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.lp h2 { margin: 9px 0 10px; font-size: clamp(30px, 3.4vw, 46px); line-height: 1.06; letter-spacing: -.04em; }
+.lp .lead { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.75; }
+
+.lp .cards-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.lp .card {
+  padding: 24px; border: 1px solid rgba(255,255,255,.09); border-radius: var(--radius);
+  background: linear-gradient(155deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+.lp .card-num { color: var(--cyan); font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+.lp .card h3 { margin: 18px 0 9px; font-size: 22px; }
+.lp .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+.lp .personality-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.lp .personality-card {
+  overflow: hidden; border: 1px solid rgba(255,255,255,.09);
+  border-radius: 25px; background: rgba(255,255,255,.03);
   transition: transform .18s, border-color .18s;
 }
-.lp .p-card:hover { transform: translateY(-3px); border-color: rgba(103,232,249,.20); }
-.lp .p-card-img { width: 100%; height: 200px; object-fit: cover; display: block; }
-.lp .p-card-body { padding: 20px; }
-.lp .p-card-num {
-  display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .6px;
-  border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.05);
-  border-radius: 999px; padding: 3px 9px; color: rgba(255,255,255,.45); margin-bottom: 14px;
-}
-.lp .p-card-name { font-size: 26px; font-weight: 950; letter-spacing: -.5px; margin: 0 0 8px; }
-.lp .p-card-line { font-size: 15px; font-weight: 600; color: rgba(255,255,255,.82); margin: 0 0 8px; }
-.lp .p-card-detail { font-size: 13px; color: var(--muted); line-height: 1.65; margin: 0 0 16px; }
-.lp .p-card-cta {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 700; color: var(--cyan);
-  opacity: .75; transition: opacity .15s;
-}
-.lp .p-card:hover .p-card-cta { opacity: 1; }
+.lp .personality-card:hover { transform: translateY(-3px); border-color: rgba(45,212,239,.20); }
+.lp .personality-card img { width: 100%; height: 230px; object-fit: cover; display: block; }
+.lp .personality-card-body { padding: 21px; }
+.lp .personality-card h3 { margin: 0 0 7px; font-size: 25px; }
+.lp .personality-card strong { display: block; margin-bottom: 8px; font-size: 14px; }
+.lp .personality-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
 
-/* ── Proof panel ── */
-.lp .proof-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 14px; }
-.lp .proof-left {
-  border-radius: 28px; border: 1px solid rgba(255,255,255,.09);
-  background: rgba(255,255,255,.035); padding: 28px;
+.lp .privacy-panel {
+  display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px;
+  align-items: center; padding: 32px;
+  border: 1px solid rgba(45,212,239,.16); border-radius: 28px;
+  background: linear-gradient(135deg, rgba(45,212,239,.075), rgba(255,255,255,.025), rgba(112,168,255,.06));
 }
-.lp .proof-right {
-  border-radius: 28px; border: 1px solid rgba(103,232,249,.15);
-  background: linear-gradient(160deg, rgba(103,232,249,.09), rgba(110,168,255,.06));
-  padding: 28px;
+.lp .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.lp .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 13px; border: 1px solid rgba(255,255,255,.10);
+  border-radius: 999px; background: rgba(255,255,255,.04);
+  font-size: 12px; font-weight: 750;
 }
-.lp .proof-lines { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-.lp .proof-line {
-  border-radius: 16px; border: 1px solid rgba(255,255,255,.09);
-  background: rgba(7,17,31,.30); padding: 13px 16px;
-  font-size: 13px; color: rgba(255,255,255,.75); line-height: 1.4;
-}
-.lp .proof-verdict {
-  margin-top: 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.05); padding: 16px;
-  font-size: 15px; font-weight: 650; color: rgba(255,255,255,.88); line-height: 1.45;
-}
-.lp .proof-verdict span { color: var(--cyan); }
+.lp .chip::before { content: "✓"; color: var(--green); font-weight: 950; }
 
-/* ── Privacy ── */
-.lp .trust-box {
-  border-radius: 28px; border: 1px solid rgba(255,255,255,.09);
-  background: rgba(255,255,255,.035); padding: 28px 32px;
-  display: flex; gap: 32px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap;
+/* Pricing */
+.lp .pricing {
+  max-width: 760px; margin: 0 auto; padding: 34px; text-align: center;
+  border: 1px solid rgba(45,212,239,.22); border-radius: 30px;
+  background: linear-gradient(160deg, rgba(45,212,239,.10), rgba(7,17,31,.85));
+  box-shadow: 0 28px 90px rgba(0,0,0,.26);
 }
-.lp .trust-chips { display: flex; gap: 10px; flex-wrap: wrap; }
-.lp .trust-chip {
-  display: flex; gap: 8px; align-items: center;
-  padding: 10px 14px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.05);
-  font-size: 13px; font-weight: 650; color: rgba(255,255,255,.80);
+.lp .pricing-mark {
+  display: inline-flex; padding: 7px 13px; border-radius: 999px;
+  color: var(--cyan); border: 1px solid rgba(45,212,239,.24);
+  background: rgba(45,212,239,.07);
+  font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase;
 }
-.lp .tdot { width: 9px; height: 9px; border-radius: 999px; }
+.lp .price { margin: 14px 0 2px; font-size: 68px; line-height: 1; font-weight: 950; letter-spacing: -.06em; }
+.lp .price-note { color: var(--muted); font-size: 14px; }
+.lp .pricing ul {
+  max-width: 440px; margin: 26px auto; padding: 0; list-style: none;
+  text-align: left; display: grid; gap: 11px;
+}
+.lp .pricing li { color: var(--muted); font-size: 14px; }
+.lp .pricing li::before { content: "✓"; color: var(--green); margin-right: 9px; font-weight: 950; }
 
-/* ── Pricing ── */
-.lp .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 840px; margin: 0 auto; }
-.lp .pricing-card {
-  border-radius: 26px; border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.045); padding: 28px;
-  display: flex; flex-direction: column; position: relative; overflow: hidden;
+/* Beta bottom strip */
+.lp .beta-bottom {
+  display: grid; grid-template-columns: auto 1fr auto;
+  gap: 28px; align-items: center; padding: 22px 24px;
+  margin-top: 18px;
+  border: 1px solid rgba(45,212,239,.16); border-radius: 24px;
+  background: linear-gradient(135deg, rgba(45,212,239,.075), rgba(255,255,255,.025), rgba(112,168,255,.06));
 }
-.lp .pricing-card:before {
-  content: ""; position: absolute; inset: -1px;
-  background: radial-gradient(340px 180px at 20% 0%, rgba(103,232,249,.10), transparent 60%);
-  pointer-events: none;
+.lp .gift {
+  width: 46px; height: 46px; display: grid; place-items: center;
+  border-radius: 14px; background: rgba(45,212,239,.08);
+  border: 1px solid rgba(45,212,239,.18); font-size: 22px;
 }
-.lp .pricing-card.pro {
-  border-color: rgba(103,232,249,.20);
-  background: linear-gradient(170deg, rgba(103,232,249,.07), rgba(110,168,255,.05), rgba(255,255,255,.03));
-}
-.lp .pricing-badge {
-  display: inline-flex; align-items: center; gap: 6px; width: fit-content;
-  padding: 5px 12px; border-radius: 999px; margin-bottom: 16px;
-  background: rgba(103,232,249,.15); border: 1px solid rgba(103,232,249,.25);
-  font-size: 11px; font-weight: 800; letter-spacing: .3px; color: var(--cyan);
-}
-.lp .pricing-tier { font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; position: relative; }
-.lp .pricing-amount { font-size: 48px; font-weight: 950; letter-spacing: -2px; line-height: 1; color: var(--text); position: relative; }
-.lp .pricing-period { font-size: 14px; color: var(--muted); margin-left: 3px; }
-.lp .pricing-tagline { font-size: 13px; color: var(--muted2); margin: 4px 0 20px; position: relative; }
-.lp .pricing-divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: 0 0 16px; }
-.lp .pricing-features { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 9px; position: relative; }
-.lp .pricing-features li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--muted); line-height: 1.4; }
-.lp .fcheck {
-  flex-shrink: 0; width: 17px; height: 17px; border-radius: 6px;
-  border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06);
-  display: grid; place-items: center; font-size: 10px; margin-top: 1px;
-}
-.lp .pricing-card.pro .fcheck { background: rgba(103,232,249,.15); border-color: rgba(103,232,249,.30); color: var(--cyan); }
-.lp .pricing-cta { margin-top: auto; position: relative; }
-.lp .pricing-cta .btn { width: 100%; justify-content: center; padding: 13px; border-radius: 14px; font-size: 14px; }
+.lp .beta-bottom strong { display: block; font-size: 16px; }
+.lp .beta-bottom span { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; }
 
-/* ── Final CTA ── */
-.lp .final-cta {
-  border-radius: 36px;
-  border: 1px solid rgba(103,232,249,.18);
-  background: linear-gradient(160deg, rgba(103,232,249,.12), rgba(255,255,255,.04), rgba(110,168,255,.10));
-  padding: 52px 48px;
-  box-shadow: 0 0 80px rgba(103,232,249,.08);
+/* Footer */
+.lp footer { padding: 30px 0 44px; color: var(--muted-2); font-size: 12px; position: relative; z-index: 1; }
+.lp .footer-line {
+  padding-top: 24px; border-top: 1px solid rgba(255,255,255,.07);
+  display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center;
 }
-.lp .final-cta h2 { font-size: clamp(28px, 3.5vw, 48px); letter-spacing: -1.5px; font-weight: 950; margin: 12px 0 16px; max-width: 18ch; }
-.lp .final-cta p { color: var(--muted); font-size: 15px; line-height: 1.65; max-width: 58ch; margin: 0 0 28px; }
-.lp .final-cta-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-.lp .final-cta-actions .btn { padding: 13px 22px; border-radius: 16px; font-size: 15px; }
+.lp .footer-line a { color: rgba(255,255,255,.65); }
+.lp .footer-line a:hover { color: var(--text); }
 
-/* ── Footer ── */
-.lp footer { padding: 28px 0 40px; position: relative; z-index: 1; }
-.lp .foot {
-  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center;
-  border-top: 1px solid rgba(255,255,255,.07); padding-top: 20px;
-  font-size: 13px; color: var(--muted2);
-}
-.lp .foot a { color: rgba(255,255,255,.65); }
-.lp .foot a:hover { color: var(--text); }
-
-@media (max-width: 980px) {
-  .lp .hero-grid { grid-template-columns: 1fr; }
-  .lp .steps-grid { grid-template-columns: 1fr; }
-  .lp .p-grid { grid-template-columns: 1fr; }
-  .lp .why-grid { grid-template-columns: 1fr; }
-  .lp .proof-grid { grid-template-columns: 1fr; }
-  .lp .trust-box { flex-direction: column; }
-  .lp .pricing-grid { grid-template-columns: 1fr; max-width: 460px; }
+@media (max-width: 1080px) {
+  .lp .nav { grid-template-columns: auto 1fr; }
   .lp .nav-links { display: none; }
-  .lp .final-cta { padding: 36px 28px; }
+  .lp .nav-actions { justify-self: end; }
+  .lp .hero-grid { grid-template-columns: 1fr; }
+  .lp .visual-wrap { max-width: 820px; }
+  .lp .trust-row { grid-template-columns: repeat(3, 1fr); }
+  .lp .trust-item:nth-child(3) { border-right: 0; }
+  .lp .trust-item:nth-child(n+4) { border-top: 1px solid rgba(255,255,255,.08); }
+  .lp .privacy-panel { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .lp .shell { width: min(100% - 24px, var(--max)); }
+  .lp .nav-wrap { top: 8px; padding-top: 8px; }
+  .lp .nav { grid-template-columns: 1fr; gap: 12px; border-radius: 22px; }
+  .lp .brand { min-width: 0; }
+  .lp .brand-sub { display: none; }
+  .lp .nav-actions { width: 100%; justify-self: stretch; grid-template-columns: 1fr 1fr; }
+  .lp .nav-btn { min-height: 42px; padding: 0 12px; }
+  .lp .nav-beta-note { font-size: 8px; }
+  .lp .beta-announcement { grid-template-columns: auto 1fr; }
+  .lp .beta-mini { display: none; }
+  .lp .beta-chip { min-width: 72px; }
+  .lp .hero { padding-top: 26px; }
+  .lp h1 { font-size: clamp(42px, 14vw, 58px); }
+  .lp .hero-copy { font-size: 15px; }
+  .lp .hero-actions { flex-direction: column; }
+  .lp .cta { width: 100%; }
+  .lp .hero-visual img { min-height: 300px; }
+  .lp .trust-row { grid-template-columns: 1fr 1fr; }
+  .lp .trust-item,
+  .lp .trust-item:nth-child(3) { border-right: 1px solid rgba(255,255,255,.08); border-top: 1px solid rgba(255,255,255,.08); }
+  .lp .trust-item:nth-child(1),
+  .lp .trust-item:nth-child(2) { border-top: 0; }
+  .lp .trust-item:nth-child(even) { border-right: 0; }
+  .lp .trust-item:last-child { grid-column: 1 / -1; border-right: 0; }
+  .lp .cards-3, .lp .personality-grid { grid-template-columns: 1fr; }
+  .lp .personality-card img { height: 210px; }
+  .lp .privacy-panel, .lp .pricing { padding: 24px; }
+  .lp .beta-bottom { grid-template-columns: auto 1fr; }
 }
 `
-
-const PERSONALITIES = [
-  {
-    name: 'Glowing Broke',
-    line: "You're moisturized, exfoliated, and financially exposed.",
-    detail: 'Luxury self-care meets zero restraint. You invest heavily in feeling good — regardless of the aftermath.',
-    image: '/personalities/glowing-broke.webp',
-    tags: ['Skincare & beauty', 'High-frequency', 'Emotion-driven'],
-  },
-  {
-    name: 'The Full Send',
-    line: 'Your spending has main-character energy.',
-    detail: 'Big swipes, fast decisions, unforgettable months. You live large and you know it.',
-    image: '/personalities/full-send.webp',
-    tags: ['Overspend pattern', 'Lifestyle-first'],
-  },
-  {
-    name: 'The Subscription Collector',
-    line: 'Tiny charges. Silent chaos.',
-    detail: 'Your money leaks in elegant little monthly drips — Netflix, Spotify, and twelve others you forgot existed.',
-    image: '/personalities/subscription-collector.webp',
-    tags: ['Recurring drain', 'Easy audit wins'],
-  },
-  {
-    name: 'The Wire Dancer',
-    line: 'You cleared the month by the skin of your teeth.',
-    detail: 'Tight margin, clean finish. You balance on the edge every month and somehow always land it.',
-    image: '/personalities/wire-dancer.webp',
-    tags: ['Breakeven', 'High tension'],
-  },
-]
 
 export default function HomePage() {
   const user   = useAuthStore(s => s.user)
@@ -402,7 +381,6 @@ export default function HomePage() {
   useEffect(() => {
     const yearEl = document.getElementById('lp-year')
     if (yearEl) yearEl.textContent = String(new Date().getFullYear())
-
     const stopDefault = (e: Event) => { e.preventDefault() }
     window.addEventListener('dragover', stopDefault)
     window.addEventListener('drop', stopDefault)
@@ -415,286 +393,188 @@ export default function HomePage() {
   if (user) return null
 
   return (
-    <div className="lp" id="lp-top">
+    <div className="lp">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      {/* ── Ambient ── */}
-      <div className="glows">
-        <div className="glow-a" />
-        <div className="glow-b" />
-        <div className="glow-c" />
-        <div className="grid-overlay" />
-      </div>
-
       {/* ── Nav ── */}
-      <div className="nav">
-        <div className="nav-inner">
-          <div className="brand">
-            <div className="bl-logo-container" style={{ width: 36, height: 36, borderRadius: 12 }}><LogoMark size={20} /></div>
-            <div>
-              <div className="brand-name">Financial Autopsy</div>
-              <div className="brand-sub">Financial personality, revealed</div>
-            </div>
-          </div>
+      <div className="nav-wrap shell">
+        <header className="nav">
+          <Link href="/" className="brand" aria-label="Financial Autopsy home">
+            <span className="logo-box" aria-hidden="true">
+              <LogoMark size={27} />
+            </span>
+            <span>
+              <span className="brand-name">Financial Autopsy</span>
+              <span className="brand-sub">Financial personality, revealed</span>
+            </span>
+          </Link>
 
-          <nav className="nav-links">
+          <nav className="nav-links" aria-label="Primary navigation">
             <a href="#how">How it works</a>
             <a href="#personalities">Personalities</a>
             <a href="#privacy">Privacy</a>
+            <a href="#roadmap">Roadmap</a>
             <a href="#pricing">Pricing</a>
           </nav>
 
-          <div className="nav-cta">
-            <Link href="/login" className="btn">Sign in</Link>
-            <Link href="/login?mode=register" className="btn btn-cyan">Get started</Link>
+          <div className="nav-actions">
+            <div className="nav-action">
+              <Link className="nav-btn" href="/login">Sign in</Link>
+              <span className="nav-beta-note">Free in beta</span>
+            </div>
+            <div className="nav-action">
+              <Link className="nav-btn primary" href="/login?mode=register">Get started</Link>
+              <span className="nav-beta-note">No card required</span>
+            </div>
           </div>
+        </header>
+      </div>
+
+      {/* ── Beta announcement ── */}
+      <div className="shell">
+        <div className="beta-announcement" role="status">
+          <div className="beta-chip">BETA</div>
+          <div className="beta-copy">
+            <strong>Financial Autopsy is now live in public beta.</strong>
+            <span>Everything is unlocked and 100% free while we build. No credit card required.</span>
+          </div>
+          <div className="beta-mini">Free during beta</div>
         </div>
       </div>
 
-      <main style={{ position: 'relative', zIndex: 1 }}>
+      <main>
 
         {/* ── Hero ── */}
         <section className="hero">
-          <div className="wrap hero-grid">
+          <div className="shell hero-grid">
             <div>
-              <div className="hero-kicker">
-                <span className="dot" />
-                New: Shareable Money Personality cards
-              </div>
-
-              <h1>
-                The first finance app<br />
-                people want to{' '}
-                <span className="grad">show off</span>.
-              </h1>
-
-              <p className="hero-sub">
+              <div className="eyebrow"><span className="eyebrow-dot" />New: Shareable Money Personality cards</div>
+              <h1>The first finance app people want to <span className="gradient-text">show off.</span></h1>
+              <p className="hero-copy">
                 Upload a bank statement and uncover the spending identity hiding inside your transactions.
                 Not a boring budget. A sharp, cinematic, almost-uncomfortably-accurate personality reveal.
               </p>
-
               <div className="hero-actions">
-                <Link href="/login?mode=register" className="btn btn-primary">Discover your personality</Link>
-                <a href="#personalities" className="btn">See examples</a>
-              </div>
-
-              <div className="hero-proof">
-                {['No bank login required', 'CSV / OFX / QFX upload', 'Private by design', 'Results in seconds'].map(p => (
-                  <div key={p} className="pill">{p}</div>
-                ))}
+                <Link className="cta primary" href="/login?mode=register">Start your free analysis <small>Beta</small></Link>
+                <a className="cta" href="#personalities">See examples</a>
               </div>
             </div>
 
-            {/* ── Hero image: Where Did It All Go ── */}
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: -40, borderRadius: 999, background: 'radial-gradient(circle, rgba(251,146,60,.12), transparent 65%)', filter: 'blur(30px)', pointerEvents: 'none' }} />
-              <div className="p-hero-card">
-                <img
-                  src="/personalities/where_did_it_go.webp"
-                  alt="Where did it all go?"
-                  style={{ width: '100%', display: 'block', borderRadius: 28 }}
-                />
+            <div className="visual-wrap">
+              <div className="hero-visual">
+                <img src="/personalities/where_did_it_go.webp" alt="Where Did It All Go money personality preview" />
+                <div className="visual-badge"><span>Free beta</span> · Results in minutes</div>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* ── Why this works ── */}
-        <section className="section">
-          <div className="wrap">
-            <div className="why-grid">
-              <div>
-                <div className="eyebrow">Why this hits</div>
-                <h2>It starts with identity, not accounting.</h2>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <div className="why-col">
-                  Most finance tools demand discipline before they give you anything interesting.
-                  Financial Autopsy flips that — the reward comes first. A result you want to react to,
-                  argue with, and send to someone else.
-                </div>
-                <div className="why-col">
-                  33 archetypes detected automatically from your real spending data.
-                  No quiz. No self-reporting. No guessing. Just your statement and the truth.
-                </div>
-              </div>
+            <div className="trust-row">
+              <div className="trust-item"><div className="trust-icon">$</div><div><div className="trust-label">100% free</div><div className="trust-sub">During public beta</div></div></div>
+              <div className="trust-item"><div className="trust-icon">✓</div><div><div className="trust-label">No bank login</div><div className="trust-sub">Upload only</div></div></div>
+              <div className="trust-item"><div className="trust-icon">▤</div><div><div className="trust-label">CSV / OFX / QFX</div><div className="trust-sub">Statement upload</div></div></div>
+              <div className="trust-item"><div className="trust-icon">⌁</div><div><div className="trust-label">Private by design</div><div className="trust-sub">Your data stays yours</div></div></div>
+              <div className="trust-item"><div className="trust-icon">◷</div><div><div className="trust-label">Fast reveal</div><div className="trust-sub">Personality in minutes</div></div></div>
             </div>
           </div>
         </section>
 
         {/* ── How it works ── */}
-        <section className="section" id="how">
-          <div className="wrap">
-            <div className="eyebrow">How it works</div>
-            <h2>Fast, clean, and dangerously satisfying.</h2>
-            <p className="lead">A simple loop: upload → analyze → reveal. Three steps to a result you&apos;ll actually want to share.</p>
-            <div className="steps-grid">
-              {[
-                { num: '01', title: 'Upload', text: 'Drop in a CSV, OFX, or QFX statement. No bank linking. No OAuth friction. No anxiety.' },
-                { num: '02', title: 'Analyze', text: 'We map spending habits, merchant patterns, recurring charges, spikes, and behavioral signals.' },
-                { num: '03', title: 'Reveal', text: 'You get a Money Personality that feels weirdly accurate — and a full financial breakdown to back it up.' },
-              ].map(s => (
-                <div key={s.num} className="step-card">
-                  <div className="step-num">{s.num}</div>
-                  <div className="step-title">{s.title}</div>
-                  <p className="step-text">{s.text}</p>
-                </div>
-              ))}
+        <section className="content" id="how">
+          <div className="shell">
+            <div className="section-head">
+              <div className="section-kicker">How it works</div>
+              <h2>Upload. Analyze. Reveal.</h2>
+              <p className="lead">Three clean steps to a result you will actually want to screenshot, debate, and share.</p>
+            </div>
+            <div className="cards-3">
+              <article className="card"><div className="card-num">01</div><h3>Upload</h3><p>Drop in a CSV, OFX, QFX, or QBO statement. No bank linking, passwords, or OAuth friction.</p></article>
+              <article className="card"><div className="card-num">02</div><h3>Analyze</h3><p>We map merchant patterns, recurring charges, spending spikes, habits, and behavioral signals.</p></article>
+              <article className="card"><div className="card-num">03</div><h3>Reveal</h3><p>You get a Money Personality that feels weirdly accurate, plus the numbers that explain exactly why.</p></article>
             </div>
           </div>
         </section>
 
         {/* ── Personalities ── */}
-        <section className="section" id="personalities">
-          <div className="wrap">
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 28 }}>
-              <div>
-                <div className="eyebrow">The hook</div>
-                <h2 style={{ margin: 0 }}>Personalities people will want to screenshot.</h2>
-              </div>
-              <Link href="/login?mode=register" className="btn btn-cyan" style={{ whiteSpace: 'nowrap' }}>
-                Find yours →
-              </Link>
+        <section className="content" id="personalities">
+          <div className="shell">
+            <div className="section-head">
+              <div className="section-kicker">Money personalities</div>
+              <h2>Results people will want to screenshot.</h2>
+              <p className="lead">Built from real spending behavior, not a quiz or self-reported answers.</p>
             </div>
-            <div className="p-grid">
-              {PERSONALITIES.map((p, i) => (
-                <div key={p.name} className="p-card">
-                  <img src={p.image} alt={p.name} className="p-card-img" />
-                  <div className="p-card-body">
-                    <div className="p-card-num">0{i + 1}</div>
-                    <div className="p-card-name">{p.name}</div>
-                    <div className="p-card-line">{p.line}</div>
-                    <p className="p-card-detail">{p.detail}</p>
-                    <div className="p-card-cta">Discover yours →</div>
+            <div className="personality-grid">
+              {PERSONALITIES.map(p => (
+                <article key={p.name} className="personality-card">
+                  <img src={p.image} alt={`${p.name} personality`} />
+                  <div className="personality-card-body">
+                    <h3>{p.name}</h3>
+                    <strong>{p.line}</strong>
+                    <p>{p.detail}</p>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── Believability ── */}
-        <section className="section">
-          <div className="wrap">
-            <div className="proof-grid">
-              <div className="proof-left">
-                <div className="eyebrow">Believability</div>
-                <h2>The result should feel earned, not random.</h2>
-                <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.7, marginTop: 12 }}>
-                  Every personality is backed by real numbers from your statement.
-                  You immediately see exactly why you got it.
-                </p>
+        {/* ── Privacy ── */}
+        <section className="content" id="privacy">
+          <div className="shell">
+            <div className="privacy-panel">
+              <div>
+                <div className="section-kicker">Privacy first</div>
+                <h2>No bank connections. No creepy feeling.</h2>
+                <p className="lead">We never ask for your bank password. You upload a statement file and stay in control of your data.</p>
               </div>
-              <div className="proof-right">
-                <div className="eyebrow">Example breakdown</div>
-                <div className="proof-lines">
-                  {[
-                    '62% of spend went to lifestyle and personal care.',
-                    '14 unique beauty and wellness merchants in one month.',
-                    '9 recurring self-care charges running quietly in the background.',
-                    'Spending peaks between 7 PM – 11 PM on weekdays.',
-                  ].map(line => (
-                    <div key={line} className="proof-line">{line}</div>
-                  ))}
-                </div>
-                <div className="proof-verdict">
-                  Which is exactly why you got <span>Glowing Broke.</span>
-                </div>
+              <div className="chips">
+                <span className="chip">No bank login required</span>
+                <span className="chip">Delete your data anytime</span>
+                <span className="chip">No credit card in beta</span>
+                <span className="chip">Your data is never sold</span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── Privacy ── */}
-        <section className="section" id="privacy">
-          <div className="wrap">
-            <div className="trust-box">
-              <div style={{ maxWidth: '62ch' }}>
-                <div className="eyebrow">Privacy</div>
-                <h2 style={{ margin: '8px 0 10px' }}>No bank connections. No creepy feeling.</h2>
-                <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
-                  We never ask for your bank password. You upload a statement file, we analyze it locally,
-                  and you stay in full control. Your financial data is never sold or shared.
-                </p>
-              </div>
-              <div className="trust-chips">
-                <div className="trust-chip"><span className="tdot" style={{ background: 'var(--cyan2)', boxShadow: '0 0 0 5px rgba(34,211,238,.12)' }} />No bank login required</div>
-                <div className="trust-chip"><span className="tdot" style={{ background: 'var(--good)', boxShadow: '0 0 0 5px rgba(46,229,157,.10)' }} />You own your categories</div>
-                <div className="trust-chip"><span className="tdot" style={{ background: 'var(--warn)', boxShadow: '0 0 0 5px rgba(255,204,102,.10)' }} />Delete your data anytime</div>
-              </div>
+        {/* ── Roadmap ── */}
+        <section className="content" id="roadmap">
+          <div className="shell">
+            <div className="section-head">
+              <div className="section-kicker">Roadmap</div>
+              <h2>Live now. Improving fast.</h2>
+              <p className="lead">The beta is live today, and early users help shape what comes next.</p>
+            </div>
+            <div className="cards-3">
+              <article className="card"><div className="card-num" style={{ color: 'var(--green)' }}>✓ LIVE</div><h3>Public beta</h3><p>The full upload, analysis, and Money Personality reveal experience is available now.</p></article>
+              <article className="card"><div className="card-num">→ BUILDING</div><h3>Deeper insights</h3><p>Month-over-month trends, AI questions, subscription alerts, and richer spending explanations.</p></article>
+              <article className="card"><div className="card-num" style={{ color: 'var(--muted-2)' }}>◦ PLANNED</div><h3>Mobile experience</h3><p>A faster on-the-go workflow for statement capture, review, and shareable personality cards.</p></article>
             </div>
           </div>
         </section>
 
         {/* ── Pricing ── */}
-        <section className="section" id="pricing">
-          <div className="wrap">
-            <div style={{ textAlign: 'center', marginBottom: 6 }}>
-              <div className="eyebrow" style={{ display: 'inline-block' }}>Pricing</div>
+        <section className="content" id="pricing">
+          <div className="shell">
+            <div className="pricing">
+              <div className="pricing-mark">Public beta pricing</div>
+              <div className="price">$0</div>
+              <div className="price-note">Everything is free while Financial Autopsy is in beta.</div>
+              <ul>
+                <li>Money Personality detection</li>
+                <li>Statement analysis and categorization</li>
+                <li>Subscription, anomaly, and duplicate detection</li>
+                <li>CSV, OFX, QFX, and QBO imports</li>
+                <li>No credit card required</li>
+              </ul>
+              <Link className="cta primary" href="/login?mode=register">Join the free beta</Link>
             </div>
-            <h2 style={{ textAlign: 'center', marginBottom: 6 }}>Free during beta.</h2>
-            <p style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 14, marginBottom: 28 }}>
-              All features unlocked. No credit card. Pro tier coming soon — early users lock in a lower rate.
-            </p>
-            <div className="pricing-grid">
-              <div className="pricing-card">
-                <div className="pricing-tier">Free</div>
-                <div style={{ marginBottom: 4 }}>
-                  <span className="pricing-amount">$0</span>
-                </div>
-                <p className="pricing-tagline">Free forever — no credit card needed.</p>
-                <hr className="pricing-divider" />
-                <ul className="pricing-features">
-                  <li><span className="fcheck">✓</span>Upload &amp; analyze statements</li>
-                  <li><span className="fcheck">✓</span>Money Personality detection</li>
-                  <li><span className="fcheck">✓</span>Full AI scan (subscriptions, anomalies, duplicates)</li>
-                  <li><span className="fcheck">✓</span>Category management &amp; smart rules</li>
-                  <li><span className="fcheck">✓</span>CSV / OFX / QFX / QBO import</li>
-                </ul>
-                <div className="pricing-cta">
-                  <Link href="/login?mode=register" className="btn btn-primary">Get started free</Link>
-                </div>
-              </div>
 
-              <div className="pricing-card pro" style={{ opacity: 0.62 }}>
-                <div className="pricing-badge"><span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--cyan)', display: 'inline-block' }} />Coming soon</div>
-                <div className="pricing-tier">Pro</div>
-                <div style={{ marginBottom: 4 }}>
-                  <span className="pricing-amount">$9</span>
-                  <span className="pricing-period">/ mo</span>
-                </div>
-                <p className="pricing-tagline">Everything in Free, plus unlimited power.</p>
-                <hr className="pricing-divider" />
-                <ul className="pricing-features">
-                  <li><span className="fcheck">✓</span>Unlimited statement uploads</li>
-                  <li><span className="fcheck">✓</span>AI Q&amp;A — ask questions about your finances</li>
-                  <li><span className="fcheck">✓</span>Month-over-month trend insights</li>
-                  <li><span className="fcheck">✓</span>Subscription tracking &amp; cost alerts</li>
-                  <li><span className="fcheck">✓</span>Downloadable PDF export</li>
-                  <li><span className="fcheck">✓</span>Priority support</li>
-                </ul>
-                <div className="pricing-cta">
-                  <button disabled className="btn" style={{ width: '100%', justifyContent: 'center', opacity: 0.45, cursor: 'not-allowed' }}>Coming soon</button>
-                </div>
+            <div className="beta-bottom">
+              <div className="gift">🎁</div>
+              <div>
+                <strong>Enjoy every feature for free while we build.</strong>
+                <span>Future pricing may change, but there is no charge during the current public beta.</span>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Final CTA ── */}
-        <section className="section">
-          <div className="wrap">
-            <div className="final-cta">
-              <div className="eyebrow">Ready?</div>
-              <h2>Find out which one you are.</h2>
-              <p>
-                Upload a statement and get your Money Personality in under a minute.
-                No bank login. No setup. Just your file and the truth.
-              </p>
-              <div className="final-cta-actions">
-                <Link href="/login?mode=register" className="btn btn-primary">Get my Money Personality</Link>
-                <Link href="/login" className="btn">Sign in</Link>
-              </div>
+              <div className="beta-mini">Free during beta</div>
             </div>
           </div>
         </section>
@@ -703,23 +583,14 @@ export default function HomePage() {
 
       {/* ── Footer ── */}
       <footer>
-        <div className="wrap">
-          <div className="foot">
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <div className="bl-logo-container" style={{ width: 28, height: 28, borderRadius: 8 }}><LogoMark size={16} /></div>
-              <div>
-                <div style={{ fontWeight: 800, color: 'rgba(255,255,255,.85)', fontSize: 13 }}>Financial Autopsy</div>
-                <div style={{ fontSize: 11, color: 'var(--muted2)' }}>© <span id="lp-year" /> · Financial Personality, Revealed</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-              <a href="#how">How it works</a>
-              <a href="#personalities">Personalities</a>
-              <Link href="/privacy">Privacy</Link>
-              <Link href="/terms">Terms</Link>
-              <span style={{ color: 'rgba(255,255,255,.55)' }}>support@financialautopsy.com</span>
-              <a href="#lp-top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>↑ Top</a>
-            </div>
+        <div className="shell footer-line">
+          <div>© <span id="lp-year" /> Financial Autopsy</div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Link href="/privacy">Privacy</Link>
+            <span>·</span>
+            <Link href="/terms">Terms</Link>
+            <span>·</span>
+            <span>support@financialautopsy.com</span>
           </div>
         </div>
       </footer>
