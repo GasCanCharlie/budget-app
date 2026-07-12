@@ -114,18 +114,6 @@ export default function SettingsPage() {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 40px 10px 12px',
-    borderRadius: 10,
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid var(--border)',
-    color: 'var(--text)',
-    fontSize: 14,
-    outline: 'none',
-    boxSizing: 'border-box',
-  }
-
   const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: 13,
@@ -153,14 +141,6 @@ export default function SettingsPage() {
     padding: 0,
   }
 
-  const cardStyle: React.CSSProperties = {
-    background: 'var(--card)',
-    border: '1px solid var(--border)',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 16,
-  }
-
   return (
     <AppShell>
       <div style={{ maxWidth: 672, margin: '0 auto', padding: '32px 16px 96px' }}>
@@ -169,7 +149,7 @@ export default function SettingsPage() {
         </h1>
 
         {/* ── Change Password ─────────────────────────────────────────────── */}
-        <div style={cardStyle}>
+        <div className="card" style={{ padding: 24, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
             <Lock size={16} style={{ color: 'var(--accent)' }} />
             <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Change Password</span>
@@ -184,7 +164,8 @@ export default function SettingsPage() {
                   type={showCurrent ? 'text' : 'password'}
                   value={currentPassword}
                   onChange={e => setCurrentPassword(e.target.value)}
-                  style={inputStyle}
+                  className="input"
+                  style={{ paddingRight: 40 }}
                   autoComplete="current-password"
                   required
                 />
@@ -207,7 +188,8 @@ export default function SettingsPage() {
                   type={showNew ? 'text' : 'password'}
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
-                  style={inputStyle}
+                  className="input"
+                  style={{ paddingRight: 40 }}
                   autoComplete="new-password"
                   required
                 />
@@ -230,7 +212,8 @@ export default function SettingsPage() {
                   type={showConfirm ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
-                  style={inputStyle}
+                  className="input"
+                  style={{ paddingRight: 40 }}
                   autoComplete="new-password"
                   required
                 />
@@ -262,22 +245,9 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={pwPending}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '10px 20px',
-                borderRadius: 10,
-                background: 'var(--accent)',
-                color: '#fff',
-                border: 'none',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: pwPending ? 'not-allowed' : 'pointer',
-                opacity: pwPending ? 0.7 : 1,
-              }}
+              className="btn-primary"
             >
-              {pwPending && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+              {pwPending && <Loader2 size={14} className="animate-spin" />}
               Update Password
             </button>
           </form>
@@ -285,10 +255,12 @@ export default function SettingsPage() {
 
         {/* ── Reset Account Data ──────────────────────────────────────────── */}
         <div
+          className="card"
           style={{
-            ...cardStyle,
             border: '1px solid rgba(251,191,36,0.25)',
             background: 'rgba(251,191,36,0.02)',
+            padding: 24,
+            marginBottom: 16,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -315,11 +287,11 @@ export default function SettingsPage() {
           {!showResetForm ? (
             <button
               onClick={() => { setShowResetForm(true); setResetSuccess(false) }}
+              className="btn-primary"
               style={{
-                padding: '9px 18px', borderRadius: 10,
                 border: '1px solid rgba(251,191,36,0.5)',
-                color: '#FBBF24', background: 'transparent',
-                fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                color: '#FBBF24',
+                background: 'transparent',
               }}
             >
               Reset All Data
@@ -337,7 +309,8 @@ export default function SettingsPage() {
                     type={showResetPw ? 'text' : 'password'}
                     value={resetPassword}
                     onChange={e => setResetPassword(e.target.value)}
-                    style={inputStyle}
+                    className="input"
+                    style={{ paddingRight: 40 }}
                     autoComplete="current-password"
                     required
                   />
@@ -363,27 +336,17 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => { setShowResetForm(false); setResetPassword(''); setResetError('') }}
-                  style={{
-                    padding: '9px 18px', borderRadius: 10,
-                    border: '1px solid var(--border)', color: 'var(--muted)',
-                    background: 'transparent', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                  }}
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={resetPending}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '9px 18px', borderRadius: 10,
-                    background: '#B45309', color: '#fff', border: 'none',
-                    fontSize: 14, fontWeight: 600,
-                    cursor: resetPending ? 'not-allowed' : 'pointer',
-                    opacity: resetPending ? 0.7 : 1,
-                  }}
+                  className="btn-primary"
+                  style={{ background: '#B45309' }}
                 >
-                  {resetPending && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+                  {resetPending && <Loader2 size={14} className="animate-spin" />}
                   Reset all data
                 </button>
               </div>
@@ -393,10 +356,12 @@ export default function SettingsPage() {
 
         {/* ── Danger Zone ─────────────────────────────────────────────────── */}
         <div
+          className="card"
           style={{
-            ...cardStyle,
             border: '1px solid rgba(248,113,113,0.3)',
             background: 'rgba(248,113,113,0.03)',
+            padding: 24,
+            marginBottom: 16,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -420,15 +385,11 @@ export default function SettingsPage() {
           {!showDeleteForm ? (
             <button
               onClick={() => setShowDeleteForm(true)}
+              className="btn-primary"
               style={{
-                padding: '9px 18px',
-                borderRadius: 10,
                 border: '1px solid var(--danger)',
                 color: 'var(--danger)',
                 background: 'transparent',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
               }}
             >
               Delete My Account
@@ -446,7 +407,8 @@ export default function SettingsPage() {
                     type={showDeletePw ? 'text' : 'password'}
                     value={deletePassword}
                     onChange={e => setDeletePassword(e.target.value)}
-                    style={inputStyle}
+                    className="input"
+                    style={{ paddingRight: 40 }}
                     autoComplete="current-password"
                     required
                   />
@@ -472,38 +434,17 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => { setShowDeleteForm(false); setDeletePassword(''); setDeleteError('') }}
-                  style={{
-                    padding: '9px 18px',
-                    borderRadius: 10,
-                    border: '1px solid var(--border)',
-                    color: 'var(--muted)',
-                    background: 'transparent',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={deletePending}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '9px 18px',
-                    borderRadius: 10,
-                    background: 'var(--danger)',
-                    color: '#fff',
-                    border: 'none',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: deletePending ? 'not-allowed' : 'pointer',
-                    opacity: deletePending ? 0.7 : 1,
-                  }}
+                  className="btn-primary"
+                  style={{ background: 'var(--danger)' }}
                 >
-                  {deletePending && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+                  {deletePending && <Loader2 size={14} className="animate-spin" />}
                   Delete permanently
                 </button>
               </div>
@@ -511,10 +452,6 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </AppShell>
   )
 }

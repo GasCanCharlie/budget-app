@@ -75,19 +75,19 @@ function RuleCard({
           borderRadius: 8, padding: '5px 10px',
         }}>
           <Tag size={11} style={{ color: '#6c7cff', flexShrink: 0 }} />
-          <span style={{ fontSize: 12, color: '#a8b4d8', fontWeight: 600 }}>IF</span>
-          <span style={{ fontSize: 13, color: '#e2e8f5', fontWeight: 700 }}>
+          <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>IF</span>
+          <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700 }}>
             &ldquo;{rule.matchValue}&rdquo;
           </span>
           {rule.amountExact != null && (
-            <span style={{ fontSize: 12, color: '#6b7a99', fontWeight: 600 }}>
+            <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>
               = ${(rule.amountExact / 100).toFixed(2)}
             </span>
           )}
         </div>
 
         {/* Arrow */}
-        <ArrowRight size={14} style={{ color: '#4b5568', flexShrink: 0 }} />
+        <ArrowRight size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} />
 
         {/* THEN category pill */}
         <div style={{
@@ -97,7 +97,7 @@ function RuleCard({
           borderRadius: 8, padding: '5px 10px',
         }}>
           <CategoryIcon name={rule.category.icon} color={rule.category.color} size={13} />
-          <span style={{ fontSize: 13, color: '#e2e8f5', fontWeight: 700 }}>
+          <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700 }}>
             {rule.category.name}
           </span>
         </div>
@@ -106,7 +106,7 @@ function RuleCard({
       {/* Bottom row: meta + actions */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         {/* Match type label */}
-        <span style={{ fontSize: 11, color: '#4b5568', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {matchLabel}
         </span>
 
@@ -141,7 +141,7 @@ function RuleCard({
           >
             {rule.isEnabled
               ? <ToggleRight size={20} style={{ color: '#6c7cff' }} />
-              : <ToggleLeft  size={20} style={{ color: '#3a4460' }} />
+              : <ToggleLeft  size={20} style={{ color: 'var(--subtle)' }} />
             }
           </button>
 
@@ -168,9 +168,9 @@ function RuleCard({
               onClick={() => setConfirmDelete(true)}
               disabled={isPending}
               title="Delete rule"
-              style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: '#3a4460', lineHeight: 1 }}
+              style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--subtle)', lineHeight: 1 }}
               onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = '#ef4444')}
-              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = '#3a4460')}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--subtle)')}
             >
               <Trash2 size={14} />
             </button>
