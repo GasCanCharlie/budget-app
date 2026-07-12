@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { CategoryIcon } from '@/components/CategoryIcon'
@@ -19,14 +20,15 @@ interface Props {
   transactions: TopTx[]
 }
 
-const RANK_STYLES: Record<number, string> = {
-  1: 'bg-yellow-100 text-yellow-700',
-  2: 'bg-slate-200 text-slate-600',
-  3: 'bg-orange-100 text-orange-600',
+const RANK_STYLES: Record<number, React.CSSProperties> = {
+  1: { background: 'rgba(234,179,8,0.15)', color: 'rgb(234,179,8)' },
+  2: { background: 'rgba(148,163,184,0.15)', color: 'var(--muted)' },
+  3: { background: 'rgba(249,115,22,0.15)', color: 'rgb(249,115,22)' },
 }
+const DEFAULT_RANK_STYLE: React.CSSProperties = { background: 'rgba(99,102,241,0.1)', color: 'var(--accent)' }
 
-function getRankStyle(rank: number): string {
-  return RANK_STYLES[rank] ?? 'bg-blue-50 text-blue-600'
+function getRankStyle(rank: number): React.CSSProperties {
+  return RANK_STYLES[rank] ?? DEFAULT_RANK_STYLE
 }
 
 function formatAmount(amount: number): string {
@@ -46,7 +48,8 @@ export function TopTransactions({ transactions }: Props) {
         <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Top Expenses</p>
         <Link
           href="/transactions"
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm hover:underline"
+          style={{ color: 'var(--accent)' }}
         >
           View all →
         </Link>
@@ -74,7 +77,8 @@ export function TopTransactions({ transactions }: Props) {
               >
                 {/* Rank badge */}
                 <span
-                  className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-xs font-bold ${getRankStyle(rank)}`}
+                  className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-xs font-bold"
+                  style={getRankStyle(rank)}
                 >
                   {rank}
                 </span>

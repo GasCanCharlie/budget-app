@@ -104,21 +104,15 @@ export function CategoryRanking({ categories, totalSpending, year, month, prevCa
         <div className="flex items-center gap-1">
           <button
             onClick={() => setSort('amount')}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-              sort === 'amount'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
+            className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+            style={sort === 'amount' ? { background: 'var(--accent)', color: '#fff' } : { color: 'var(--muted)' }}
           >
             Amount
           </button>
           <button
             onClick={() => setSort('pct')}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-              sort === 'pct'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
+            className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+            style={sort === 'pct' ? { background: 'var(--accent)', color: '#fff' } : { color: 'var(--muted)' }}
           >
             %
           </button>

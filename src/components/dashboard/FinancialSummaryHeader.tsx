@@ -61,8 +61,8 @@ export function FinancialSummaryHeader({
         {latestUploadId && (
           <Link
             href={`/upload/${latestUploadId}`}
-            className="text-xs hover:text-blue-600 transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
+            className="text-xs transition-colors"
+            style={{ color: 'var(--accent)' }}
           >
             Statement detail →
           </Link>
@@ -99,7 +99,7 @@ export function FinancialSummaryHeader({
             <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-secondary)' }}>Income</p>
             <p className="text-2xl font-bold tabular-nums tracking-tight" style={{ color: 'var(--success)' }}>{fmt(totalIncome)}</p>
           </div>
-          <div className="px-4 py-3">
+          <div className="px-4 py-3" style={{ background: 'var(--surface2, rgba(0,0,0,0.03))' }}>
             <p className="text-xs uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-secondary)' }}>Spending</p>
             <p className="text-2xl font-bold tabular-nums tracking-tight" style={{ color: 'var(--text)' }}>{fmt(totalSpending)}</p>
           </div>

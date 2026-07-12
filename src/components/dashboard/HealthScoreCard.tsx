@@ -72,34 +72,34 @@ export function HealthScoreCard(props: HealthInput) {
 
   // 1. Income Remaining
   const incomeRemainingColor =
-    totalIncome > 0 && net / totalIncome >= 0.10 ? '#22C55E' :
-    net >= 0 ? '#F59E0B' : '#EF4444'
+    totalIncome > 0 && net / totalIncome >= 0.10 ? 'var(--success)' :
+    net >= 0 ? 'var(--warn)' : 'var(--danger)'
 
   // 2. Savings Strength
   const savingsRate = totalIncome > 0 ? (net / totalIncome) * 100 : 0
   const savingsColor =
-    savingsRate >= 20 ? '#22C55E' :
-    savingsRate >= 10 ? '#F59E0B' : '#EF4444'
+    savingsRate >= 20 ? 'var(--success)' :
+    savingsRate >= 10 ? 'var(--warn)' : 'var(--danger)'
 
   // 3. Positive Months (back-derive streak from factor points: pts = streak/3 × 100)
   const streakPts = factors[2].points
   const streakMonths = Math.round(streakPts * 3 / 100)
   const streakColor =
-    streakMonths >= 3 ? '#22C55E' :
-    streakMonths >= 1 ? '#F59E0B' : '#EF4444'
+    streakMonths >= 3 ? 'var(--success)' :
+    streakMonths >= 1 ? 'var(--warn)' : 'var(--danger)'
 
   // 4. Subscriptions
   const subPct = totalIncome > 0 ? (monthlySubscriptions / totalIncome) * 100 : 0
   const subColor =
-    subPct < 5 ? '#22C55E' :
-    subPct < 10 ? '#F59E0B' : '#EF4444'
+    subPct < 5 ? 'var(--success)' :
+    subPct < 10 ? 'var(--warn)' : 'var(--danger)'
 
   // 5. Top Category Share
   const topCat = categories[0] ?? null
   const topPct = topCat?.pctOfSpending ?? 0
   const topCatColor =
-    topPct <= 30 ? '#22C55E' :
-    topPct <= 50 ? '#F59E0B' : '#EF4444'
+    topPct <= 30 ? 'var(--success)' :
+    topPct <= 50 ? 'var(--warn)' : 'var(--danger)'
 
   const metrics = [
     {
@@ -186,10 +186,10 @@ export function HealthScoreCard(props: HealthInput) {
         {metrics.map(m => (
           <div key={m.label}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
-              <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>{m.label}</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>{m.label}</span>
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: m.color }}>{m.value}</span>
-                <span style={{ fontSize: 10, color: '#9CA3AF', marginLeft: 4 }}>{m.sub}</span>
+                <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 4 }}>{m.sub}</span>
               </div>
             </div>
             <div style={{ height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
