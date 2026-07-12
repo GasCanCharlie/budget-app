@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth'
+import { jwtVerify } from 'jose'
 
 const PUBLIC_PATHS = new Set([
   '/',
@@ -25,21 +25,26 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some(p => pathname.startsWith(p))
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   if (isPublic(pathname)) return NextResponse.next()
 
   const token = req.cookies.get('token')?.value
-  const payload = token ? verifyToken(token) : null
 
-  if (!payload) {
-    const loginUrl = new URL('/login', req.url)
-    loginUrl.searchParams.set('next', pathname)
-    return NextResponse.redirect(loginUrl)
+  if (token) {
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET)
+      await jwtVerify(token, secret)
+      return NextResponse.next()
+    } catch {
+      // invalid or expired token — fall through to redirect
+    }
   }
 
-  return NextResponse.next()
+  const loginUrl = new URL('/login', req.url)
+  loginUrl.searchParams.set('next', pathname)
+  return NextResponse.redirect(loginUrl)
 }
 
 export const config = {
