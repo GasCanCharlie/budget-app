@@ -48,7 +48,7 @@ function LoginForm() {
       })
       qc.clear()
       setAuth(data.user, data.token)
-      router.push('/dashboard')
+      router.push(mode === 'register' ? '/onboarding' : (params.get('next') ?? '/dashboard'))
     } catch (err) {
       setError((err as Error).message)
     } finally {

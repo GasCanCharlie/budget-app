@@ -3,6 +3,7 @@ import { z } from 'zod'
 import crypto from 'crypto'
 import prisma from '@/lib/db'
 import { hashPassword } from '@/lib/auth'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 const schema = z.object({
   token:    z.string().min(1),
@@ -11,6 +12,15 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req)
+    const rl = await checkRateLimit(ip, 'resetPassword')
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt.getTime() - Date.now()) / 1000)) } }
+      )
+    }
+
     const { token, password } = schema.parse(await req.json())
 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex')

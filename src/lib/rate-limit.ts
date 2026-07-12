@@ -10,6 +10,7 @@ const PRESETS: Record<string, RateLimitConfig> = {
   login:          { maxRequests: 10, windowMs: 10 * 60 * 1000 },   // 10/10min
   register:       { maxRequests: 5,  windowMs: 60 * 60 * 1000 },   // 5/hr
   forgotPassword: { maxRequests: 5,  windowMs: 60 * 60 * 1000 },   // 5/hr
+  resetPassword:  { maxRequests: 5,  windowMs: 60 * 60 * 1000 },   // 5/hr
   upload:         { maxRequests: 20, windowMs: 60 * 60 * 1000 },   // 20/hr
 }
 

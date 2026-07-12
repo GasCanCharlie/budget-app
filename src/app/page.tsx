@@ -416,7 +416,7 @@ export default function HomePage() {
 
   return (
     <div className="lp" id="lp-top">
-      <style>{CSS}</style>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       {/* ── Ambient ── */}
       <div className="glows">
