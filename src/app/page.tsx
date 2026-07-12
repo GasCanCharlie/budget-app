@@ -98,9 +98,11 @@ const CSS = `
   padding: 0 18px;
   border: 1px solid rgba(255,255,255,.15); border-radius: 14px;
   font-size: 14px; font-weight: 800; font-family: inherit;
-  background: rgba(255,255,255,.045); transition: .18s ease; cursor: pointer;
+  background: rgba(255,255,255,.045);
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  cursor: pointer;
 }
-.lp .nav-btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.27); }
+.lp .nav-btn:hover { transform: none; border-color: rgba(255,255,255,.35); box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 8px 24px rgba(0,0,0,.25); }
 .lp .nav-btn.primary {
   color: #03101b; border-color: transparent;
   background: linear-gradient(120deg, #52cfff, #9ff8ef);
@@ -181,9 +183,12 @@ const CSS = `
   padding: 0 22px; border-radius: 15px;
   border: 1px solid rgba(255,255,255,.14);
   font-size: 15px; font-weight: 850; font-family: inherit;
-  background: rgba(255,255,255,.05); transition: .18s ease; cursor: pointer;
+  background: rgba(255,255,255,.05);
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  cursor: pointer;
 }
-.lp .cta:hover { transform: translateY(-2px); }
+.lp .cta:hover { transform: none; box-shadow: 0 0 0 1px rgba(45,212,239,.20), 0 16px 48px rgba(0,0,0,.30); border-color: rgba(255,255,255,.22); }
+.lp .cta.primary:hover { box-shadow: 0 0 0 1px rgba(45,212,239,.30), 0 16px 56px rgba(45,212,239,.22); border-color: transparent; }
 .lp .cta.primary {
   color: #04111c; border-color: transparent;
   background: linear-gradient(120deg, #42c7ff, #9cf6ed);
@@ -255,9 +260,9 @@ const CSS = `
 .lp .personality-card {
   overflow: hidden; border: 1px solid rgba(255,255,255,.09);
   border-radius: 25px; background: rgba(255,255,255,.03);
-  transition: transform .18s, border-color .18s;
+  transition: border-color .18s ease, box-shadow .18s ease, filter .18s ease;
 }
-.lp .personality-card:hover { transform: translateY(-3px); border-color: rgba(45,212,239,.20); }
+.lp .personality-card:hover { transform: none; border-color: rgba(45,212,239,.28); box-shadow: 0 0 0 1px rgba(45,212,239,.10), 0 20px 50px rgba(0,0,0,.35); filter: brightness(1.04); }
 .lp .personality-card img { width: 100%; height: 230px; object-fit: cover; display: block; }
 .lp .personality-card-body { padding: 21px; }
 .lp .personality-card h3 { margin: 0 0 7px; font-size: 25px; }
