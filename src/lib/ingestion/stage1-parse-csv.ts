@@ -360,8 +360,17 @@ function detectHeader(allRows: string[][]): HeaderDetectionResult {
         mapping[field] = matched[0]
         matchCount++
       } else if (matched.length > 1) {
-        ambiguous[field] = matched
-        matchCount += 0.5 // partial credit for ambiguous match
+        // Multiple columns match — resolve by pattern priority (earliest pattern wins).
+        // For description: "Memo" (index 1) beats "Name" (index 5), so banks that
+        // export NAME="Posted" + MEMO=<real merchant> get the right column mapped.
+        const prioritized = [...matched].sort((a, b) => {
+          const ai = patterns.findIndex(p => p.test(a.trim().toLowerCase()))
+          const bi = patterns.findIndex(p => p.test(b.trim().toLowerCase()))
+          return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi)
+        })
+        mapping[field] = prioritized[0]
+        matchCount++
+        ambiguous[field] = matched  // still record for import report
       }
     }
 

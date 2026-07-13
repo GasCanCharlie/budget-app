@@ -520,3 +520,43 @@ describe('parseCsvStage1 — CRLF line endings', () => {
     expect(result.rows[0].fields['Amount']).toBe('-4.50')
   })
 })
+
+// parseCsvStage1 — Name vs Memo column priority
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('parseCsvStage1 — description column priority (Memo over Name)', () => {
+  it('maps Memo to description when both Name and Memo columns exist', () => {
+    // Simulates bank CSV where Name="Posted" and Memo=<real merchant>
+    const csv = `Date,Name,Memo,Amount\n2026-06-01,Posted,STARBUCKS KANEOHE HI,-4.75\n2026-06-02,Posted,COSTCO WHOLESALE,-87.32\n`
+    const result = parseCsvStage1(csv, 'utf-8')
+    expect(result.success).toBe(true)
+    const mapping = result.headerDetection.suggestedMapping
+    // Memo (pattern index 1) should win over Name (pattern index 5)
+    expect(mapping.description).toBe('Memo')
+  })
+
+  it('maps Description to description when that column exists alongside Name', () => {
+    const csv = `Date,Name,Description,Amount\n2026-06-01,Posted,Coffee Shop,-4.75\n`
+    const result = parseCsvStage1(csv, 'utf-8')
+    expect(result.success).toBe(true)
+    const mapping = result.headerDetection.suggestedMapping
+    // Description (index 0) beats Name (index 5)
+    expect(mapping.description).toBe('Description')
+  })
+
+  it('rows contain the Memo value, not the Name value, as the description field', () => {
+    const csv = `Date,Name,Memo,Amount\n2026-06-01,Posted,STARBUCKS KANEOHE HI,-4.75\n`
+    const result = parseCsvStage1(csv, 'utf-8')
+    expect(result.success).toBe(true)
+    const mapping = result.headerDetection.suggestedMapping
+    const descCol = mapping.description!
+    expect(result.rows[0].fields[descCol]).toBe('STARBUCKS KANEOHE HI')
+  })
+
+  it('falls back to Name when Memo column is absent', () => {
+    const csv = `Date,Name,Amount\n2026-06-01,Starbucks,-4.75\n`
+    const result = parseCsvStage1(csv, 'utf-8')
+    expect(result.success).toBe(true)
+    expect(result.headerDetection.suggestedMapping.description).toBe('Name')
+  })
+})
