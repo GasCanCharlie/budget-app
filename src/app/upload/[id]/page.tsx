@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, FileText, Tags, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, FileText, Tags, TrendingUp, TrendingDown, Minus, Wrench } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
@@ -446,6 +446,9 @@ export default function UploadDetailPage() {
 
   const [tab, setTab]               = useState<'open' | 'resolved'>('open')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [repairStep,   setRepairStep]     = useState<'idle' | 'preview' | 'done'>('idle')
+  const [repairPreview, setRepairPreview] = useState<{ affected: number; preview: Array<{ id: string; currentMerchant: string; newMerchant: string; memo: string }> } | null>(null)
+  const [repairResult, setRepairResult]   = useState<{ repaired: number } | null>(null)
   const [pendingOrder, setPendingOrder]   = useState<'MDY' | 'DMY' | null>(null)
   const [showAllCats, setShowAllCats]     = useState(false)
   const [showParserDetails, setShowParserDetails] = useState(false)
@@ -458,6 +461,29 @@ export default function UploadDetailPage() {
       router.push('/upload')
     },
   })
+
+  async function runRepairPreview() {
+    const res = await apiFetch(`/api/uploads/${id}/repair-merchant`, {
+      method: 'POST',
+      body: JSON.stringify({ dryRun: true }),
+    }).catch(() => null)
+    if (res) {
+      setRepairPreview(res)
+      setRepairStep('preview')
+    }
+  }
+
+  async function confirmRepair() {
+    const res = await apiFetch(`/api/uploads/${id}/repair-merchant`, {
+      method: 'POST',
+      body: JSON.stringify({ dryRun: false }),
+    }).catch(() => null)
+    if (res) {
+      setRepairResult(res)
+      setRepairStep('done')
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+    }
+  }
 
   const { data: uploadData, isLoading: loadingUpload } = useQuery({
     queryKey: ['upload', id],
@@ -886,6 +912,27 @@ export default function UploadDetailPage() {
               )}
             </section>
 
+            {/* Fix Merchant Names */}
+            {(upload.formatDetected === 'OFX' || upload.formatDetected === 'QFX' || upload.formatDetected === 'QBO') && (
+              <section style={{ borderRadius: 20, border: '1px solid rgba(99,102,241,0.2)', background: 'rgba(99,102,241,0.04)', padding: '18px 22px' }}>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(99,102,241,0.7)', margin: '0 0 10px' }}>Data Repair</p>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.8)', margin: 0 }}>Fix merchant names</p>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
+                      Repairs transactions showing &ldquo;Posted&rdquo; by reading the real merchant from stored OFX data.
+                    </p>
+                  </div>
+                  <button
+                    onClick={runRepairPreview}
+                    style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    <Wrench size={13}/> Preview fix
+                  </button>
+                </div>
+              </section>
+            )}
+
             {/* Danger Zone */}
             <section style={{ borderRadius: 20, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.04)', padding: '18px 22px' }}>
               <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(239,68,68,0.7)', margin: '0 0 10px' }}>Danger Zone</p>
@@ -908,6 +955,74 @@ export default function UploadDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* ── Repair merchant modal ────────────────────────────────────────── */}
+      {repairStep !== 'idle' && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', padding: 16 }}>
+          <div style={{ borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(10,15,28,0.97)', maxWidth: 480, width: '100%', padding: '28px 28px 24px', boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Wrench size={18} style={{ color: '#a5b4fc' }} />
+              </div>
+              <div>
+                <h3 style={{ fontWeight: 700, color: '#fff', margin: 0, fontSize: 16 }}>
+                  {repairStep === 'done' ? 'Repair complete' : 'Fix merchant names'}
+                </h3>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '3px 0 0' }}>{upload?.filename}</p>
+              </div>
+            </div>
+
+            {repairStep === 'preview' && repairPreview && (
+              <>
+                {repairPreview.affected === 0 ? (
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 20 }}>
+                    No transactions with generic merchant names found in this upload. Nothing to repair.
+                  </p>
+                ) : (
+                  <>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 12 }}>
+                      <strong style={{ color: 'rgba(255,255,255,0.85)' }}>{repairPreview.affected} transactions</strong> will have their merchant names updated from stored OFX MEMO data. Amounts, dates, and categories are not changed.
+                    </p>
+                    <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', padding: '10px 12px', marginBottom: 20, maxHeight: 160, overflowY: 'auto' }}>
+                      {repairPreview.preview.slice(0, 8).map(p => (
+                        <div key={p.id} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 8 }}>
+                          <span style={{ color: '#f87171', minWidth: 60, flexShrink: 0 }}>{p.currentMerchant || '—'}</span>
+                          <span style={{ color: 'rgba(255,255,255,0.25)' }}>→</span>
+                          <span style={{ color: '#86efac' }}>{p.newMerchant || p.memo || '—'}</span>
+                        </div>
+                      ))}
+                      {repairPreview.affected > 8 && (
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>…and {repairPreview.affected - 8} more</p>
+                      )}
+                    </div>
+                  </>
+                )}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setRepairStep('idle')} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                  {repairPreview.affected > 0 && (
+                    <button onClick={confirmRepair} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', background: '#4f46e5', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
+                      Apply fix
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
+            {repairStep === 'done' && repairResult && (
+              <>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 20 }}>
+                  Fixed <strong style={{ color: '#86efac' }}>{repairResult.repaired} transactions</strong>. Go to Transactions to see the corrected merchant names.
+                </p>
+                <button onClick={() => setRepairStep('idle')} style={{ width: '100%', padding: '11px 0', borderRadius: 12, border: 'none', background: '#4f46e5', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
+                  Done
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Delete confirmation modal ────────────────────────────────────── */}
       {confirmDelete && (
