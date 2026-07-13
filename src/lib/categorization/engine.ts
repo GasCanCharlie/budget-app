@@ -29,8 +29,9 @@ export function normalizeMerchant(description: string): string {
   s = s.replace(/\s+[a-z]{2}\s+date[\s\S]*/i, '').trim()
   // Fallback: strip " Date X Xx X..." without the state prefix
   s = s.replace(/\s+date\s+[\dx/]+\s+xx\s+x[\s\S]*/i, '').trim()
-  // Strip ACH/wire structured fields: " Type: ... Co: ... Id: ..."
-  s = s.replace(/\s+(type|co|id\d*):\s+[\s\S]*/i, '').trim()
+  // Strip ACH/wire structured fields: " Type: ... Co: ... Data: ... Id: ... Ref: ..."
+  // HawaiiUSA FCU uses "Data: HawaiiUSA" suffix on ACH transfers
+  s = s.replace(/\s+(type|co|id\d*|data|ref|memo|acct|account|bank|from|to):\s+[\s\S]*/i, '').trim()
   // Strip " Card NN [txid]" leftover
   s = s.replace(/\s+card\s+\d+[\s\S]*/i, '').trim()
 
@@ -44,7 +45,7 @@ export function normalizeMerchant(description: string): string {
     .trim()
 
   // ── Strip trailing location info ──────────────────────────────────────────
-  // Bug fix: string is already lowercase, so must use [a-z]{2} not [A-Z]{2}
+  // String is already lowercase so use [a-z]{2} not [A-Z]{2}
   s = s.replace(/\s+[a-z]{2}\s*$/, '').trim()   // trailing two-letter state code
   s = s.replace(/,\s*[a-z\s]+$/, '').trim()      // trailing ", city" patterns
 
