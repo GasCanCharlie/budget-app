@@ -6,8 +6,6 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
 import { createHash } from 'crypto'
 import type { CandidateTransaction } from './types'
 
@@ -133,14 +131,26 @@ export async function llmParsePdf(
   buffer: Buffer,
   statementId: string,
 ): Promise<CandidateTransaction[]> {
-  // Extract text via pdf-parse (handles permissions-encrypted bank PDFs)
+  // Dynamic import prevents pdfjs-dist from loading at module init time.
+  // pdfjs-dist's main build has `const SCALE_MATRIX = new DOMMatrix()` at module scope,
+  // which crashes the serverless function before any request is processed.
+  // pdf-parse v2 uses the legacy pdfjs-dist build internally (no bare DOMMatrix crash).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { PDFParse } = (await import('pdf-parse')) as any
+  const parser = new PDFParse({ data: buffer })
+
   let pdfText: string
   try {
-    const data = await pdfParse(buffer)
-    pdfText = data.text?.trim() ?? ''
+    const result = await parser.getText()
+    pdfText = (result.pages as Array<{ text: string }>)
+      .map((p: { text: string }) => p.text)
+      .join('\n')
+      .trim()
   } catch (err) {
     console.warn('[pdf/llm-parse] pdf-parse failed:', err)
     return []
+  } finally {
+    try { await parser.destroy() } catch { /* ignore */ }
   }
 
   if (!pdfText || pdfText.length < 50) {
