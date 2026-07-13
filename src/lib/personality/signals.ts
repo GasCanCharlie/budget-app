@@ -40,6 +40,13 @@ export function computeSignals(input: RawSignalInput): PersonalitySignals {
   })
   const topDiscretionaryCatMaster = topDiscretionary ? resolveMaster(topDiscretionary) : null
 
+  // Full breakdown: pct of spending per master key (summed across sub-categories)
+  const categoryPct: Partial<Record<MasterKey, number>> = {}
+  for (const cat of input.categories) {
+    const master = resolveMaster(cat)
+    if (master) categoryPct[master] = (categoryPct[master] ?? 0) + cat.pctOfSpending
+  }
+
   return {
     income:                    input.income,
     spending:                  input.spending,
@@ -54,6 +61,7 @@ export function computeSignals(input: RawSignalInput): PersonalitySignals {
     secondCatPct,
     catSpread:                 topCatPct - secondCatPct,
     topDiscretionaryCatMaster,
+    categoryPct,
     subCount:                  input.subCount,
     anomalyCount:              input.anomalyCount,
     statementType:             input.statementType,

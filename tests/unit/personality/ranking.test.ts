@@ -19,6 +19,7 @@ function makeSignals(overrides: Partial<PersonalitySignals> = {}): PersonalitySi
     secondCatMaster:           'FOOD',
     secondCatPct:              22,
     topDiscretionaryCatMaster: 'TRANSPORT',
+    categoryPct:               { TRANSPORT: 38, FOOD: 22 },
     catSpread:                 16,
     subCount:                  0,
     anomalyCount:              0,
@@ -143,6 +144,7 @@ describe('scoring — currency_combustion can rank #1 when TRANSPORT dominates',
     const ranked = rankPersonalities(makeSignals({
       topCatPct: 55, topCatMaster: 'TRANSPORT',
       topDiscretionaryCatMaster: 'TRANSPORT',
+      categoryPct: { TRANSPORT: 55 },
       statementType: 'unknown',
     }))
     const cc = ranked.find(r => r.meta.id === 'currency_combustion')
@@ -154,6 +156,7 @@ describe('scoring — currency_combustion can rank #1 when TRANSPORT dominates',
     const ranked = rankPersonalities(makeSignals({
       topCatPct: 55, topCatMaster: 'TRANSPORT',
       topDiscretionaryCatMaster: 'TRANSPORT',
+      categoryPct: { TRANSPORT: 55 },
       spendRatio: 0.70, net: 1500, anomalyCount: 0,
       statementType: 'unknown',
     }))
@@ -221,6 +224,7 @@ describe('computeSignals() integration', () => {
       subCount: 0, anomalyCount: 0, statementType: 'unknown',
     })
     expect(signals.topDiscretionaryCatMaster).toBe('TRANSPORT')
+    expect(signals.categoryPct['TRANSPORT']).toBe(45)
     const results = detectPersonality(signals)
     // currency_combustion should be visible in the top 5
     const top5 = results.rankedPersonalities.slice(0, 5).map(r => r.meta.id)

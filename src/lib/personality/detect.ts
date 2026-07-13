@@ -271,21 +271,21 @@ function scoreOne(
         break
       }
 
-      if (!s.topDiscretionaryCatMaster || !masters.includes(s.topDiscretionaryCatMaster)) {
-        // Not the top discretionary category for this trait — score stays 0
-        break
-      }
+      // Sum the actual percentage across all matching master keys (e.g. corner_office: PETS + LIFESTYLE)
+      const pct = masters.reduce((sum, m) => sum + (s.categoryPct[m] ?? 0), 0)
 
-      // Find the category's share percentage using available signals
-      let pct = 0
-      if (s.topCatMaster && masters.includes(s.topCatMaster)) pct = s.topCatPct
-      else if (s.secondCatMaster && masters.includes(s.secondCatMaster)) pct = s.secondCatPct
-      else pct = 12  // conservative estimate when exact pct isn't available
+      // Only score if this category has meaningful spending
+      if (pct < 5) break
 
-      if (pct >= 50)      add(90, `${s.topDiscretionaryCatMaster} top discretionary @ ${pct.toFixed(0)}%`)
-      else if (pct >= 35) add(75, `${s.topDiscretionaryCatMaster} top discretionary @ ${pct.toFixed(0)}%`)
-      else if (pct >= 20) add(55, `${s.topDiscretionaryCatMaster} top discretionary @ ${pct.toFixed(0)}%`)
-      else                add(35, `${s.topDiscretionaryCatMaster} top discretionary @ ${pct.toFixed(0)}%`)
+      // Whether this is the top discretionary (bonus for dominance)
+      const isTopDisc = !!s.topDiscretionaryCatMaster && masters.includes(s.topDiscretionaryCatMaster)
+      const label = `${masters[0]} @ ${pct.toFixed(0)}%${isTopDisc ? ' (top disc)' : ''}`
+
+      if (pct >= 50)      add(90, label)
+      else if (pct >= 35) add(75, label)
+      else if (pct >= 20) add(isTopDisc ? 55 : 40, label)
+      else if (pct >= 10) add(isTopDisc ? 35 : 20, label)
+      else                add(12, label)
       break
     }
   }
