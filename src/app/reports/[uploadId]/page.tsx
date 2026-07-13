@@ -158,15 +158,22 @@ function LockedFeatureCard({ icon, iconColor, iconBg, title, description, bullet
       {/* locked badge */}
       <div style={{
         position: 'absolute', top: 14, right: 14,
-        display: 'flex', alignItems: 'center', gap: 4,
-        padding: '3px 9px', borderRadius: 999,
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700,
-        letterSpacing: '0.08em', textTransform: 'uppercase',
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4,
       }}>
-        <LockIcon size={9} />
-        Locked
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '3px 9px', borderRadius: 999,
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+        }}>
+          <LockIcon size={9} />
+          Locked
+        </div>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.04em' }}>
+          Unlocked by categorizing
+        </span>
       </div>
 
       <div style={{ width: 44, height: 44, borderRadius: 14, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, color: iconColor }}>
