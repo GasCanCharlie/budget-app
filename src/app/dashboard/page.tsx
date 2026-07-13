@@ -24,7 +24,7 @@ import { MonthlyStorylineCard } from '@/components/dashboard/MonthlyStorylineCar
 import type { InsightCard } from '@/lib/insights/types'
 import { computeSignals } from '@/lib/personality/signals'
 import { detectPersonality } from '@/lib/personality/detect'
-import type { PersonalityResult } from '@/lib/personality/types'
+import type { PersonalityResults } from '@/lib/personality/types'
 
 // Recharts uses ResizeObserver / window — must be client-only to avoid SSR crash
 const SpendingCharts = dynamic(
@@ -276,7 +276,7 @@ export default function DashboardPage() {
   const topTransactions        = summary.topTransactions ?? []
   const prevSpendingCategories = (prevSummaryData?.summary?.categoryTotals ?? []).filter(c => !c.isIncome)
 
-  const personalityResult: PersonalityResult = detectPersonality(computeSignals({
+  const personalityResults: PersonalityResults = detectPersonality(computeSignals({
     income:        summary.totalIncome as number,
     spending:      summary.totalSpending as number,
     net:           summary.net as number,
@@ -323,7 +323,7 @@ export default function DashboardPage() {
         {/* ════════════════════════════════════════════════════════════════════ */}
 
         <PersonalityCard
-          result={personalityResult}
+          results={personalityResults}
           signals={{
             income:     summary.totalIncome as number,
             spending:   summary.totalSpending as number,

@@ -11,7 +11,7 @@ import { computeSignals } from '@/lib/personality/signals'
 import { detectPersonality } from '@/lib/personality/detect'
 import { getCategoryIcon } from '@/lib/icons'
 import { ArrowLeft, Sparkles, FlaskConical, Loader2 } from 'lucide-react'
-import type { PersonalityResult } from '@/lib/personality/types'
+import type { PersonalityResults } from '@/lib/personality/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -253,7 +253,7 @@ function SecondaryPersonalityInner() {
   const summary            = data.summary
   const spendingCategories = summary.categoryTotals.filter(c => !c.isIncome)
 
-  const personalityResult: PersonalityResult = detectPersonality(computeSignals({
+  const personalityResults: PersonalityResults = detectPersonality(computeSignals({
     income:        summary.totalIncome,
     spending:      summary.totalSpending,
     net:           summary.net,
@@ -267,9 +267,9 @@ function SecondaryPersonalityInner() {
     statementType: 'unknown',
   }))
 
-  const trait  = personalityResult.trait
-  const core   = personalityResult.core
-  const accent = trait?.accent ?? core.accent
+  const alterEgo        = personalityResults.alterEgo
+  const mainPersonality = personalityResults.mainPersonality
+  const accent = alterEgo?.accent ?? mainPersonality.accent
 
   // Top discretionary category (same logic as signals.ts)
   const topDiscretionary = spendingCategories.find(c =>
@@ -353,10 +353,10 @@ function SecondaryPersonalityInner() {
 
         {/* ── Personality card ──────────────────────────────────────────────── */}
         <SecondaryPersonalityPlaceholder
-          traitId={trait ? String(trait.id) : String(core.id)}
-          traitName={trait ? trait.name : core.name}
+          traitId={alterEgo ? String(alterEgo.id) : String(mainPersonality.id)}
+          traitName={alterEgo ? alterEgo.name : mainPersonality.name}
           traitAccent={accent}
-          tagline={trait ? trait.tagline : core.tagline}
+          tagline={alterEgo ? alterEgo.tagline : mainPersonality.tagline}
         />
 
         {/* ── Behavior Breakdown ────────────────────────────────────────────── */}
@@ -434,9 +434,9 @@ function SecondaryPersonalityInner() {
             The Pattern
           </p>
           <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.60)', lineHeight: 1.7 }}>
-            {trait
-              ? `${core.name.startsWith('The ') ? core.name : `The ${core.name}`} + ${trait.name}: ${trait.tagline} ${core.tagline}`
-              : core.tagline
+            {alterEgo
+              ? `${mainPersonality.name.startsWith('The ') ? mainPersonality.name : `The ${mainPersonality.name}`} + ${alterEgo.name}: ${alterEgo.tagline} ${mainPersonality.tagline}`
+              : mainPersonality.tagline
             }
           </p>
         </div>

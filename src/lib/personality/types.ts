@@ -65,7 +65,7 @@ export type TraitId =
   | 'glowing_broke'      // PERSONAL_CARE
   | 'degree_debt'        // EDUCATION
   | 'mail_goes_home'     // TRAVEL
-  | 'corner_office'      // PETS
+  | 'corner_office'      // PETS / LIFESTYLE
   | 'burn_rate'          // TOBACCO
   | 'heaven_sent'        // SOCIAL
   | 'currency_combustion'// TRANSPORT
@@ -104,11 +104,32 @@ export interface PersonalityMeta {
   isDisabled: boolean        // future / not enough data yet
 }
 
-export interface PersonalityResult {
-  premium?:   PersonalityMeta
-  core:       PersonalityMeta
-  trait?:     PersonalityMeta
-  softTrait?: PersonalityMeta   // 25–29% threshold
-  // Convenience display string e.g. "The Smooth Operator · Fork & Knife"
-  display:    string
+// ─── Ranked entry ─────────────────────────────────────────────────────────────
+
+export interface RankedPersonality {
+  rank:            number          // 1-based
+  meta:            PersonalityMeta
+  score:           number          // 0–100 raw score
+  normalizedScore: number          // 0–100 relative to #1
+  matchedRules:    string[]        // conditions that contributed to the score
+  eligible:        boolean         // false = wrong statement type or disabled
 }
+
+// ─── Single-source-of-truth result ───────────────────────────────────────────
+
+export interface PersonalityResults {
+  // Canonical fields — use these everywhere
+  mainPersonality:     PersonalityMeta        // rank #1
+  alterEgo:            PersonalityMeta | null // rank #2 (null if nothing else scored)
+  rankedPersonalities: RankedPersonality[]    // all personalities sorted by score desc
+  display:             string                 // "Main Name · Alter Ego Name"
+
+  // Legacy compat — mirrors the canonical fields so old code keeps working
+  core:      PersonalityMeta        // same as mainPersonality
+  trait?:    PersonalityMeta        // same as alterEgo
+  softTrait?:PersonalityMeta        // rank #3 if score > 15
+  premium?:  PersonalityMeta        // set when mainPersonality.isPremium === true
+}
+
+/** @deprecated Use PersonalityResults */
+export type PersonalityResult = PersonalityResults

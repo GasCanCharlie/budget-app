@@ -9,7 +9,7 @@ import {
   Star, Shield, Shuffle, Minus, ArrowLeftRight, Crown, CreditCard,
   AlertTriangle,
 } from 'lucide-react'
-import type { PersonalityResult, PersonalityMeta } from '@/lib/personality/types'
+import type { PersonalityResults, PersonalityMeta, RankedPersonality } from '@/lib/personality/types'
 import type { CorePersonalityId, PremiumPersonalityId } from '@/lib/personality/types'
 
 // ─── Caduceus icon (custom SVG — not in lucide) ───────────────────────────────
@@ -45,7 +45,7 @@ interface Props {
   month:            number
   onGenerated?:     () => void
   isAutoGenerating?: boolean   // parent is auto-triggering — show spinner state
-  personality?:     PersonalityResult
+  personality?:     PersonalityResults
   personalitySignals?: { income: number; spending: number; net: number; topCatName?: string }
 }
 
@@ -88,11 +88,11 @@ function getPersonalityIcon(id: string): LucideIcon {
 
 // ─── sharePersonality ─────────────────────────────────────────────────────────
 
-async function sharePersonality(result: PersonalityResult, signals?: { income: number; spending: number; net: number; topCatName?: string }) {
-  const name  = result.core.name
-  const vibe  = result.core.vibe
-  const trait = result.trait ? ` · ${result.trait.name}` : ''
-  const text  = `My Financial Autopsy Money Personality: ${name}${trait}\n"${vibe}"\n\nDiscover yours at financialautopsy.com`
+async function sharePersonality(results: PersonalityResults, signals?: { income: number; spending: number; net: number; topCatName?: string }) {
+  const name  = results.mainPersonality.name
+  const vibe  = results.mainPersonality.vibe
+  const alter = results.alterEgo ? ` · ${results.alterEgo.name}` : ''
+  const text  = `My Financial Autopsy Money Personality: ${name}${alter}\n"${vibe}"\n\nDiscover yours at financialautopsy.com`
 
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
@@ -115,17 +115,57 @@ async function sharePersonality(result: PersonalityResult, signals?: { income: n
 
 // ─── PersonalityCard ──────────────────────────────────────────────────────────
 
-export function PersonalityCard({ result, signals, secondaryHref }: {
-  result: PersonalityResult
+// ─── Dev-only personality debug panel ────────────────────────────────────────
+
+function PersonalityDebugPanel({ ranked }: { ranked: RankedPersonality[] }) {
+  const [open, setOpen] = useState(false)
+  const top = ranked.filter(r => r.score > 0).slice(0, 15)
+  return (
+    <div style={{ marginTop: 8, borderRadius: 10, border: '1px solid rgba(255,200,0,0.25)', background: 'rgba(0,0,0,0.55)', fontSize: 11 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', padding: '6px 12px', background: 'none', border: 'none', color: 'rgba(255,200,0,0.75)', cursor: 'pointer', textAlign: 'left', fontFamily: 'monospace', fontSize: 11 }}
+      >
+        {open ? '▾' : '▸'} 🔬 Personality Ranking Debug
+      </button>
+      {open && (
+        <div style={{ padding: '4px 12px 10px', fontFamily: 'monospace' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5rem 1fr 3rem 3rem', gap: '2px 8px', color: 'rgba(255,200,0,0.45)', marginBottom: 4 }}>
+            <span>#</span><span>Personality</span><span>Score</span><span>Norm</span>
+          </div>
+          {top.map(r => (
+            <div key={r.meta.id} style={{ display: 'grid', gridTemplateColumns: '1.5rem 1fr 3rem 3rem', gap: '2px 8px', marginBottom: 2, opacity: r.eligible ? 1 : 0.4 }}>
+              <span style={{ color: r.rank <= 2 ? '#fde68a' : 'rgba(255,200,0,0.55)' }}>{r.rank}</span>
+              <span style={{ color: r.rank === 1 ? '#fde68a' : r.rank === 2 ? '#fcd34d' : 'rgba(255,255,255,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.meta.name}>
+                {r.meta.name.replace(/^The /, '')}
+                {!r.eligible && <span style={{ color: '#f87171', marginLeft: 4 }}>ineligible</span>}
+              </span>
+              <span style={{ color: 'rgba(255,200,0,0.75)' }}>{r.score}</span>
+              <span style={{ color: 'rgba(255,200,0,0.55)' }}>{r.normalizedScore}</span>
+            </div>
+          ))}
+          {ranked.filter(r => r.score > 0).length > 15 && (
+            <div style={{ color: 'rgba(255,200,0,0.35)', marginTop: 4 }}>…{ranked.filter(r => r.score > 0).length - 15} more with score {'>'} 0</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── PersonalityCard ──────────────────────────────────────────────────────────
+
+export function PersonalityCard({ results, signals, secondaryHref }: {
+  results: PersonalityResults
   signals?: { income: number; spending: number; net: number; topCatName?: string }
   secondaryHref?: string
 }) {
-  const core  = result.core
-  const trait = result.trait
-  const soft  = result.softTrait
-  const name  = core.name.startsWith('The ') ? core.name.slice(4) : core.name
+  const mainPersonality = results.mainPersonality
+  const alterEgo = results.alterEgo
+  const soft  = results.softTrait
+  const name  = mainPersonality.name.startsWith('The ') ? mainPersonality.name.slice(4) : mainPersonality.name
 
-  const Icon = getPersonalityIcon(core.id as string)
+  const Icon = getPersonalityIcon(mainPersonality.id as string)
 
   // ── Illustration card (shared by personalities with custom art) ─────────
   const ILLUSTRATION_CARDS: Partial<Record<string, { src: string; dotColor: string; btnColor: string; btnBorder: string }>> = {
@@ -359,21 +399,21 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
     },
   }
 
-  const illus = ILLUSTRATION_CARDS[core.id as string]
+  const illus = ILLUSTRATION_CARDS[mainPersonality.id as string]
   if (illus) {
     return (
       <>
       <div style={{
         position: 'relative',
         borderRadius: 18, overflow: 'hidden',
-        marginBottom: trait && secondaryHref ? 0 : 14,
+        marginBottom: alterEgo && secondaryHref ? 0 : 14,
         boxShadow: '0 12px 48px rgba(0,0,0,0.45)',
         border: `1px solid ${illus.dotColor}40`,
       }}>
         {/* Illustration — natural aspect ratio */}
         <img
           src={illus.src}
-          alt={core.name}
+          alt={mainPersonality.name}
           style={{ width: '100%', height: 'auto', display: 'block' }}
         />
 
@@ -408,7 +448,7 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
 
         {/* Top-right: share button */}
         <button
-          onClick={() => void sharePersonality(result, signals)}
+          onClick={() => void sharePersonality(results, signals)}
           aria-label="Share your money personality card"
           style={{
             position: 'absolute', top: 10, right: 14,
@@ -427,14 +467,14 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
         </button>
       </div>
 
-      {/* See What's Driving This CTA */}
-      {secondaryHref && trait && (
+      {/* Alter Ego CTA */}
+      {secondaryHref && alterEgo && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8, marginBottom: 6 }}>
           <Link href={secondaryHref} style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontSize: 11, fontWeight: 600, color: trait.accent,
-            background: `${trait.accent}15`,
-            border: `1px solid ${trait.accent}35`,
+            fontSize: 11, fontWeight: 600, color: alterEgo.accent,
+            background: `${alterEgo.accent}15`,
+            border: `1px solid ${alterEgo.accent}35`,
             borderRadius: 999, padding: '5px 12px',
             textDecoration: 'none', letterSpacing: '0.01em',
           }}>
@@ -442,20 +482,23 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
           </Link>
         </div>
       )}
+      {process.env.NODE_ENV === 'development' && (
+        <PersonalityDebugPanel ranked={results.rankedPersonalities} />
+      )}
     </>
     )
   }
 
   // ── All other personalities — standard card ──────────────────────────────
-  const accent   = core.accent
-  const accentBg = core.accentBg
-  const isCaution = core.isCaution
+  const accent   = mainPersonality.accent
+  const accentBg = mainPersonality.accentBg
+  const isCaution = mainPersonality.isCaution
 
-  // Icon background color: caution → amber, normal → core accent
+  // Icon background color: caution → amber, normal → accent
   const iconBgColor = isCaution ? '#FB923C' : accent
 
-  // Effective vibe: use trait.vibe if trait exists (more personal), else core.vibe
-  const vibeText = trait ? trait.vibe : core.vibe
+  // Effective vibe: use alterEgo.vibe if present (more personal), else mainPersonality.vibe
+  const vibeText = alterEgo ? alterEgo.vibe : mainPersonality.vibe
 
   // Label text: "Heads up" for caution, "Your Money Personality" otherwise
   const labelText = isCaution ? 'Heads up' : 'Your Money Personality'
@@ -483,7 +526,7 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
           {labelText}
         </span>
         <button
-          onClick={() => void sharePersonality(result, signals)}
+          onClick={() => void sharePersonality(results, signals)}
           aria-label="Share your money personality card"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -526,14 +569,14 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
           }}>
             {name}
           </p>
-          {/* Trait display + hazing line */}
-          {trait ? (
+          {/* Alter ego display + hazing line */}
+          {alterEgo ? (
             <>
-              <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600, color: trait.accent, lineHeight: 1.2 }}>
-                · {trait.name}
+              <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600, color: alterEgo.accent, lineHeight: 1.2 }}>
+                · {alterEgo.name}
               </p>
-              <p style={{ margin: '3px 0 0', fontSize: 11, fontWeight: 500, color: trait.accent, opacity: 0.72, lineHeight: 1.45, fontStyle: 'italic' }}>
-                {trait.tagline}
+              <p style={{ margin: '3px 0 0', fontSize: 11, fontWeight: 500, color: alterEgo.accent, opacity: 0.72, lineHeight: 1.45, fontStyle: 'italic' }}>
+                {alterEgo.tagline}
               </p>
             </>
           ) : soft ? (
@@ -546,7 +589,7 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
 
       {/* Tagline */}
       <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-secondary, #9ca3af)', lineHeight: 1.6 }}>
-        {core.tagline}
+        {mainPersonality.tagline}
       </p>
 
       {/* Divider */}
@@ -557,20 +600,23 @@ export function PersonalityCard({ result, signals, secondaryHref }: {
         &ldquo;{vibeText}&rdquo;
       </p>
 
-      {/* See What's Driving This CTA */}
-      {secondaryHref && trait && (
+      {/* Alter Ego CTA */}
+      {secondaryHref && alterEgo && (
         <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
           <Link href={secondaryHref} style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontSize: 11, fontWeight: 600, color: trait.accent,
-            background: `${trait.accent}12`,
-            border: `1px solid ${trait.accent}30`,
+            fontSize: 11, fontWeight: 600, color: alterEgo.accent,
+            background: `${alterEgo.accent}12`,
+            border: `1px solid ${alterEgo.accent}30`,
             borderRadius: 999, padding: '5px 12px',
             textDecoration: 'none', letterSpacing: '0.01em',
           }}>
             Check out your alter ego →
           </Link>
         </div>
+      )}
+      {process.env.NODE_ENV === 'development' && (
+        <PersonalityDebugPanel ranked={results.rankedPersonalities} />
       )}
     </div>
   )
