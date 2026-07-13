@@ -16,7 +16,7 @@ import { detectBank } from '@/lib/ingestion/bank-detector'
 import { selectDateOrder } from '@/lib/ingestion/date-order-scoring'
 import type { DateOrderSelectionResult } from '@/types/ingestion'
 import { runDedup } from '@/lib/ingestion/stage3-dedup'
-import { parseOfx, parseOfxDate, type OfxTransaction } from '@/lib/ingestion/parse-ofx'
+import { parseOfx, parseOfxDate, chooseOfxDescription, type OfxTransaction } from '@/lib/ingestion/parse-ofx'
 import { runReconciliation } from '@/lib/ingestion/stage4-reconcile'
 import { computeCanonicalRowHash, type ImportReport } from '@/lib/ingestion/import-report'
 import type { CsvXlsxSourceLocator } from '@/types/ingestion'
@@ -451,11 +451,7 @@ export async function POST(req: NextRequest) {
 
         const parsedDate    = parseOfxDate(ofxTx.dtPosted)
         const amountNum     = parseFloat(ofxTx.trnAmt) || 0
-        const descRaw       = ofxTx.memo || ofxTx.name
-        // Some banks set NAME="Posted" with the real merchant only in MEMO.
-        // If name is a generic placeholder, prefer memo for the normalized description.
-        const nameIsGeneric = !ofxTx.name || /^(posted|debit|credit|transaction|check|ach|wire transfer|withdrawal|deposit)$/i.test(ofxTx.name.trim())
-        const descNorm      = nameIsGeneric ? (ofxTx.memo || ofxTx.name) : (ofxTx.name || ofxTx.memo)
+        const { descRaw, descNorm } = chooseOfxDescription(ofxTx.name, ofxTx.memo, ofxTx.trnType)
         const merchantNorm  = normalizeMerchant(descNorm)
         const isTransfer    = isTransferDescription(descRaw)
         const rawFields     = {

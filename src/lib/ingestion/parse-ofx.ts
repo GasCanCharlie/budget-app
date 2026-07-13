@@ -55,6 +55,68 @@ function field(block: string, tag: string): string {
   return m ? m[1].trim() : ''
 }
 
+// ─── OFX merchant selection ───────────────────────────────────────────────────
+
+/**
+ * Bank-assigned generic labels that carry no merchant identity.
+ * Exact lowercase match after trimming.
+ */
+const GENERIC_OFX_NAMES = new Set([
+  'posted', 'pending', 'debit', 'credit', 'purchase', 'payment',
+  'transaction', 'check', 'ach', 'wire', 'wire transfer', 'withdrawal',
+  'deposit', 'transfer', 'undefined', 'unknown', 'n/a', 'not provided',
+  'pos', 'atm', 'visa', 'mastercard', 'mc', 'card',
+  'electronic', 'electronic payment', 'electronic transfer',
+  'online', 'mobile', 'internet', 'bill', 'direct',
+  'preauth', 'preauthorized', 'recurring',
+])
+
+/**
+ * Multi-word generic bank patterns that contain meaningful words but still
+ * describe the transaction type rather than the actual merchant.
+ * Anchored at start, word-boundary at end so "POS DEBIT STARBUCKS" is NOT caught.
+ */
+const GENERIC_OFX_PATTERN = /^(pos\s+debit|pos\s+credit|atm\s+withdrawal|atm\s+deposit|visa\s+purchase|visa\s+debit|visa\s+credit|mastercard\s+purchase|debit\s+card\s+purchase|debit\s+card\s+payment|credit\s+card\s+payment|card\s+purchase|card\s+payment|online\s+transfer|online\s+payment|mobile\s+payment|bill\s+payment|direct\s+debit|direct\s+payment|point\s+of\s+sale|bank\s+transfer|electronic\s+payment|interbank\s+transfer|wire\s+transfer|ach\s+debit|ach\s+credit|ach\s+payment|recurring\s+payment|internet\s+banking|net\s+banking|preauthorized\s+(debit|payment|transfer))$/i
+
+/** True when the OFX NAME field is a bank-assigned transaction-type label, not a merchant name. */
+export function isGenericOfxName(name: string | null | undefined): boolean {
+  if (!name) return true
+  const normalized = name.trim().toLowerCase()
+  if (normalized.length < 3) return true
+  if (GENERIC_OFX_NAMES.has(normalized)) return true
+  if (GENERIC_OFX_PATTERN.test(normalized)) return true
+  return false
+}
+
+/**
+ * Format-specific mapper for OFX transactions.
+ * Returns { descRaw, descNorm } where:
+ *   descRaw  — best raw text for storage (what the bank actually said)
+ *   descNorm — best display text (merchant-oriented, used for merchantNormalized)
+ *
+ * Priority when NAME is generic: MEMO → trnType → NAME
+ * Priority when NAME is real:    NAME for display, MEMO for raw context
+ */
+export function chooseOfxDescription(
+  name: string,
+  memo: string,
+  trnType: string,
+): { descRaw: string; descNorm: string } {
+  const nameT = name.trim()
+  const memoT = memo.trim()
+
+  if (isGenericOfxName(nameT)) {
+    // NAME is a bank label — real merchant is in MEMO (or trnType as last resort)
+    const best = memoT || trnType.trim() || nameT
+    return { descRaw: best, descNorm: best }
+  }
+
+  // NAME looks like a real merchant name.
+  // Keep MEMO as the raw description (often longer/more detailed),
+  // but use NAME as the normalized display value.
+  return { descRaw: memoT || nameT, descNorm: nameT || memoT }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**

@@ -2,24 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { normalizeMerchant } from '@/lib/categorization/engine'
+import { chooseOfxDescription, isGenericOfxName } from '@/lib/ingestion/parse-ofx'
 
 export const runtime = 'nodejs'
 
 // POST /api/uploads/[id]/repair-merchant
-// Reads MEMO (or NAME) from stored rawFields, recomputes merchantNormalized and
-// description for transactions that have a generic placeholder merchant name.
-// Clears appCategory/assignedBy when the merchant was one of the unsafe generics
-// AND the category was applied by "manual" bulk action (applyToAll).
+// Re-runs the OFX merchant-selection logic against stored rawFields (NAME/MEMO)
+// and writes corrected description + merchantNormalized to existing transaction rows.
+// Safe: amounts, dates, IDs, categories are untouched unless clearCategory is passed.
 //
 // Body: { dryRun?: boolean, clearCategory?: string }
 //   clearCategory — only clear appCategory if it exactly matches this value
-//                   (pass the wrong category that got bulk-applied)
-
-const GENERIC_MERCHANTS = new Set([
-  'posted', 'pending', 'debit', 'credit', 'purchase', 'payment',
-  'transaction', 'withdrawal', 'deposit', 'check', 'unknown', 'other',
-  'ach', 'wire transfer', 'wire',
-])
 
 export async function POST(
   req: NextRequest,
@@ -58,8 +51,10 @@ export async function POST(
     },
   })
 
+  // A transaction needs repair if its current merchantNormalized is generic
+  // according to the same function now used by the upload route.
   const genericTxs = transactions.filter(tx =>
-    GENERIC_MERCHANTS.has((tx.merchantNormalized ?? '').toLowerCase().trim()),
+    isGenericOfxName(tx.merchantNormalized),
   )
 
   if (genericTxs.length === 0) {
@@ -90,18 +85,27 @@ export async function POST(
   console.log('[repair-merchant] upload=%s dryRun=%s affected=%d snapshot=%s',
     params.id, dryRun, genericTxs.length, JSON.stringify(snapshot))
 
+  function extractOfxFields(rawId: string | null) {
+    const rawFieldsStr = rawMap.get(rawId ?? '') ?? '{}'
+    let rf: Record<string, string> = {}
+    try { rf = JSON.parse(rawFieldsStr) } catch { /* leave empty */ }
+    return {
+      name:    rf['NAME']    || rf['name']    || '',
+      memo:    rf['MEMO']    || rf['memo']    || '',
+      trnType: rf['TRNTYPE'] || rf['trntype'] || '',
+    }
+  }
+
   if (dryRun) {
     const preview = genericTxs.map(tx => {
-      const rawFieldsStr = rawMap.get(tx.rawId) ?? '{}'
-      let rawFields: Record<string, string> = {}
-      try { rawFields = JSON.parse(rawFieldsStr) } catch { /* leave empty */ }
-      const memo = rawFields['MEMO'] || rawFields['memo'] || rawFields['NAME'] || rawFields['name'] || ''
-      const newMerchant = memo.trim() ? normalizeMerchant(memo) : tx.merchantNormalized
+      const { name, memo, trnType } = extractOfxFields(tx.rawId)
+      const { descNorm } = chooseOfxDescription(name, memo, trnType)
+      const newMerchant = descNorm ? normalizeMerchant(descNorm) : tx.merchantNormalized
       return {
         id: tx.id,
         currentMerchant: tx.merchantNormalized,
         newMerchant,
-        memo,
+        memo: memo || name,
         appCategory: tx.appCategory,
         willClearCategory: !!(clearCategory && tx.appCategory === clearCategory && tx.assignedBy === 'manual'),
       }
@@ -113,15 +117,12 @@ export async function POST(
   let categoryCleared = 0
 
   for (const tx of genericTxs) {
-    const rawFieldsStr = rawMap.get(tx.rawId) ?? '{}'
-    let rawFields: Record<string, string> = {}
-    try { rawFields = JSON.parse(rawFieldsStr) } catch { /* leave empty */ }
+    const { name, memo, trnType } = extractOfxFields(tx.rawId)
+    const { descRaw, descNorm } = chooseOfxDescription(name, memo, trnType)
+    if (!descNorm.trim() && !descRaw.trim()) continue   // nothing to repair
 
-    const memo = rawFields['MEMO'] || rawFields['memo'] || rawFields['NAME'] || rawFields['name'] || ''
-    if (!memo.trim()) continue   // nothing to repair
-
-    const newDescription      = memo.trim()
-    const newMerchantNormalized = normalizeMerchant(memo)
+    const newDescription       = descNorm || descRaw
+    const newMerchantNormalized = normalizeMerchant(descNorm || descRaw)
 
     const updates: Record<string, unknown> = {
       description:          newDescription,

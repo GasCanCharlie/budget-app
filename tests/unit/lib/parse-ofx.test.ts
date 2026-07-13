@@ -1,6 +1,7 @@
 /**
  * Unit tests for parse-ofx.ts
- * Covers: parseOfxDate, detectOfxVariant, sniffIsOfxContent, isOfxFile, parseOfx
+ * Covers: parseOfxDate, detectOfxVariant, sniffIsOfxContent, isOfxFile, parseOfx,
+ *         isGenericOfxName, chooseOfxDescription
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
@@ -10,6 +11,8 @@ import {
   sniffIsOfxContent,
   isOfxFile,
   parseOfx,
+  isGenericOfxName,
+  chooseOfxDescription,
 } from '@/lib/ingestion/parse-ofx'
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -350,5 +353,124 @@ describe('parseOfx', () => {
       const result = parseOfx(SAMPLE_OFX)
       expect(parseFloat(result.transactions[1].trnAmt)).toBeGreaterThan(0)
     })
+  })
+})
+
+// ─── isGenericOfxName ─────────────────────────────────────────────────────────
+
+describe('isGenericOfxName', () => {
+  it('treats null/undefined/empty as generic', () => {
+    expect(isGenericOfxName(null)).toBe(true)
+    expect(isGenericOfxName(undefined)).toBe(true)
+    expect(isGenericOfxName('')).toBe(true)
+    expect(isGenericOfxName('  ')).toBe(true)
+  })
+
+  it('treats names shorter than 3 chars as generic', () => {
+    expect(isGenericOfxName('AB')).toBe(true)
+    expect(isGenericOfxName('x')).toBe(true)
+  })
+
+  // Exact single-word generics
+  it.each([
+    'Posted', 'POSTED', 'posted',
+    'Pending', 'Debit', 'Credit', 'Purchase', 'Payment',
+    'Transaction', 'Check', 'ACH', 'Wire', 'Wire Transfer',
+    'Withdrawal', 'Deposit', 'Transfer',
+    'POS', 'ATM', 'VISA', 'Mastercard',
+    'Unknown', 'undefined',
+  ])('treats "%s" as generic', name => {
+    expect(isGenericOfxName(name)).toBe(true)
+  })
+
+  // Multi-word bank patterns
+  it.each([
+    'POS DEBIT', 'POS CREDIT',
+    'ATM WITHDRAWAL', 'ATM DEPOSIT',
+    'VISA PURCHASE', 'VISA DEBIT', 'VISA CREDIT',
+    'MASTERCARD PURCHASE',
+    'DEBIT CARD PURCHASE', 'CARD PURCHASE', 'CARD PAYMENT',
+    'ONLINE TRANSFER', 'ONLINE PAYMENT',
+    'MOBILE PAYMENT', 'BILL PAYMENT',
+    'DIRECT DEBIT', 'DIRECT PAYMENT',
+    'POINT OF SALE',
+    'ACH DEBIT', 'ACH CREDIT', 'ACH PAYMENT',
+    'WIRE TRANSFER',
+    'RECURRING PAYMENT',
+    'PREAUTHORIZED DEBIT', 'PREAUTHORIZED PAYMENT',
+  ])('treats "%s" as generic', name => {
+    expect(isGenericOfxName(name)).toBe(true)
+  })
+
+  // Real merchant names — must NOT be treated as generic
+  it.each([
+    'STARBUCKS',
+    'Walmart Supercenter',
+    'Amazon.com',
+    'COSTCO WHSE #1234',
+    'NETFLIX.COM',
+    'Apple Store',
+    'SHELL OIL',
+    'MCDONALD S',
+    'TARGET STORE',
+    'WHOLE FOODS MKT',
+    'CHEVRON',
+    'HAWAIIAN AIRLINES',
+  ])('does NOT treat "%s" as generic', name => {
+    expect(isGenericOfxName(name)).toBe(false)
+  })
+})
+
+// ─── chooseOfxDescription ─────────────────────────────────────────────────────
+
+describe('chooseOfxDescription', () => {
+  it('uses MEMO when NAME is "Posted" (Hawaii credit union pattern)', () => {
+    const { descNorm } = chooseOfxDescription('Posted', 'STARBUCKS KANEOHE HI', 'DEBIT')
+    expect(descNorm).toBe('STARBUCKS KANEOHE HI')
+  })
+
+  it('uses MEMO when NAME is "POS DEBIT"', () => {
+    const { descNorm } = chooseOfxDescription('POS DEBIT', 'AMAZON.COM PURCHASE', 'DEBIT')
+    expect(descNorm).toBe('AMAZON.COM PURCHASE')
+  })
+
+  it('uses MEMO when NAME is "ATM WITHDRAWAL"', () => {
+    const { descNorm } = chooseOfxDescription('ATM WITHDRAWAL', 'FIRST HAWAIIAN BANK ATM', 'DEBIT')
+    expect(descNorm).toBe('FIRST HAWAIIAN BANK ATM')
+  })
+
+  it('uses NAME when it is a real merchant', () => {
+    const { descNorm } = chooseOfxDescription('COSTCO WHSE', 'COSTCO WHOLESALE WAREHOUSE 0133', 'DEBIT')
+    expect(descNorm).toBe('COSTCO WHSE')
+  })
+
+  it('uses MEMO as raw desc even when NAME is real', () => {
+    const { descRaw } = chooseOfxDescription('NETFLIX', 'NETFLIX.COM MONTHLY SUBSCRIPTION', 'DEBIT')
+    expect(descRaw).toBe('NETFLIX.COM MONTHLY SUBSCRIPTION')
+  })
+
+  it('falls back to trnType when NAME and MEMO are both empty', () => {
+    const { descNorm } = chooseOfxDescription('', '', 'DEBIT')
+    expect(descNorm).toBe('DEBIT')
+  })
+
+  it('falls back to trnType when NAME is generic and MEMO is empty', () => {
+    const { descNorm } = chooseOfxDescription('Posted', '', 'CREDIT')
+    expect(descNorm).toBe('CREDIT')
+  })
+
+  it('uses MEMO when NAME is "VISA PURCHASE"', () => {
+    const { descNorm } = chooseOfxDescription('VISA PURCHASE', 'TARGET STORE #0441', 'DEBIT')
+    expect(descNorm).toBe('TARGET STORE #0441')
+  })
+
+  it('uses MEMO when NAME is "DIRECT DEBIT"', () => {
+    const { descNorm } = chooseOfxDescription('DIRECT DEBIT', 'HAWAIIAN ELECTRIC CO', 'DEBIT')
+    expect(descNorm).toBe('HAWAIIAN ELECTRIC CO')
+  })
+
+  it('is case-insensitive for NAME matching', () => {
+    const { descNorm } = chooseOfxDescription('pos debit', 'WHOLE FOODS MKT', 'DEBIT')
+    expect(descNorm).toBe('WHOLE FOODS MKT')
   })
 })
