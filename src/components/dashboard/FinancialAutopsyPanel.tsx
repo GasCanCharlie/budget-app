@@ -9,7 +9,7 @@ import {
   Star, Shield, Shuffle, Minus, ArrowLeftRight, Crown, CreditCard,
   AlertTriangle,
 } from 'lucide-react'
-import type { PersonalityResults, PersonalityMeta, RankedPersonality } from '@/lib/personality/types'
+import type { PersonalityResults, PersonalityMeta, RankedPersonality, PersonalitySignals } from '@/lib/personality/types'
 import type { CorePersonalityId, PremiumPersonalityId } from '@/lib/personality/types'
 
 // ─── Caduceus icon (custom SVG — not in lucide) ───────────────────────────────
@@ -46,7 +46,7 @@ interface Props {
   onGenerated?:     () => void
   isAutoGenerating?: boolean   // parent is auto-triggering — show spinner state
   personality?:     PersonalityResults
-  personalitySignals?: { income: number; spending: number; net: number; topCatName?: string }
+  personalitySignals?: PersonalitySignals
 }
 
 // ─── Icon map by CorePersonalityId / PremiumPersonalityId ─────────────────────
@@ -88,7 +88,7 @@ function getPersonalityIcon(id: string): LucideIcon {
 
 // ─── sharePersonality ─────────────────────────────────────────────────────────
 
-async function sharePersonality(results: PersonalityResults, signals?: { income: number; spending: number; net: number; topCatName?: string }) {
+async function sharePersonality(results: PersonalityResults, signals?: PersonalitySignals) {
   const name  = results.mainPersonality.name
   const vibe  = results.mainPersonality.vibe
   const alter = results.alterEgo ? ` · ${results.alterEgo.name}` : ''
@@ -117,9 +117,11 @@ async function sharePersonality(results: PersonalityResults, signals?: { income:
 
 // ─── Dev-only personality debug panel ────────────────────────────────────────
 
-function PersonalityDebugPanel({ ranked }: { ranked: RankedPersonality[] }) {
+function PersonalityDebugPanel({ ranked, signals }: { ranked: RankedPersonality[]; signals?: PersonalitySignals }) {
   const [open, setOpen] = useState(false)
   const top = ranked.filter(r => r.score > 0).slice(0, 15)
+  const catPct = signals?.categoryPct ?? {}
+  const catPctEntries = Object.entries(catPct).sort((a, b) => b[1] - a[1])
   return (
     <div style={{ marginTop: 8, borderRadius: 10, border: '1px solid rgba(255,200,0,0.25)', background: 'rgba(0,0,0,0.55)', fontSize: 11 }}>
       <button
@@ -130,6 +132,19 @@ function PersonalityDebugPanel({ ranked }: { ranked: RankedPersonality[] }) {
       </button>
       {open && (
         <div style={{ padding: '4px 12px 10px', fontFamily: 'monospace' }}>
+          {/* Signals summary */}
+          {signals && (
+            <div style={{ marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid rgba(255,200,0,0.15)', color: 'rgba(255,200,0,0.6)', fontSize: 10 }}>
+              <div>topCat: <span style={{ color: '#fde68a' }}>{signals.topCatName}</span> @ <span style={{ color: '#fde68a' }}>{signals.topCatPct.toFixed(1)}%</span> | spendRatio: {signals.spendRatio.toFixed(3)} | anomalies: {signals.anomalyCount}</div>
+              <div style={{ marginTop: 3 }}>
+                categoryPct: {catPctEntries.length === 0
+                  ? <span style={{ color: '#f87171' }}>empty — masterKeys not mapping!</span>
+                  : catPctEntries.map(([k, v]) => <span key={k} style={{ marginRight: 8 }}>{k}:{v.toFixed(0)}%</span>)
+                }
+              </div>
+            </div>
+          )}
+          {/* Ranking */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.5rem 1fr 3rem 3rem', gap: '2px 8px', color: 'rgba(255,200,0,0.45)', marginBottom: 4 }}>
             <span>#</span><span>Personality</span><span>Score</span><span>Norm</span>
           </div>
@@ -157,7 +172,7 @@ function PersonalityDebugPanel({ ranked }: { ranked: RankedPersonality[] }) {
 
 export function PersonalityCard({ results, signals, secondaryHref }: {
   results: PersonalityResults
-  signals?: { income: number; spending: number; net: number; topCatName?: string }
+  signals?: PersonalitySignals
   secondaryHref?: string
 }) {
   const mainPersonality = results.mainPersonality
@@ -483,7 +498,7 @@ export function PersonalityCard({ results, signals, secondaryHref }: {
         </div>
       )}
       {process.env.NODE_ENV === 'development' && (
-        <PersonalityDebugPanel ranked={results.rankedPersonalities} />
+        <PersonalityDebugPanel ranked={results.rankedPersonalities} signals={signals} />
       )}
     </>
     )
@@ -616,7 +631,7 @@ export function PersonalityCard({ results, signals, secondaryHref }: {
         </div>
       )}
       {process.env.NODE_ENV === 'development' && (
-        <PersonalityDebugPanel ranked={results.rankedPersonalities} />
+        <PersonalityDebugPanel ranked={results.rankedPersonalities} signals={signals} />
       )}
     </div>
   )

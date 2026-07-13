@@ -276,7 +276,7 @@ export default function DashboardPage() {
   const topTransactions        = summary.topTransactions ?? []
   const prevSpendingCategories = (prevSummaryData?.summary?.categoryTotals ?? []).filter(c => !c.isIncome)
 
-  const personalityResults: PersonalityResults = detectPersonality(computeSignals({
+  const personalitySignalsRaw = computeSignals({
     income:        summary.totalIncome as number,
     spending:      summary.totalSpending as number,
     net:           summary.net as number,
@@ -289,7 +289,8 @@ export default function DashboardPage() {
     anomalyCount:  summary.alerts?.length ?? 0,
     statementType: (summary as any).statementType ?? 'unknown',
     interestDetected: (summary as any).interestDetected ?? false,
-  }))
+  })
+  const personalityResults: PersonalityResults = detectPersonality(personalitySignalsRaw)
 
   const prevMonthYear  = month === 1 ? year - 1 : year
   const prevMonthMonth = month === 1 ? 12 : month - 1
@@ -324,12 +325,7 @@ export default function DashboardPage() {
 
         <PersonalityCard
           results={personalityResults}
-          signals={{
-            income:     summary.totalIncome as number,
-            spending:   summary.totalSpending as number,
-            net:        summary.net as number,
-            topCatName: spendingCategories[0]?.categoryName,
-          }}
+          signals={personalitySignalsRaw}
           secondaryHref={`/personality/secondary?year=${year}&month=${month}`}
         />
 
