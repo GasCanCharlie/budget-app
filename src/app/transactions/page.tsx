@@ -92,6 +92,23 @@ interface TxCategory {
   icon:  string
 }
 
+interface BulkPreview {
+  requiresConfirmation: boolean
+  affectedCount:        number
+  totalCents:           number
+  merchantNormalized:   string
+  scope:                string
+  isUnsafeMerchant:     boolean
+  impactRatio:          number
+}
+
+interface PendingBulk {
+  txId:        string
+  appCategory?: string | null
+  categoryId?: string
+  preview:     BulkPreview
+}
+
 interface Transaction {
   id:                   string
   date:                 string
@@ -99,6 +116,7 @@ interface Transaction {
   merchantNormalized:   string
   descriptionDisplay:   string
   amount:               number
+  uploadId?:            string
   isTransfer:           boolean
   isForeignCurrency:    boolean
   categorizationSource: string
@@ -143,6 +161,9 @@ function TransactionsPageInner() {
   const [toast,           setToast]           = useState<string | null>(null)
   const [undoStack,       setUndoStack]       = useState<{ id: string; oldCatId: string }[]>([])
   const [downloading,     setDownloading]     = useState(false)
+  const [pendingBulk,     setPendingBulk]     = useState<PendingBulk | null>(null)
+  const [undoOpId,        setUndoOpId]        = useState<string | null>(null)
+  const [undoLabel,       setUndoLabel]       = useState<string>('')
   const [selectedIds,     setSelectedIds]     = useState<Set<string>>(new Set())
   const [bulkCategoryId,  setBulkCategoryId]  = useState('')
 
@@ -198,18 +219,74 @@ function TransactionsPageInner() {
   // ── App-category (free-text) mutation ─────────────────────────────────────
 
   const appCategoryMutation = useMutation({
-    mutationFn: ({ id, appCategory, applyToAll }: { id: string; appCategory: string | null; applyToAll: boolean }) =>
+    mutationFn: ({ id, appCategory, applyToAll, confirmedBulk }:
+      { id: string; appCategory: string | null; applyToAll: boolean; confirmedBulk?: boolean }) =>
       apiFetch(`/api/transactions/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ appCategory, applyToAll }),
+        body: JSON.stringify({ appCategory, applyToAll, confirmedBulk: confirmedBulk ?? false, bulkScope: 'upload' }),
       }),
     onSuccess: (data, vars) => {
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
       setAppCatEditing(null)
-      showToast(vars.applyToAll && (data.updated ?? 1) > 1 ? `Updated ${data.updated} transactions` : 'Category updated')
+      if (vars.applyToAll && (data.updated ?? 1) > 1) {
+        showToast(`Applied to ${data.updated} transactions`)
+        if (data.operationId) {
+          setUndoOpId(data.operationId)
+          setUndoLabel(vars.appCategory ?? 'category')
+        }
+      } else {
+        showToast('Category updated')
+      }
     },
   })
+
+  // ── Preview + confirm bulk apply ───────────────────────────────────────────
+
+  const handleAppCatUpdate = useCallback(async (
+    txId: string,
+    appCategory: string | null,
+    applyToAll: boolean,
+  ) => {
+    if (!applyToAll) {
+      appCategoryMutation.mutate({ id: txId, appCategory, applyToAll: false })
+      return
+    }
+    // Preview first to check impact
+    const preview = await apiFetch(`/api/transactions/${txId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ appCategory, applyToAll: true, previewBulk: true, bulkScope: 'upload' }),
+    }).catch(() => null)
+
+    if (preview?.requiresConfirmation) {
+      setPendingBulk({ txId, appCategory, preview })
+      return
+    }
+    // No confirmation needed — fire directly
+    appCategoryMutation.mutate({ id: txId, appCategory, applyToAll: true, confirmedBulk: true })
+  }, [apiFetch, appCategoryMutation])
+
+  const confirmBulk = useCallback(() => {
+    if (!pendingBulk) return
+    setPendingBulk(null)
+    if (pendingBulk.appCategory !== undefined) {
+      appCategoryMutation.mutate({
+        id: pendingBulk.txId,
+        appCategory: pendingBulk.appCategory ?? null,
+        applyToAll: true,
+        confirmedBulk: true,
+      })
+    }
+  }, [pendingBulk, appCategoryMutation])
+
+  const undoBulkOp = useCallback(async () => {
+    if (!undoOpId) return
+    const id = undoOpId
+    setUndoOpId(null)
+    await apiFetch(`/api/bulk-ops/${id}`, { method: 'POST' }).catch(() => null)
+    qc.invalidateQueries({ queryKey: ['transactions'] })
+    showToast('Bulk categorization reversed')
+  }, [undoOpId, apiFetch, qc])
 
   // ── Ingestion resolution mutation ──────────────────────────────────────────
 
@@ -534,7 +611,7 @@ function TransactionsPageInner() {
                 isPending={updateMutation.isPending && updateMutation.variables?.id === tx.id}
                 isAppCatEditing={appCatEditing === tx.id}
                 onAppCatEdit={() => { setEditing(null); setAppCatEditing(appCatEditing === tx.id ? null : tx.id) }}
-                onAppCatUpdate={(newName, applyToAll) => appCategoryMutation.mutate({ id: tx.id, appCategory: newName, applyToAll })}
+                onAppCatUpdate={(newName, applyToAll) => handleAppCatUpdate(tx.id, newName, applyToAll)}
                 isAppCatPending={appCategoryMutation.isPending && appCategoryMutation.variables?.id === tx.id}
                 onResolveDate={(resolvedDate) => resolveMutation.mutate({ id: tx.id, payload: { resolvedDate } })}
                 onDismissDuplicate={() => resolveMutation.mutate({ id: tx.id, payload: { dismissDuplicate: true } })}
@@ -607,11 +684,64 @@ function TransactionsPageInner() {
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 text-sm font-medium px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50 animate-fade-in" style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)' }}>
           <Check size={16} className="text-green-400" />
           {toast}
-          {undoStack.length > 0 && (
+          {undoOpId && (
+            <button onClick={undoBulkOp} className="font-semibold flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+              <RotateCcw size={14} /> Undo
+            </button>
+          )}
+          {!undoOpId && undoStack.length > 0 && (
             <button onClick={handleUndo} className="text-accent-300 hover:text-white font-semibold flex items-center gap-1">
               <RotateCcw size={14} /> Undo
             </button>
           )}
+        </div>
+      )}
+
+      {/* ── Bulk confirmation modal ───────────────────────────────────────── */}
+      {pendingBulk && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <h3 className="text-base font-bold mb-1" style={{ color: 'var(--text)' }}>Apply category to matching transactions?</h3>
+
+            {pendingBulk.preview.isUnsafeMerchant && (
+              <div className="flex items-start gap-2 mb-3 mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}>
+                <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
+                <span>This merchant name is a generic bank label. It may match unrelated transactions.</span>
+              </div>
+            )}
+
+            <div className="rounded-lg mb-4 mt-3 divide-y" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+              {[
+                ['Merchant',      pendingBulk.preview.merchantNormalized || '(generic)'],
+                ['Category',      pendingBulk.appCategory ?? '—'],
+                ['Transactions',  String(pendingBulk.preview.affectedCount)],
+                ['Total value',   `$${(pendingBulk.preview.totalCents / 100).toFixed(2)}`],
+                ['Scope',         'Current statement only'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between items-center px-3 py-2">
+                  <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>{label}</span>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPendingBulk(null)}
+                className="flex-1 rounded-lg py-2 text-sm font-semibold"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBulk}
+                className="flex-1 rounded-lg py-2 text-sm font-semibold"
+                style={{ background: 'var(--danger)', color: '#fff', border: 'none' }}
+              >
+                Apply to {pendingBulk.preview.affectedCount} transactions
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </AppShell>

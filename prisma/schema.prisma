@@ -657,6 +657,29 @@ model BudgetTarget {
   @@map("budget_targets")
 }
 
+// ─── BulkCategoryOperation ───────────────────────────────────────────────────
+// One row per bulk apply-to-all action. Stores a snapshot of prior state so the
+// operation can be reversed. operationType: 'appCategory' | 'categoryId'
+
+model BulkCategoryOperation {
+  id            String    @id @default(cuid())
+  userId        String
+  operationType String    // 'appCategory' | 'categoryId'
+  merchantKey   String?   // the merchantNormalized value that was matched
+  appliedValue  String?   // category name/id applied
+  uploadScope   String?   // uploadId when scoped to one statement (null = all)
+  // JSON: [{txId, prevAppCategory, prevAssignedBy}]
+  snapshot      String    @default("[]")
+  affectedCount Int       @default(0)
+  totalCents    Int       @default(0)   // |amount| * 100 sum for display
+  undone        Boolean   @default(false)
+  undoneAt      DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@map("bulk_category_operations")
+}
+
 model RateLimit {
   id        String   @id @default(cuid())
   key       String   // e.g. "login:1.2.3.4" or "upload:1.2.3.4"

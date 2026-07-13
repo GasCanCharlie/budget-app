@@ -137,11 +137,24 @@ export async function GET(
   })
 }
 
+// Merchant names that are too generic for safe bulk-apply
+const UNSAFE_BULK_MERCHANTS = new Set([
+  'posted', 'pending', 'debit', 'credit', 'purchase', 'payment',
+  'transaction', 'withdrawal', 'deposit', 'check', 'unknown', 'other',
+  'ach', 'wire transfer', 'wire', '',
+])
+
 const patchSchema = z.object({
   categoryId:       z.string().optional(),
   isExcluded:       z.boolean().optional(),
   isTransfer:       z.boolean().optional(),
   applyToAll:       z.boolean().optional(),
+  // true = return count/amount preview without applying (used by confirmation dialog)
+  previewBulk:      z.boolean().optional(),
+  // true = user has seen the confirmation dialog and explicitly confirmed
+  confirmedBulk:    z.boolean().optional(),
+  // Scope: 'upload' (default, current statement) | 'account' (all time)
+  bulkScope:        z.enum(['upload', 'account']).optional(),
   // Date ambiguity resolution: ISO date string chosen by user (MM/DD or DD/MM interpretation)
   resolvedDate:     z.string().optional(),
   // Duplicate dismissal: user confirms this transaction is NOT a duplicate
@@ -218,78 +231,132 @@ export async function PATCH(
 
     await prisma.transaction.update({ where: { id: tx.id }, data: updates })
 
-    // Apply to all same merchant if requested (user-local Layer 2 mapping)
+    // ── Apply-to-all: guarded bulk merchant categorization ────────────────────
     let appliedCount = 1
-    if (data.applyToAll && data.appCategory !== undefined && tx.merchantNormalized) {
-      // Apply appCategory to all same-merchant transactions
-      const similar = await prisma.transaction.findMany({
-        where: {
-          account: { userId: payload.userId },
-          merchantNormalized: tx.merchantNormalized,
-          amount: tx.amount,
-          id: { not: tx.id },
-        },
-        select: { id: true },
-      })
-      for (const s of similar) {
-        await prisma.transaction.update({
-          where: { id: s.id },
-          data: { appCategory: data.appCategory ?? null },
-        })
-        appliedCount++
+    let bulkOpId: string | null = null
+
+    if (data.applyToAll && tx.merchantNormalized && (data.appCategory !== undefined || data.categoryId)) {
+      const merchantLower = tx.merchantNormalized.toLowerCase().trim()
+      const isUnsafeMerchant = UNSAFE_BULK_MERCHANTS.has(merchantLower) || merchantLower.length < 3
+      const bulkScope = data.bulkScope ?? 'upload'
+
+      // Build the where clause for matching transactions
+      const scopeWhere = bulkScope === 'upload'
+        ? { uploadId: tx.uploadId }
+        : { account: { userId: payload.userId } }
+
+      const candidateWhere = {
+        ...scopeWhere,
+        merchantNormalized: tx.merchantNormalized,
+        id: { not: tx.id },
       }
-    }
-    if (data.applyToAll && data.categoryId && tx.merchantNormalized) {
-      const similar = await prisma.transaction.findMany({
-        where: {
-          account: { userId: payload.userId },
+
+      const candidates = await prisma.transaction.findMany({
+        where: candidateWhere,
+        select: { id: true, amount: true, appCategory: true, assignedBy: true,
+                  userOverrideCategoryId: true, categoryId: true },
+      })
+
+      const affectedCount   = candidates.length + 1  // +1 for the transaction itself
+      const totalCents      = Math.round(candidates.reduce((s, c) => s + Math.abs(c.amount), 0) * 100)
+      const totalAccountTxs = await prisma.transaction.count({ where: { account: { userId: payload.userId } } })
+      const impactRatio     = candidates.length / Math.max(totalAccountTxs, 1)
+
+      // Require explicit confirmation when the action is risky
+      const needsConfirmation = !data.confirmedBulk && (
+        isUnsafeMerchant ||
+        candidates.length >= 20 ||
+        impactRatio >= 0.25
+      )
+
+      if (data.previewBulk || needsConfirmation) {
+        return NextResponse.json({
+          requiresConfirmation: true,
+          affectedCount,
+          totalCents,
           merchantNormalized: tx.merchantNormalized,
-          amount: tx.amount,
-          id: { not: tx.id },
-          reviewedByUser: false,
+          scope: bulkScope,
+          isUnsafeMerchant,
+          impactRatio: Math.round(impactRatio * 100),
+        }, { status: needsConfirmation ? 422 : 200 })
+      }
+
+      // Snapshot prior state for undo
+      const snapshot = candidates.map(c => ({
+        txId:            c.id,
+        prevAppCategory: c.appCategory,
+        prevAssignedBy:  c.assignedBy,
+      }))
+
+      // Persist BulkCategoryOperation (undo record)
+      const bulkOp = await prisma.bulkCategoryOperation.create({
+        data: {
+          userId:        payload.userId,
+          operationType: data.appCategory !== undefined ? 'appCategory' : 'categoryId',
+          merchantKey:   tx.merchantNormalized,
+          appliedValue:  data.appCategory ?? data.categoryId ?? null,
+          uploadScope:   bulkScope === 'upload' ? tx.uploadId : null,
+          snapshot:      JSON.stringify(snapshot),
+          affectedCount,
+          totalCents,
+        },
+      })
+      bulkOpId = bulkOp.id
+
+      // Apply appCategory bulk
+      if (data.appCategory !== undefined) {
+        for (const c of candidates) {
+          await prisma.transaction.update({
+            where: { id: c.id },
+            data: { appCategory: data.appCategory ?? null, assignedBy: data.appCategory ? 'manual' : null },
+          })
+          appliedCount++
         }
-      })
-
-      for (const s of similar) {
-        await prisma.categoryHistory.create({
-          data: {
-            transactionId: s.id,
-            oldCategoryId: s.userOverrideCategoryId ?? s.categoryId,
-            newCategoryId: data.categoryId!,
-            changedBy:     'user',
-          }
-        })
-        await prisma.transaction.update({
-          where: { id: s.id },
-          data: { userOverrideCategoryId: data.categoryId, reviewedByUser: true }
-        })
-        appliedCount++
       }
 
-      // Save as vendor+exact-amount rule so future uploads auto-categorize
-      // only this specific vendor+price combination (not every price from this vendor)
-      const vendorKey   = tx.merchantNormalized.toLowerCase()
-      const amountCents = Math.round(Number(tx.amount) * 100)
-      await prisma.categoryRule.upsert({
-        where: {
-          id: (await prisma.categoryRule.findFirst({
-            where: { userId: payload.userId, vendorKey, amountExact: amountCents }
-          }))?.id ?? 'new-rule-placeholder',
-        },
-        create: {
-          userId:      payload.userId,
-          categoryId:  data.categoryId!,
-          matchType:   'vendor_exact_amount',
-          matchValue:  vendorKey,
-          vendorKey,
-          amountExact: amountCents,
-          priority:    30,
-          isSystem:    false,
-        },
-        update: { categoryId: data.categoryId! },
-      }).catch(() => {
-        // Ignore upsert conflicts — rule already exists
-      })
+      // Apply categoryId bulk
+      if (data.categoryId && !data.appCategory) {
+        for (const c of candidates) {
+          if (c.userOverrideCategoryId === data.categoryId) continue  // already set
+          await prisma.categoryHistory.create({
+            data: {
+              transactionId: c.id,
+              oldCategoryId: c.userOverrideCategoryId ?? c.categoryId,
+              newCategoryId: data.categoryId!,
+              changedBy:     'user',
+            },
+          })
+          await prisma.transaction.update({
+            where: { id: c.id },
+            data: { userOverrideCategoryId: data.categoryId, reviewedByUser: true },
+          })
+          appliedCount++
+        }
+
+        // Save vendor rule only when merchant is trustworthy and exact amount is specific
+        if (!isUnsafeMerchant) {
+          const vendorKey   = tx.merchantNormalized.toLowerCase()
+          const amountCents = Math.round(Number(tx.amount) * 100)
+          await prisma.categoryRule.upsert({
+            where: {
+              id: (await prisma.categoryRule.findFirst({
+                where: { userId: payload.userId, vendorKey, amountExact: amountCents },
+              }))?.id ?? 'new-rule-placeholder',
+            },
+            create: {
+              userId:      payload.userId,
+              categoryId:  data.categoryId!,
+              matchType:   'vendor_exact_amount',
+              matchValue:  vendorKey,
+              vendorKey,
+              amountExact: amountCents,
+              priority:    30,
+              isSystem:    false,
+            },
+            update: { categoryId: data.categoryId! },
+          }).catch(() => { /* ignore upsert conflicts */ })
+        }
+      }
     }
 
     // Invalidate month summary cache (synchronous — Phase 7 requirement)
@@ -317,7 +384,7 @@ export async function PATCH(
       }
     }
 
-    return NextResponse.json({ updated: appliedCount })
+    return NextResponse.json({ updated: appliedCount, operationId: bulkOpId })
   } catch (e) {
     if (e instanceof z.ZodError) return NextResponse.json({ error: e.errors[0].message }, { status: 400 })
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
