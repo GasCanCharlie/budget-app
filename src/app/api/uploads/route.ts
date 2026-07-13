@@ -452,7 +452,10 @@ export async function POST(req: NextRequest) {
         const parsedDate    = parseOfxDate(ofxTx.dtPosted)
         const amountNum     = parseFloat(ofxTx.trnAmt) || 0
         const descRaw       = ofxTx.memo || ofxTx.name
-        const descNorm      = ofxTx.name || ofxTx.memo
+        // Some banks set NAME="Posted" with the real merchant only in MEMO.
+        // If name is a generic placeholder, prefer memo for the normalized description.
+        const nameIsGeneric = !ofxTx.name || /^(posted|debit|credit|transaction|check|ach|wire transfer|withdrawal|deposit)$/i.test(ofxTx.name.trim())
+        const descNorm      = nameIsGeneric ? (ofxTx.memo || ofxTx.name) : (ofxTx.name || ofxTx.memo)
         const merchantNorm  = normalizeMerchant(descNorm)
         const isTransfer    = isTransferDescription(descRaw)
         const rawFields     = {
