@@ -159,7 +159,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         style={{ background: 'var(--sidebar)', borderColor: 'var(--border)', color: 'var(--text)' }}
       >
         {/* Logo mark */}
-        <div className="h-14 px-4 flex items-center gap-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
+        <Link href="/" className="h-14 px-4 flex items-center gap-2.5 border-b" style={{ borderColor: 'var(--border)', textDecoration: 'none' }}>
           <div className="bl-logo-container" style={{ width: 36, height: 36 }}>
             <LogoMark size={34} />
           </div>
@@ -167,7 +167,7 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
             <div className="text-sm font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>Financial Autopsy</div>
             <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>Know Where It Went</div>
           </div>
-        </div>
+        </Link>
 
         {/* Nav — primary core flow + secondary utilities */}
         <nav className="p-3 flex-1 flex flex-col overflow-y-auto bl-sidebar-nav">
@@ -350,12 +350,12 @@ export function AppShell({ children, year, month, availableMonths, onMonthChange
         >
           <div className="h-full px-4 flex items-center justify-between gap-4">
             {/* Mobile: logo only */}
-            <div className="flex items-center gap-2 md:hidden">
+            <Link href="/" className="flex items-center gap-2 md:hidden" style={{ textDecoration: 'none' }}>
               <div className="bl-logo-container" style={{ width: 30, height: 30 }}>
                 <LogoMark size={28} />
               </div>
               <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Financial Autopsy</span>
-            </div>
+            </Link>
 
             {/* Desktop: month navigator */}
             {availableMonths && availableMonths.length > 0 && year && month && (
