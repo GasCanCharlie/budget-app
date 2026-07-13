@@ -286,7 +286,7 @@ function scoreOne(
       const label = `${masters[0]} @ ${pct.toFixed(0)}%${isTopDisc ? ' (top disc)' : ''}`
 
       if (pct >= 50)      add(90, label)
-      else if (pct >= 35) add(75, label)
+      else if (pct >= 35) add(isTopDisc ? 85 : 75, label)
       else if (pct >= 20) add(isTopDisc ? 55 : 40, label)
       else if (pct >= 10) add(isTopDisc ? 35 : 20, label)
       else                add(12, label)
