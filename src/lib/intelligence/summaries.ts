@@ -6,6 +6,7 @@
 
 import prisma from '@/lib/db'
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns'
+import { normalizeCategoryName } from '@/lib/categories/mapping'
 
 export interface CategoryTotal {
   categoryId: string
@@ -232,12 +233,15 @@ export async function computeMonthSummary(
 
   const categoryTotals: CategoryTotal[] = Array.from(categoryMap.entries())
     .map(([catName, { spendingTotal, incomeTotal, count, cat }]) => {
-      const isIncome = spendingTotal === 0 && incomeTotal > 0
+      // Force-income: categories that CATEGORY_STYLES marks as income are always income,
+      // even if they have stray debit transactions (e.g. a reversal tagged "Income").
+      const styleIsIncome = cat.isIncome
+      const isIncome = styleIsIncome || (spendingTotal === 0 && incomeTotal > 0)
       const total    = isIncome ? incomeTotal : spendingTotal
-      // masterKey: DB lookup first (exact name), then CATEGORY_STYLES fallback
+      // masterKey: 1) DB lookup, 2) CATEGORY_STYLES, 3) substring fuzzy match
       const masterKey = masterKeyByName.has(catName)
         ? masterKeyByName.get(catName)!
-        : cat.masterKey
+        : cat.masterKey ?? normalizeCategoryName(catName)
       return {
         categoryId:       cat.id,
         categoryName:     cat.name,
