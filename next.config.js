@@ -7,6 +7,8 @@ const nextConfig = {
       '@react-pdf/renderer',
       'html2canvas',
       'jspdf',
+      'pdf-parse',
+      'pdfjs-dist',
     ],
   },
   eslint: { ignoreDuringBuilds: true },
