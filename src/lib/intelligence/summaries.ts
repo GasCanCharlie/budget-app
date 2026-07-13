@@ -6,7 +6,7 @@
 
 import prisma from '@/lib/db'
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns'
-import { normalizeCategoryName } from '@/lib/categories/mapping'
+import { resolveMasterKey, isIncomeCategory } from '@/lib/categories/mapping'
 
 export interface CategoryTotal {
   categoryId: string
@@ -231,17 +231,28 @@ export async function computeMonthSummary(
     userCategories.map(c => [c.name, c.masterKey ?? null])
   )
 
+  const unresolvedCategoryNames: string[] = []
+
   const categoryTotals: CategoryTotal[] = Array.from(categoryMap.entries())
     .map(([catName, { spendingTotal, incomeTotal, count, cat }]) => {
-      // Force-income: categories that CATEGORY_STYLES marks as income are always income,
-      // even if they have stray debit transactions (e.g. a reversal tagged "Income").
-      const styleIsIncome = cat.isIncome
-      const isIncome = styleIsIncome || (spendingTotal === 0 && incomeTotal > 0)
-      const total    = isIncome ? incomeTotal : spendingTotal
-      // masterKey: 1) DB lookup, 2) CATEGORY_STYLES, 3) substring fuzzy match
-      const masterKey = masterKeyByName.has(catName)
-        ? masterKeyByName.get(catName)!
-        : cat.masterKey ?? normalizeCategoryName(catName)
+      // Resolve masterKey: DB lookup → exact name → fuzzy substring
+      const dbKey   = masterKeyByName.has(catName) ? masterKeyByName.get(catName) : undefined
+      const masterKey = resolveMasterKey(dbKey, catName)
+
+      // Income classification by identity — not by transaction direction.
+      // A reversal/correction inside the Income category must not flip it to spending.
+      // A spending category with only refunds this month must stay as spending.
+      const isIncome = isIncomeCategory(catName, masterKey) || cat.isIncome
+
+      // Net spending: gross debits minus refunds/credits within this spending category.
+      // Never goes negative — a refund-heavy month leaves zero spend, not negative.
+      const netSpend = isIncome ? 0 : Math.max(0, spendingTotal - incomeTotal)
+      const total    = isIncome ? incomeTotal : netSpend
+
+      if (!isIncome && !masterKey) {
+        unresolvedCategoryNames.push(catName)
+      }
+
       return {
         categoryId:       cat.id,
         categoryName:     cat.name,
@@ -255,6 +266,10 @@ export async function computeMonthSummary(
       }
     })
     .sort((a, b) => b.total - a.total)
+
+  if (process.env.NODE_ENV === 'development' && unresolvedCategoryNames.length > 0) {
+    console.warn('[summaries] unresolved category masterKeys:', unresolvedCategoryNames)
+  }
 
   // Top 5 transactions (biggest expenses)
   const topTransactions = [...transactions]

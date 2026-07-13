@@ -187,3 +187,72 @@ export function normalizeCategoryName(name: string): MasterKey | null {
 
   return null
 }
+
+// Exact system category name → masterKey
+const CATEGORY_NAME_TO_MASTERKEY: Record<string, MasterKey | null> = {
+  'Food & Dining':        'FOOD',
+  'Groceries':            'GROCERY',
+  'Housing':              'HOME',
+  'Transport':            'TRANSPORT',
+  'Entertainment':        'ENTERTAINMENT',
+  'Shopping':             'SHOPPING',
+  'Health':               'HEALTH',
+  'Utilities':            'HOME',
+  'Subscriptions':        'DIGITAL',
+  'Personal Care':        'PERSONAL_CARE',
+  'Education':            'EDUCATION',
+  'Travel':               'TRAVEL',
+  'Insurance':            'FINANCIAL',
+  'Fees & Charges':       'FINANCIAL',
+  'Gifts & Charity':      'SOCIAL',
+  'Fast Food':            'FAST_FOOD',
+  'Alcohol':              'ALCOHOL',
+  'Coffee':               'COFFEE',
+  'Coffe':                'COFFEE',   // common typo
+  'Restaurants':          'FOOD',
+  'Gas/Fuel':             'TRANSPORT',
+  'Gasoline/Fuel':        'TRANSPORT',
+  'Cigarettes & Tobacco': 'TOBACCO',
+  'Pets':                 'PETS',
+  'Credit Card Payment':  'FINANCIAL',
+  // Explicit null — these are known non-spending categories
+  'Income':               null,
+  'Transfer':             null,
+  'Transfers':            null,
+  'Other':                null,
+  'Uncategorized':        null,
+}
+
+// Identity-based income category names (normalized)
+const INCOME_CATEGORY_NAMES = new Set([
+  'income', 'salary', 'paycheck', 'wages', 'payroll',
+  'deposit income', 'direct deposit',
+])
+
+/** Returns true when a category is income by identity — regardless of transaction direction */
+export function isIncomeCategory(name: string, masterKey?: string | null): boolean {
+  // masterKey 'INCOME' is a future-proofing hook — not currently a valid MasterKey
+  if (masterKey === 'INCOME') return true
+  const normalized = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  return INCOME_CATEGORY_NAMES.has(normalized)
+}
+
+/**
+ * Canonical masterKey resolver. Resolution order:
+ * 1. DB value (if non-null)
+ * 2. Exact system category name match
+ * 3. Fuzzy substring match via normalizeCategoryName
+ */
+export function resolveMasterKey(
+  dbMasterKey: string | null | undefined,
+  categoryName: string,
+): MasterKey | null {
+  if (dbMasterKey) return dbMasterKey as MasterKey
+
+  if (categoryName in CATEGORY_NAME_TO_MASTERKEY) {
+    // Known entry — may be null (e.g. 'Income', 'Other') — return as-is, don't fuzzy-match
+    return CATEGORY_NAME_TO_MASTERKEY[categoryName]
+  }
+
+  return normalizeCategoryName(categoryName)
+}

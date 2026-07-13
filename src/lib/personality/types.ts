@@ -84,6 +84,7 @@ export interface PersonalitySignals {
   secondCatPct:              number
   topDiscretionaryCatMaster: MasterKey | null          // top non-HOME/FINANCIAL category
   categoryPct:      Partial<Record<MasterKey, number>> // pct of spending per master key (all categories)
+  unresolvedCategories: string[]  // category names that couldn't map to a MasterKey
   catSpread:        number         // topCatPct - secondCatPct
   subCount:         number
   anomalyCount:     number

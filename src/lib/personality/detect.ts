@@ -132,12 +132,16 @@ function scoreOne(
       }
       break
 
-    case 'big_ticket_player':
+    case 'big_ticket_player': {
+      // Don't fire on Income/Transfer/Uncategorized (null masterKey) or fixed obligations
+      const BTP_EXCLUDED = new Set<string | null>([null, 'HOME', 'FINANCIAL'])
+      if (BTP_EXCLUDED.has(s.topCatMaster)) break
       if (s.topCatPct > 70)      add(95, `topCatPct ${s.topCatPct.toFixed(0)}% > 70`)
       else if (s.topCatPct > 60) add(80, `topCatPct ${s.topCatPct.toFixed(0)}% > 60`)
       else if (s.topCatPct > 50) add(62, `topCatPct ${s.topCatPct.toFixed(0)}% > 50`)
       else if (s.topCatPct > 40) add(35, `topCatPct ${s.topCatPct.toFixed(0)}% > 40`)
       break
+    }
 
     case 'subscription_collector':
       if (s.subCount >= 12)      add(95, `subCount ${s.subCount} ≥ 12`)

@@ -142,6 +142,11 @@ function PersonalityDebugPanel({ ranked, signals }: { ranked: RankedPersonality[
                   : catPctEntries.map(([k, v]) => <span key={k} style={{ marginRight: 8 }}>{k}:{v.toFixed(0)}%</span>)
                 }
               </div>
+              {signals.unresolvedCategories.length > 0 && (
+                <div style={{ marginTop: 2, color: '#f87171', fontSize: 10 }}>
+                  unresolved: {signals.unresolvedCategories.join(', ')}
+                </div>
+              )}
             </div>
           )}
           {/* Ranking */}

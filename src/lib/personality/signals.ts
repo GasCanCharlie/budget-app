@@ -1,4 +1,4 @@
-import { normalizeCategoryName } from '@/lib/categories/mapping'
+import { resolveMasterKey } from '@/lib/categories/mapping'
 import type { MasterKey } from '@/lib/categories/masters'
 import type { PersonalitySignals } from './types'
 
@@ -16,6 +16,10 @@ interface RawSignalInput {
   utilizationRate?:  number
 }
 
+// Fixed-cost categories excluded from personality trait percentages.
+// These are obligations, not discretionary choices — they dilute trait signals.
+const PERSONALITY_EXCLUDED: Set<MasterKey> = new Set(['HOME', 'FINANCIAL'])
+
 export function computeSignals(input: RawSignalInput): PersonalitySignals {
   const spendRatio  = input.income > 0 ? input.spending / input.income : 1
   const savingsRate = input.income > 0 ? input.net / input.income : 0
@@ -28,23 +32,43 @@ export function computeSignals(input: RawSignalInput): PersonalitySignals {
   const secondCatName = second?.name ?? ''
   const secondCatPct  = second?.pctOfSpending ?? 0
 
-  // Resolve master key — use explicit masterKey if provided, fall back to substring match
+  // Resolve master key using canonical resolver
   const resolveMaster = (c: { name: string; masterKey?: string | null }): MasterKey | null =>
-    (c.masterKey !== undefined ? c.masterKey : normalizeCategoryName(c.name)) as MasterKey | null
+    resolveMasterKey(c.masterKey, c.name)
 
-  // Top discretionary category — excludes fixed obligations
-  const EXCLUDED_FROM_SECONDARY = new Set(['HOME', 'FINANCIAL'])
+  // Top discretionary category — excludes HOME and FINANCIAL
   const topDiscretionary = input.categories.find(c => {
     const master = resolveMaster(c)
-    return master !== null && !EXCLUDED_FROM_SECONDARY.has(master)
+    return master !== null && !PERSONALITY_EXCLUDED.has(master)
   })
   const topDiscretionaryCatMaster = topDiscretionary ? resolveMaster(topDiscretionary) : null
 
-  // Full breakdown: pct of spending per master key (summed across sub-categories)
-  const categoryPct: Partial<Record<MasterKey, number>> = {}
+  // Discretionary spend per master key (excludes HOME and FINANCIAL).
+  // Percentages are share of discretionary total — not diluted by rent/mortgage/fees.
+  const discretionaryRaw: Partial<Record<MasterKey, number>> = {}
+  const unresolvedCategories: string[] = []
+
   for (const cat of input.categories) {
     const master = resolveMaster(cat)
-    if (master) categoryPct[master] = (categoryPct[master] ?? 0) + cat.pctOfSpending
+    if (!master) {
+      unresolvedCategories.push(cat.name)
+      continue
+    }
+    if (PERSONALITY_EXCLUDED.has(master)) continue
+    discretionaryRaw[master] = (discretionaryRaw[master] ?? 0) + cat.pctOfSpending
+  }
+
+  const discretionaryTotal = Object.values(discretionaryRaw).reduce((s, v) => s + v, 0)
+
+  const categoryPct: Partial<Record<MasterKey, number>> = {}
+  if (discretionaryTotal > 0) {
+    for (const [k, v] of Object.entries(discretionaryRaw)) {
+      categoryPct[k as MasterKey] = (v / discretionaryTotal) * 100
+    }
+  }
+
+  if (process.env.NODE_ENV === 'development' && unresolvedCategories.length > 0) {
+    console.warn('[signals] unresolved categories (no masterKey):', unresolvedCategories)
   }
 
   return {
@@ -62,6 +86,7 @@ export function computeSignals(input: RawSignalInput): PersonalitySignals {
     catSpread:                 topCatPct - secondCatPct,
     topDiscretionaryCatMaster,
     categoryPct,
+    unresolvedCategories,
     subCount:                  input.subCount,
     anomalyCount:              input.anomalyCount,
     statementType:             input.statementType,

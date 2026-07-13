@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { rankPersonalities, detectPersonality } from '@/lib/personality/detect'
 import { computeSignals } from '@/lib/personality/signals'
+import { isIncomeCategory, resolveMasterKey } from '@/lib/categories/mapping'
 import type { PersonalitySignals } from '@/lib/personality/types'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -20,6 +21,7 @@ function makeSignals(overrides: Partial<PersonalitySignals> = {}): PersonalitySi
     secondCatPct:              22,
     topDiscretionaryCatMaster: 'TRANSPORT',
     categoryPct:               { TRANSPORT: 38, FOOD: 22 },
+    unresolvedCategories:      [],
     catSpread:                 16,
     subCount:                  0,
     anomalyCount:              0,
@@ -224,10 +226,139 @@ describe('computeSignals() integration', () => {
       subCount: 0, anomalyCount: 0, statementType: 'unknown',
     })
     expect(signals.topDiscretionaryCatMaster).toBe('TRANSPORT')
-    expect(signals.categoryPct['TRANSPORT']).toBe(45)
+    // categoryPct is now rescaled to discretionary total (TRANSPORT 45 + FOOD 20 = 65)
+    expect(signals.categoryPct['TRANSPORT']).toBeCloseTo(69.2, 0)
     const results = detectPersonality(signals)
     // currency_combustion should be visible in the top 5
     const top5 = results.rankedPersonalities.slice(0, 5).map(r => r.meta.id)
     expect(top5).toContain('currency_combustion')
+  })
+})
+
+// ─── isIncomeCategory() ───────────────────────────────────────────────────────
+
+describe('isIncomeCategory()', () => {
+  it('returns true for "Income" regardless of any debit transactions', () => {
+    expect(isIncomeCategory('Income')).toBe(true)
+    expect(isIncomeCategory('income')).toBe(true)
+  })
+
+  it('returns true for salary/paycheck names', () => {
+    expect(isIncomeCategory('Salary')).toBe(true)
+    expect(isIncomeCategory('Paycheck')).toBe(true)
+  })
+
+  it('returns false for normal spending categories', () => {
+    expect(isIncomeCategory('Transport')).toBe(false)
+    expect(isIncomeCategory('Coffee')).toBe(false)
+    expect(isIncomeCategory('Credit Card')).toBe(false)
+  })
+})
+
+// ─── resolveMasterKey() ───────────────────────────────────────────────────────
+
+describe('resolveMasterKey()', () => {
+  it('DB value wins over everything', () => {
+    expect(resolveMasterKey('TRANSPORT', 'Coffee')).toBe('TRANSPORT')
+  })
+
+  it('exact system name resolves when DB is null', () => {
+    expect(resolveMasterKey(null, 'Transport')).toBe('TRANSPORT')
+    expect(resolveMasterKey(null, 'Food & Dining')).toBe('FOOD')
+    expect(resolveMasterKey(null, 'Credit Card Payment')).toBe('FINANCIAL')
+  })
+
+  it('known null categories return null (not fuzzied)', () => {
+    expect(resolveMasterKey(null, 'Income')).toBeNull()
+    expect(resolveMasterKey(null, 'Transfer')).toBeNull()
+    expect(resolveMasterKey(null, 'Other')).toBeNull()
+  })
+
+  it('fuzzy typo mapping: Coffe → COFFEE', () => {
+    expect(resolveMasterKey(null, 'Coffe')).toBe('COFFEE')
+  })
+
+  it('fuzzy match: "Gas Station" → TRANSPORT', () => {
+    expect(resolveMasterKey(null, 'Gas Station')).toBe('TRANSPORT')
+  })
+})
+
+// ─── categoryPct — discretionary accumulation ─────────────────────────────────
+
+describe('computeSignals() categoryPct', () => {
+  it('excludes HOME and FINANCIAL from categoryPct', () => {
+    const signals = computeSignals({
+      income: 5000, spending: 4000, net: 1000,
+      categories: [
+        { name: 'Housing',   pctOfSpending: 50, masterKey: 'HOME'      },
+        { name: 'Transport', pctOfSpending: 30, masterKey: 'TRANSPORT' },
+        { name: 'Food & Dining', pctOfSpending: 20, masterKey: 'FOOD'  },
+      ],
+      subCount: 0, anomalyCount: 0, statementType: 'unknown',
+    })
+    expect(signals.categoryPct['HOME']).toBeUndefined()
+    expect(signals.categoryPct['FINANCIAL']).toBeUndefined()
+    // TRANSPORT and FOOD share the discretionary total (30+20=50)
+    expect(signals.categoryPct['TRANSPORT']).toBeCloseTo(60) // 30/50*100
+    expect(signals.categoryPct['FOOD']).toBeCloseTo(40)     // 20/50*100
+  })
+
+  it('sums duplicate master keys (e.g. two coffee categories)', () => {
+    const signals = computeSignals({
+      income: 3000, spending: 2000, net: 1000,
+      categories: [
+        { name: 'Coffee',   pctOfSpending: 15, masterKey: 'COFFEE' },
+        { name: 'Coffe',    pctOfSpending: 10, masterKey: null },  // typo — resolves via fuzzy
+        { name: 'Transport', pctOfSpending: 75, masterKey: 'TRANSPORT' },
+      ],
+      subCount: 0, anomalyCount: 0, statementType: 'unknown',
+    })
+    // COFFEE should be ~25% of total raw → in discretionary it's 25/100*100=25%
+    expect(signals.categoryPct['COFFEE']).toBeCloseTo(25)
+  })
+
+  it('unresolved categories are listed in unresolvedCategories', () => {
+    const signals = computeSignals({
+      income: 3000, spending: 2000, net: 1000,
+      categories: [
+        { name: 'Mystery Category', pctOfSpending: 100, masterKey: null },
+      ],
+      subCount: 0, anomalyCount: 0, statementType: 'unknown',
+    })
+    expect(signals.unresolvedCategories).toContain('Mystery Category')
+  })
+})
+
+// ─── big_ticket_player guards ─────────────────────────────────────────────────
+
+describe('big_ticket_player scoring guards', () => {
+  it('does not fire when topCatMaster is null (Income/Uncategorized)', () => {
+    const ranked = rankPersonalities(makeSignals({
+      topCatPct: 100, topCatMaster: null,
+      topDiscretionaryCatMaster: null,
+      categoryPct: {},
+    }))
+    const btp = ranked.find(r => r.meta.id === 'big_ticket_player')
+    expect(btp!.score).toBe(0)
+  })
+
+  it('does not fire when topCatMaster is HOME (rent dominating)', () => {
+    const ranked = rankPersonalities(makeSignals({
+      topCatPct: 75, topCatMaster: 'HOME',
+      topDiscretionaryCatMaster: null,
+      categoryPct: {},
+    }))
+    const btp = ranked.find(r => r.meta.id === 'big_ticket_player')
+    expect(btp!.score).toBe(0)
+  })
+
+  it('fires normally when topCatMaster is a valid discretionary key', () => {
+    const ranked = rankPersonalities(makeSignals({
+      topCatPct: 75, topCatMaster: 'TRANSPORT',
+      topDiscretionaryCatMaster: 'TRANSPORT',
+      categoryPct: { TRANSPORT: 75 },
+    }))
+    const btp = ranked.find(r => r.meta.id === 'big_ticket_player')
+    expect(btp!.score).toBe(95)
   })
 })
