@@ -544,7 +544,7 @@ export interface ReconciliationReport {
 // FILE ACCEPTANCE (Stage 0)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type UploadSourceType = 'CSV' | 'XLSX' | 'PDF' | 'OFX' | 'QFX' | 'QBO'
+export type UploadSourceType = 'CSV' | 'XLSX' | 'PDF' | 'OFX' | 'QFX' | 'QBO' | 'QIF'
 
 export interface FileAcceptanceResult {
   accepted: boolean

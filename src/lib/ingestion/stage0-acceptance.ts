@@ -156,7 +156,7 @@ export async function acceptFile(
   const fromMagic = detectTypeFromMagicBytes(buffer)
 
   // Extension-based type detection
-  let sourceType: 'CSV' | 'XLSX' | 'PDF' | 'OFX' | 'QFX' | 'QBO' | null = fromMagic
+  let sourceType: 'CSV' | 'XLSX' | 'PDF' | 'OFX' | 'QFX' | 'QBO' | 'QIF' | null = fromMagic
   if (!sourceType) {
     if (ext === '.csv')                         sourceType = 'CSV'
     else if (ext === '.xlsx' || ext === '.xls') sourceType = 'XLSX'
@@ -164,12 +164,13 @@ export async function acceptFile(
     else if (ext === '.ofx')                    sourceType = 'OFX'
     else if (ext === '.qfx')                    sourceType = 'QFX'
     else if (ext === '.qbo')                    sourceType = 'QBO'
+    else if (ext === '.qif')                    sourceType = 'QIF'
     else if (isOfxFile(buffer, fileName))       sourceType = 'OFX'
   }
 
   if (!sourceType) {
     result.rejectionReason =
-      `Unsupported file type (extension: "${ext || 'none'}"). Accepted formats: CSV (.csv), OFX (.ofx), QFX (.qfx), QBO (.qbo), Excel (.xlsx), PDF (.pdf).`
+      `Unsupported file type (extension: "${ext || 'none'}"). Accepted formats: CSV (.csv), OFX (.ofx), QFX (.qfx), QBO (.qbo), QIF (.qif), Excel (.xlsx), PDF (.pdf).`
     return result
   }
 
@@ -242,7 +243,7 @@ export async function acceptFile(
 
   // ── 8. Truncation check (CSV only — OFX/QFX/QBO use container tags) ──────
   const finalType = result.sourceType
-  if (finalType !== 'OFX' && finalType !== 'QFX' && finalType !== 'QBO') {
+  if (finalType !== 'OFX' && finalType !== 'QFX' && finalType !== 'QBO' && finalType !== 'QIF') {
     const truncCheck = checkCsvTruncation(decodedText)
     if (!truncCheck.valid) {
       result.rejectionReason = `File appears truncated: ${truncCheck.reason}`

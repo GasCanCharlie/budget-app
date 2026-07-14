@@ -17,6 +17,7 @@ import { selectDateOrder } from '@/lib/ingestion/date-order-scoring'
 import type { DateOrderSelectionResult } from '@/types/ingestion'
 import { runDedup } from '@/lib/ingestion/stage3-dedup'
 import { parseOfx, parseOfxDate, chooseOfxDescription, type OfxTransaction } from '@/lib/ingestion/parse-ofx'
+import { parseQif, parseQifDate, type QifTransaction } from '@/lib/ingestion/parse-qif'
 import { runReconciliation } from '@/lib/ingestion/stage4-reconcile'
 import { computeCanonicalRowHash, type ImportReport } from '@/lib/ingestion/import-report'
 import type { CsvXlsxSourceLocator } from '@/types/ingestion'
@@ -575,6 +576,204 @@ export async function POST(req: NextRequest) {
           dateOrderUsed:        'YMD',
           dateOrderSource:      'OFX_STANDARD',
           dateOrderConfidence:  1,
+          bankDetected:         false,
+          bankKey:              null,
+          dateOrderNeedsConfirmation: false,
+        },
+        { status: 201 },
+      )
+    }
+
+    // ── QIF fast-path (bypasses CSV stages 1–2) ──────────────────────────────
+    if (acceptance.sourceType === 'QIF') {
+      const qifResult = parseQif(rawText)
+
+      if (qifResult.transactions.length === 0) {
+        return NextResponse.json(
+          { error: 'No transactions found in QIF file. Make sure the file contains transaction records.' },
+          { status: 422 },
+        )
+      }
+
+      let uploadVersion = 1
+      if (acceptance.isDuplicate && acceptance.previousUploadId) {
+        const prevUpload = await prisma.upload.findUnique({
+          where: { id: acceptance.previousUploadId },
+          select: { version: true },
+        })
+        uploadVersion = (prevUpload?.version ?? 0) + 1
+        await prisma.upload.update({
+          where: { id: acceptance.previousUploadId },
+          data: { superseded: true },
+        })
+      }
+
+      const qifUpload = await prisma.upload.create({
+        data: {
+          userId:              payload.userId,
+          accountId,
+          filename:            file.name,
+          fileHash,
+          formatDetected:      'QIF',
+          version:             uploadVersion,
+          reprocessedFromId:   acceptance.previousUploadId ?? undefined,
+          rowCountRaw:         qifResult.transactions.length,
+          rowCountParsed:      qifResult.transactions.length,
+          status:              'processing',
+          warnings:            '[]',
+          parserVersion:       'qif-1.0',
+          parserConfig:        JSON.stringify({ accountType: qifResult.accountType }),
+          reconciliationStatus: 'PENDING',
+          dateOrderUsed:       'MDY',
+          dateOrderSource:     'QIF_STANDARD',
+          dateOrderConfidence: 0.9,
+          statementOpenBalance:  openingBalance,
+          statementCloseBalance: closingBalance,
+          statementTotalCredits,
+          statementTotalDebits,
+        },
+      })
+
+      let qifAccepted = 0
+      let qifRejected = 0
+      const qifValidDates: Date[] = []
+
+      for (const qifTx of qifResult.transactions as QifTransaction[]) {
+        const sourceRowHash = createHash('sha256')
+          .update(`${accountId}|qif:${qifTx.date}|${qifTx.amount}|${qifTx.payee}|${qifTx.parseOrder}`)
+          .digest('hex')
+
+        const existingRaw = await prisma.transactionRaw.findUnique({ where: { sourceRowHash } })
+        if (existingRaw) { qifRejected++; continue }
+
+        const isoDate   = parseQifDate(qifTx.date)
+        // parseQifDate returns YYYY-MM-DD; parse as local date
+        const [y, m, d] = isoDate.split('-').map(Number)
+        const parsedDate = new Date(y, m - 1, d)
+        const amountNum  = parseFloat(qifTx.amount) || 0
+        const descRaw    = qifTx.payee || qifTx.memo
+        const descNorm   = qifTx.payee && qifTx.memo
+          ? `${qifTx.payee} ${qifTx.memo}`.trim()
+          : descRaw
+        const merchantNorm = normalizeMerchant(descNorm)
+        const isTransfer   = isTransferDescription(descRaw)
+
+        try {
+          const raw = await prisma.transactionRaw.create({
+            data: {
+              uploadId:       qifUpload.id,
+              accountId,
+              rawDate:        qifTx.date,
+              rawDescription: descRaw,
+              rawAmount:      qifTx.amount,
+              rawCredit:      '',
+              rawDebit:       '',
+              rawBalance:     '',
+              sourceRowHash,
+              sourceLocator:  JSON.stringify({ type: 'QIF', parseOrder: qifTx.parseOrder }),
+              rawLine:        `D${qifTx.date}\nT${qifTx.amount}\nP${qifTx.payee}\nM${qifTx.memo}`,
+              parseOrder:     qifTx.parseOrder,
+              rawFields:      JSON.stringify({
+                D: qifTx.date, T: qifTx.amount,
+                P: qifTx.payee, M: qifTx.memo,
+                ...(qifTx.checkNum ? { N: qifTx.checkNum } : {}),
+              }),
+            },
+          })
+
+          await prisma.transaction.create({
+            data: {
+              rawId:                raw.id,
+              accountId,
+              uploadId:             qifUpload.id,
+              date:                 parsedDate,
+              description:          descNorm || descRaw,
+              merchantNormalized:   merchantNorm,
+              amount:               amountNum,
+              isTransfer,
+              isForeignCurrency:    false,
+              foreignAmount:        null,
+              foreignCurrency:      null,
+              postedDate:           parsedDate,
+              transactionDate:      parsedDate,
+              dateRaw:              qifTx.date,
+              dateAmbiguity:        'RESOLVED',
+              dateInterpretationA:  null,
+              dateInterpretationB:  null,
+              amountRaw:            qifTx.amount,
+              currencyDetected:     false,
+              descriptionRaw:       descRaw,
+              descriptionNormalized: descNorm || undefined,
+              transformations:      '[]',
+              runningBalance:       null,
+              runningBalanceRaw:    null,
+              checkNumber:          qifTx.checkNum,
+              bankTransactionId:    undefined,
+              pendingFlag:          false,
+              bankFingerprint:      undefined,
+              ingestionStatus:      'VALID',
+              bankCategoryRaw:      null,
+              bankCategoryNormalized: null,
+              canonicalRowHash: computeCanonicalRowHash(
+                isoDate, descRaw, qifTx.amount, '', qifTx.parseOrder,
+              ),
+            },
+          })
+
+          qifAccepted++
+          qifValidDates.push(parsedDate)
+        } catch {
+          qifRejected++
+        }
+      }
+
+      const sortedQifDates = [...qifValidDates].sort((a, b) => a.getTime() - b.getTime())
+      await prisma.upload.update({
+        where: { id: qifUpload.id },
+        data: {
+          rowCountAccepted:    qifAccepted,
+          rowCountRejected:    qifRejected,
+          totalRowsUnresolved: 0,
+          status:              'complete',
+          completedAt:         new Date(),
+          dateRangeStart:      sortedQifDates[0] ?? null,
+          dateRangeEnd:        sortedQifDates[sortedQifDates.length - 1] ?? null,
+        },
+      })
+
+      const qifDedupResult  = await runDedup(qifUpload.id, accountId)
+      const qifReconcileResult = await runReconciliation(qifUpload.id)
+
+      const qifAvailableMonths = await getAvailableMonths(payload.userId)
+      for (const { year, month } of qifAvailableMonths.slice(0, 12)) {
+        await computeMonthSummary(payload.userId, year, month)
+      }
+
+      await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
+
+      return NextResponse.json(
+        {
+          uploadId:             qifUpload.id,
+          accepted:             qifAccepted,
+          rejected:             qifRejected,
+          totalUnresolved:      0,
+          possibleDuplicates:   qifDedupResult.possibleDuplicatesFound,
+          crossUploadDuplicates: qifDedupResult.crossUploadMatches,
+          withinUploadDuplicates: qifDedupResult.withinUploadMatches,
+          formatDetected:       'QIF',
+          formatMismatch:       false,
+          contentSniffedType:   null,
+          dateAmbiguous:        false,
+          dateFormatSample:     [],
+          warnings:             [],
+          transactionCount:     qifAccepted,
+          parserVersion:        'qif-1.0',
+          fileHashTruncated:    `${fileHash.slice(0, 8)}…${fileHash.slice(-8)}`,
+          reconciliationStatus: qifReconcileResult.status,
+          reconciliationMode:   qifReconcileResult.mode,
+          dateOrderUsed:        'MDY',
+          dateOrderSource:      'QIF_STANDARD',
+          dateOrderConfidence:  0.9,
           bankDetected:         false,
           bankKey:              null,
           dateOrderNeedsConfirmation: false,
