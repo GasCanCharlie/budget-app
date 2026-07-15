@@ -221,9 +221,11 @@ async function verifyIntegrity(uploadId: string, sessionId: string, accountId: s
   const upload = await prisma.upload.findUnique({ where: { id: uploadId }, select: { sessionId: true } })
   if (!upload?.sessionId) throw new Error(`[integrity] Upload ${uploadId} has no sessionId after commit`)
 
-  const orphanedTx = await prisma.transaction.count({
-    where: { uploadId, OR: [{ accountId: null as never }, { uploadId: null as never }] },
-  })
+  const rows = await prisma.$queryRaw<Array<{ count: bigint }>>`
+    SELECT COUNT(*) AS count FROM transactions
+    WHERE "uploadId" = ${uploadId} AND ("accountId" IS NULL OR "uploadId" IS NULL)
+  `
+  const orphanedTx = Number(rows[0]?.count ?? 0)
   if (orphanedTx > 0) throw new Error(`[integrity] ${orphanedTx} transactions in upload ${uploadId} are missing accountId or uploadId`)
 }
 

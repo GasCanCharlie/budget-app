@@ -23,12 +23,12 @@ export async function GET(req: NextRequest) {
 
   if (!session) return NextResponse.json({ snapshot: null })
 
-  const [uploadCount, txCount, uncategorizedCount, transferCount, accounts] = await Promise.all([
+  const [uploadCount, txCount, uncategorizedCount, transferCount, excludedCount, accounts] = await Promise.all([
     prisma.upload.count({
       where: { sessionId: session.id, status: 'complete' },
     }),
     prisma.transaction.count({
-      where: { upload: { sessionId: session.id } },
+      where: { upload: { sessionId: session.id }, isExcluded: false },
     }),
     prisma.transaction.count({
       where: {
@@ -39,7 +39,10 @@ export async function GET(req: NextRequest) {
       },
     }),
     prisma.transaction.count({
-      where: { upload: { sessionId: session.id }, isTransfer: true },
+      where: { upload: { sessionId: session.id }, isTransfer: true, isExcluded: false },
+    }),
+    prisma.transaction.count({
+      where: { upload: { sessionId: session.id }, isExcluded: true },
     }),
     prisma.account.findMany({
       where:  { uploads: { some: { sessionId: session.id } } },
@@ -64,6 +67,7 @@ export async function GET(req: NextRequest) {
       txCount,
       uncategorizedCount,
       transferCount,
+      excludedCount,
       accountCount:       accounts.length,
       dateRangeStart:     session.dateRangeStart?.toISOString() ?? null,
       dateRangeEnd:       session.dateRangeEnd?.toISOString() ?? null,

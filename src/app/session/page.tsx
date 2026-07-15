@@ -18,6 +18,8 @@ import {
   AlertCircle, RefreshCw,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { ArchiveConfirmModal } from '@/components/session/ArchiveConfirmModal'
+import { useInvalidateSnapshot } from '@/hooks/useSessionSnapshot'
 
 const SpendingCharts = dynamic(
   () => import('@/components/dashboard/SpendingCharts').then(m => m.SpendingCharts),
@@ -79,6 +81,8 @@ export default function SessionPage() {
   const user        = useAuthStore(s => s.user)
   const { apiFetch } = useApi()
   const qc          = useQueryClient()
+  const invalidateSnapshot = useInvalidateSnapshot()
+  const [showArchive, setShowArchive] = useState(false)
 
   useEffect(() => { if (!user) router.replace('/login') }, [user, router])
 
@@ -105,17 +109,23 @@ export default function SessionPage() {
       body:   JSON.stringify({ action: 'archive' }),
     }),
     onSuccess: () => {
+      invalidateSnapshot()
       qc.invalidateQueries({ queryKey: ['session-active'] })
       qc.invalidateQueries({ queryKey: ['session-list'] })
+      setShowArchive(false)
       router.push('/history')
     },
   })
 
-  const startNewMutation = useMutation({
+  const archiveAndNewMutation = useMutation({
     mutationFn: () => apiFetch('/api/sessions', { method: 'POST', body: JSON.stringify({ forceNew: true }) }),
     onSuccess: () => {
+      invalidateSnapshot()
       qc.invalidateQueries({ queryKey: ['session-active'] })
+      qc.invalidateQueries({ queryKey: ['session-list'] })
       qc.invalidateQueries({ queryKey: ['session-summary'] })
+      setShowArchive(false)
+      router.push('/upload')
     },
   })
 
@@ -165,7 +175,7 @@ export default function SessionPage() {
   if (!summary || summary.transactionCount === 0) {
     return (
       <AppShell>
-        <SessionHeader session={session} onArchive={() => archiveMutation.mutate(session.id)} archiving={archiveMutation.isPending} />
+        <SessionHeader session={session} onArchive={() => setShowArchive(true)} archiving={archiveMutation.isPending || archiveAndNewMutation.isPending} />
         <div className="mt-8 flex flex-col items-center gap-4 text-center py-16">
           <AlertCircle size={32} style={{ color: '#6B7280' }} />
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -214,8 +224,8 @@ export default function SessionPage() {
         <SessionHeader
           session={session}
           summary={summary}
-          onArchive={() => archiveMutation.mutate(session.id)}
-          archiving={archiveMutation.isPending}
+          onArchive={() => setShowArchive(true)}
+          archiving={archiveMutation.isPending || archiveAndNewMutation.isPending}
           onRefresh={() => refetchSummary()}
         />
 
@@ -285,16 +295,32 @@ export default function SessionPage() {
             Archive this analysis to lock in your results. Your next session will start fresh.
           </p>
           <button
-            onClick={() => archiveMutation.mutate(session.id)}
-            disabled={archiveMutation.isPending}
+            onClick={() => setShowArchive(true)}
+            disabled={archiveMutation.isPending || archiveAndNewMutation.isPending}
             className="flex items-center gap-2 mx-auto px-5 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
             style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}
           >
-            {archiveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Archive size={14} />}
+            <Archive size={14} />
             Finish Analysis
           </button>
         </div>
       </div>
+
+      <ArchiveConfirmModal
+        isOpen={showArchive}
+        onClose={() => setShowArchive(false)}
+        sessionTitle={session.title}
+        dateRangeStart={summary?.dateRangeStart ?? session.dateRangeStart}
+        dateRangeEnd={summary?.dateRangeEnd ?? session.dateRangeEnd}
+        txCount={summary?.transactionCount ?? session.txCount}
+        accountCount={summary?.accountCount ?? session.accountCount}
+        accounts={summary?.accounts ?? []}
+        isPending={archiveMutation.isPending || archiveAndNewMutation.isPending}
+        onConfirm={startNew => {
+          if (startNew) archiveAndNewMutation.mutate()
+          else archiveMutation.mutate(session.id)
+        }}
+      />
     </AppShell>
   )
 }

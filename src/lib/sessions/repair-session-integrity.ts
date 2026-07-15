@@ -47,13 +47,10 @@ export async function repairSessionIntegrity(options: RepairOptions = {}): Promi
   if (filterUserId) {
     userIds = [filterUserId]
   } else {
-    // Collect users with orphaned uploads
-    const orphanRows = await prisma.upload.findMany({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      where:    { sessionId: null as any },
-      select:   { userId: true },
-      distinct: ['userId'],
-    })
+    // Collect users with orphaned uploads (raw SQL: Prisma rejects null on non-nullable field)
+    const orphanRows = await prisma.$queryRaw<Array<{ userId: string }>>`
+      SELECT DISTINCT "userId" FROM uploads WHERE "sessionId" IS NULL
+    `
     const orphanUserIds = orphanRows.map(r => r.userId)
 
     // Also collect users with multiple open sessions

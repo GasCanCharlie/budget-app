@@ -52,10 +52,10 @@ export async function getOrCreateActiveSession(userId: string): Promise<ActiveSe
  * Returns the number of rows backfilled.
  */
 export async function backfillOrphanedUploads(userId: string, sessionId: string): Promise<number> {
-  const result = await prisma.upload.updateMany({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    where: { userId, sessionId: null as any },
-    data:  { sessionId },
-  })
-  return result.count
+  // Raw SQL: Prisma rejects null filter on non-nullable field at runtime
+  const result = await prisma.$executeRaw`
+    UPDATE uploads SET "sessionId" = ${sessionId}
+    WHERE "userId" = ${userId} AND "sessionId" IS NULL
+  `
+  return result
 }

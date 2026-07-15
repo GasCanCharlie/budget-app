@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown, X, Equal, CheckSquare } from 'lucide-react'
+import { Search, ChevronDown, RotateCcw, Check, AlertTriangle, Copy, Calendar, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown, X, Equal, CheckSquare, MinusCircle } from 'lucide-react'
 import clsx from 'clsx'
 import { CategoryIcon } from '@/components/CategoryIcon'
 
@@ -296,6 +296,34 @@ function TransactionsPageInner() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] })
       showToast('Transaction updated')
+    },
+  })
+
+  // ── Exclude mutation ──────────────────────────────────────────────────────
+
+  const excludeMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/transactions/${id}`, {
+        method: 'PATCH',
+        body:   JSON.stringify({ isExcluded: true }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      showToast('Transaction excluded — visible in Excluded page')
+    },
+  })
+
+  // ── Transfer toggle mutation ───────────────────────────────────────────────
+
+  const markNotTransferMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/transactions/${id}`, {
+        method: 'PATCH',
+        body:   JSON.stringify({ isTransfer: false }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      showToast('Transfer label removed')
     },
   })
 
@@ -618,6 +646,10 @@ function TransactionsPageInner() {
                 isResolvePending={resolveMutation.isPending && resolveMutation.variables?.id === tx.id}
                 isSelected={selectedIds.has(tx.id)}
                 onToggleSelect={() => toggleSelect(tx.id)}
+                onMarkNotTransfer={() => markNotTransferMutation.mutate(tx.id)}
+                isMarkingNotTransfer={markNotTransferMutation.isPending && markNotTransferMutation.variables === tx.id}
+                onExclude={() => excludeMutation.mutate(tx.id)}
+                isExcluding={excludeMutation.isPending && excludeMutation.variables === tx.id}
               />
             ))}
           </div>
@@ -754,23 +786,27 @@ function TransactionRow({
   tx, categories, isEditing, onEdit, onUpdate, isPending,
   isAppCatEditing, onAppCatEdit, onAppCatUpdate, isAppCatPending,
   onResolveDate, onDismissDuplicate, isResolvePending,
-  isSelected, onToggleSelect,
+  isSelected, onToggleSelect, onMarkNotTransfer, isMarkingNotTransfer, onExclude, isExcluding,
 }: {
-  tx:                  Transaction
-  categories:          TxCategory[]
-  isEditing:           boolean
-  onEdit:              () => void
-  onUpdate:            (catId: string, applyToAll: boolean) => void
-  isPending:           boolean
-  isAppCatEditing:     boolean
-  onAppCatEdit:        () => void
-  onAppCatUpdate:      (catName: string | null, applyToAll: boolean) => void
-  isAppCatPending:     boolean
-  onResolveDate:       (resolvedDate: string) => void
-  onDismissDuplicate:  () => void
-  isResolvePending:    boolean
-  isSelected:          boolean
-  onToggleSelect:      () => void
+  tx:                   Transaction
+  categories:           TxCategory[]
+  isEditing:            boolean
+  onEdit:               () => void
+  onUpdate:             (catId: string, applyToAll: boolean) => void
+  isPending:            boolean
+  isAppCatEditing:      boolean
+  onAppCatEdit:         () => void
+  onAppCatUpdate:       (catName: string | null, applyToAll: boolean) => void
+  isAppCatPending:      boolean
+  onResolveDate:        (resolvedDate: string) => void
+  onDismissDuplicate:   () => void
+  isResolvePending:     boolean
+  isSelected:           boolean
+  onToggleSelect:       () => void
+  onMarkNotTransfer:    () => void
+  isMarkingNotTransfer: boolean
+  onExclude:            () => void
+  isExcluding:          boolean
 }) {
   const [applyAll,       setApplyAll]       = useState(false)
   const [appCatApplyAll, setAppCatApplyAll] = useState(false)
@@ -782,7 +818,7 @@ function TransactionRow({
 
   return (
     <div
-      className="px-4 py-3 transition-colors"
+      className="px-4 py-3 transition-colors group"
       style={{ background: isSelected ? 'var(--accent-muted)' : undefined }}
       onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--surface2)' }}
       onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
@@ -847,7 +883,26 @@ function TransactionRow({
               </button>
             )}
             {needsReview        && <span className="badge bg-amber-50 text-amber-600 text-xs">Confirm?</span>}
-            {tx.isTransfer      && <span className="badge bg-slate-100 text-slate-500 text-xs">Transfer</span>}
+            {tx.isTransfer && (
+              <button
+                onClick={e => { e.stopPropagation(); onMarkNotTransfer() }}
+                disabled={isMarkingNotTransfer}
+                title="Click to remove transfer label"
+                className={clsx('badge text-xs flex items-center gap-1 transition', isMarkingNotTransfer ? 'opacity-50 cursor-not-allowed' : 'bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200')}
+              >
+                {isMarkingNotTransfer ? <Loader2 size={9} className="animate-spin" /> : <X size={9} />}
+                Transfer
+              </button>
+            )}
+            <button
+              onClick={e => { e.stopPropagation(); onExclude() }}
+              disabled={isExcluding}
+              title="Exclude from analysis"
+              className={clsx('badge text-xs flex items-center gap-1 transition opacity-0 group-hover:opacity-100', isExcluding ? 'opacity-50 cursor-not-allowed' : 'bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 border border-dashed border-slate-200 hover:border-red-200')}
+            >
+              {isExcluding ? <Loader2 size={9} className="animate-spin" /> : <MinusCircle size={9} />}
+              Exclude
+            </button>
             {tx.isForeignCurrency && <span className="badge bg-blue-100 text-blue-600 text-xs">Foreign</span>}
             {/* Ingestion badges */}
             {isAmbigDate && (

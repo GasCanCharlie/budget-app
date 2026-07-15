@@ -1,13 +1,15 @@
 'use client'
 
-import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useApi } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import {
   CheckCircle2, Plus, Archive, ChevronRight, Loader2,
-  CreditCard, Building2, HelpCircle, AlertCircle,
+  CreditCard, Building2, HelpCircle, AlertCircle, ArrowLeftRight, MinusCircle,
 } from 'lucide-react'
 import { useSessionSnapshot, useInvalidateSnapshot } from '@/hooks/useSessionSnapshot'
+import { ArchiveConfirmModal } from './ArchiveConfirmModal'
 
 function accountIcon(type: string) {
   const t = type.toLowerCase()
@@ -31,10 +33,12 @@ function formatDateRange(start: string | null, end: string | null): string {
 }
 
 export function SessionStatusBar() {
-  const { apiFetch }       = useApi()
-  const router             = useRouter()
-  const invalidate         = useInvalidateSnapshot()
+  const { apiFetch }        = useApi()
+  const router              = useRouter()
+  const qc                  = useQueryClient()
+  const invalidate          = useInvalidateSnapshot()
   const { data, isLoading } = useSessionSnapshot()
+  const [showArchive, setShowArchive] = useState(false)
 
   const archiveMutation = useMutation({
     mutationFn: (id: string) =>
@@ -44,7 +48,22 @@ export function SessionStatusBar() {
       }),
     onSuccess: () => {
       invalidate()
+      qc.invalidateQueries({ queryKey: ['session-active'] })
+      qc.invalidateQueries({ queryKey: ['session-list'] })
+      setShowArchive(false)
       router.push('/history')
+    },
+  })
+
+  const archiveAndNewMutation = useMutation({
+    mutationFn: () =>
+      apiFetch('/api/sessions', { method: 'POST', body: JSON.stringify({ forceNew: true }) }),
+    onSuccess: () => {
+      invalidate()
+      qc.invalidateQueries({ queryKey: ['session-active'] })
+      qc.invalidateQueries({ queryKey: ['session-list'] })
+      setShowArchive(false)
+      router.push('/upload')
     },
   })
 
@@ -102,6 +121,26 @@ export function SessionStatusBar() {
                   {snap.uncategorizedCount.toLocaleString()} uncategorized
                 </span>
               )}
+              {snap.transferCount > 0 && (
+                <button
+                  onClick={() => router.push('/transfers')}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-opacity hover:opacity-70"
+                  style={{ background: 'rgba(108,124,255,0.1)', color: '#939AFF', fontSize: '0.68rem' }}
+                >
+                  <ArrowLeftRight size={10} />
+                  {snap.transferCount.toLocaleString()} transfers
+                </button>
+              )}
+              {snap.excludedCount > 0 && (
+                <button
+                  onClick={() => router.push('/excluded')}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-opacity hover:opacity-70"
+                  style={{ background: 'rgba(239,68,68,0.08)', color: '#F87171', fontSize: '0.68rem' }}
+                >
+                  <MinusCircle size={10} />
+                  {snap.excludedCount.toLocaleString()} excluded
+                </button>
+              )}
             </p>
           )}
         </div>
@@ -144,15 +183,13 @@ export function SessionStatusBar() {
                 <ChevronRight size={13} />
               </button>
               <button
-                onClick={() => archiveMutation.mutate(snap.sessionId)}
-                disabled={archiveMutation.isPending}
+                onClick={() => setShowArchive(true)}
+                disabled={archiveMutation.isPending || archiveAndNewMutation.isPending}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80"
                 style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}
                 title="Finish analysis and archive"
               >
-                {archiveMutation.isPending
-                  ? <Loader2 size={12} className="animate-spin" />
-                  : <Archive size={12} />}
+                <Archive size={12} />
                 Finish
               </button>
             </>
@@ -193,6 +230,24 @@ export function SessionStatusBar() {
             Add another account to make your analysis more complete.
           </p>
         </div>
+      )}
+
+      {snap && (
+        <ArchiveConfirmModal
+          isOpen={showArchive}
+          onClose={() => setShowArchive(false)}
+          sessionTitle={snap.title}
+          dateRangeStart={snap.dateRangeStart}
+          dateRangeEnd={snap.dateRangeEnd}
+          txCount={snap.txCount}
+          accountCount={snap.accountCount}
+          accounts={snap.accounts}
+          isPending={archiveMutation.isPending || archiveAndNewMutation.isPending}
+          onConfirm={startNew => {
+            if (startNew) archiveAndNewMutation.mutate()
+            else archiveMutation.mutate(snap.sessionId)
+          }}
+        />
       )}
     </div>
   )

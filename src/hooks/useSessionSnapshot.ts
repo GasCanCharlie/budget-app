@@ -11,6 +11,7 @@ export interface SessionSnapshot {
   txCount:            number
   uncategorizedCount: number
   transferCount:      number
+  excludedCount:      number
   accountCount:       number
   dateRangeStart:     string | null
   dateRangeEnd:       string | null

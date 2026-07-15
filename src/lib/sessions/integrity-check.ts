@@ -25,11 +25,11 @@ export async function checkSessionIntegrity(): Promise<IntegrityReport> {
   const issues: IntegrityIssue[] = []
 
   // 1. Uploads with no session (post-Phase-5 this should always be empty — kept as a defensive check)
-  const orphans = await prisma.upload.findMany({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    where:  { sessionId: null as any },
-    select: { id: true, userId: true },
-  })
+  // Use raw SQL: Prisma rejects null filters on non-nullable fields at runtime even though
+  // the DB column is still physically nullable until db push runs.
+  const orphans = await prisma.$queryRaw<Array<{ id: string; userId: string }>>`
+    SELECT id, "userId" FROM uploads WHERE "sessionId" IS NULL
+  `
   for (const u of orphans) {
     issues.push({
       type:     'orphaned_upload',
@@ -59,7 +59,7 @@ export async function checkSessionIntegrity(): Promise<IntegrityReport> {
   const uploadsWithSession = await prisma.upload.findMany({
     select: { id: true, userId: true, sessionId: true },
   })
-  const sessionIds = [...new Set(uploadsWithSession.map(u => u.sessionId))]
+  const sessionIds = [...new Set(uploadsWithSession.map(u => u.sessionId).filter((id): id is string => !!id))]
   const existingSessions = await prisma.analysisSession.findMany({
     where:  { id: { in: sessionIds } },
     select: { id: true },
