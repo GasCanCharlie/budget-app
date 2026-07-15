@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import prisma from '@/lib/db'
+import { getOrCreateActiveSession, backfillOrphanedUploads, OPEN_STATUSES } from '@/lib/sessions/get-or-create-session'
 
 const SESSION_SELECT = {
   id: true, title: true, status: true,
@@ -16,43 +17,45 @@ const SESSION_SELECT = {
   },
 }
 
-// GET /api/sessions/active — find or create the user's active session, then backfill orphaned uploads
+// GET /api/sessions/active
+// Returns the open session with all uploads, creating one if needed and backfilling orphans.
 export async function GET(req: NextRequest) {
   const payload = getUserFromRequest(req)
   if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let session = await prisma.analysisSession.findFirst({
-    where:   { userId: payload.userId, status: { in: ['ACTIVE', 'READY', 'PROCESSING'] } },
-    orderBy: { createdAt: 'desc' },
-    select: { id: true },
+  // Only bootstrap a session if orphaned uploads exist — avoids creating empty sessions on first login
+  const orphanCount = await prisma.upload.count({
+    where: { userId: payload.userId, sessionId: null },
   })
 
-  // No active session but user may have orphaned uploads — bootstrap one for them
-  if (!session) {
-    const orphanedCount = await prisma.upload.count({
-      where: { userId: payload.userId, sessionId: null },
-    })
-    if (orphanedCount > 0) {
-      session = await prisma.analysisSession.create({
-        data: { userId: payload.userId, title: 'Financial Autopsy', status: 'ACTIVE' },
-        select: { id: true },
-      })
-    }
+  let sessionId: string | null = null
+
+  const openSession = await prisma.analysisSession.findFirst({
+    where:   { userId: payload.userId, status: { in: [...OPEN_STATUSES] } },
+    orderBy: { createdAt: 'desc' },
+    select:  { id: true },
+  })
+
+  if (openSession) {
+    sessionId = openSession.id
+  } else if (orphanCount > 0) {
+    // Bootstrap: create session and attach orphans in one go
+    const created = await getOrCreateActiveSession(payload.userId)
+    sessionId = created.id
   }
 
-  if (!session) return NextResponse.json({ session: null })
+  if (!sessionId) return NextResponse.json({ session: null })
 
-  // Attach any uploads that pre-date the session feature
-  await prisma.upload.updateMany({
-    where: { userId: payload.userId, sessionId: null },
-    data:  { sessionId: session.id },
-  })
+  // Attach any uploads that pre-date session support
+  if (orphanCount > 0) {
+    await backfillOrphanedUploads(payload.userId, sessionId)
+  }
 
-  // Re-query after backfill so the upload list is complete
-  const sessionWithUploads = await prisma.analysisSession.findUnique({
-    where:  { id: session.id },
+  // Re-query after backfill so upload list is complete
+  const session = await prisma.analysisSession.findUnique({
+    where:  { id: sessionId },
     select: SESSION_SELECT,
   })
 
-  return NextResponse.json({ session: sessionWithUploads })
+  return NextResponse.json({ session })
 }

@@ -38,6 +38,9 @@ vi.mock('@/lib/db', () => ({
     categoryHistory: {
       create: vi.fn(),
     },
+    insightCard: {
+      updateMany: vi.fn(),
+    },
     anomalyAlert: {
       deleteMany: vi.fn(),
       findFirst:  vi.fn(),
@@ -50,6 +53,10 @@ vi.mock('@/lib/db', () => ({
 vi.mock('@/lib/intelligence/summaries', () => ({
   computeMonthSummary: vi.fn().mockResolvedValue({}),
   getAvailableMonths:  vi.fn().mockResolvedValue([]),
+}))
+
+vi.mock('@/lib/insights/autopsy-trigger', () => ({
+  triggerAutopsyIfReady: vi.fn().mockResolvedValue(undefined),
 }))
 
 // ─── Imports (after vi.mock) ─────────────────────────────────────────────────
@@ -149,6 +156,7 @@ describe('PATCH /api/transactions/[id] — appCategory field', () => {
     vi.mocked(getUserFromRequest).mockReturnValue(MOCK_USER)
     vi.mocked(prisma.transaction.findMany).mockResolvedValue([])
     vi.mocked(prisma.monthSummary.updateMany).mockResolvedValue({ count: 0 })
+    vi.mocked(prisma.insightCard.updateMany).mockResolvedValue({ count: 0 })
   })
 
   // ── Setting appCategory ────────────────────────────────────────────────────

@@ -24,6 +24,7 @@ import type { CsvXlsxSourceLocator } from '@/types/ingestion'
 import { dryRunRules } from '@/lib/rules/dry-run'
 import { ingestPdf } from '@/lib/ingestion/pdf'
 import { PDF_LIMITS } from '@/lib/ingestion/pdf/types'
+import { getOrCreateActiveSession, backfillOrphanedUploads } from '@/lib/sessions/get-or-create-session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -101,17 +102,10 @@ export async function POST(req: NextRequest) {
     })
     if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
 
-    // ── Auto-attach to active session (or create one) ─────────────────────────
-    let activeSession = await prisma.analysisSession.findFirst({
-      where:   { userId: payload.userId, status: { in: ['ACTIVE', 'READY', 'PROCESSING'] } },
-      orderBy: { createdAt: 'desc' },
-    })
-    if (!activeSession) {
-      activeSession = await prisma.analysisSession.create({
-        data: { userId: payload.userId, title: 'Financial Autopsy', status: 'ACTIVE' },
-      })
-    }
+    // ── Resolve active session (guaranteed — no upload without a session) ────────
+    const activeSession = await getOrCreateActiveSession(payload.userId)
     const sessionId = activeSession.id
+    await backfillOrphanedUploads(payload.userId, sessionId)
 
     // ── Read file as raw bytes ────────────────────────────────────────────────
     const arrayBuffer = await file.arrayBuffer()

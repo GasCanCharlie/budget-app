@@ -12,6 +12,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/db', () => ({
   default: {
     transaction: { findMany: vi.fn() },
+    category: { findMany: vi.fn() },
     monthSummary: { upsert: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
     monthCategoryTotal: { deleteMany: vi.fn(), createMany: vi.fn(), findMany: vi.fn() },
     anomalyAlert: { deleteMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn() },
@@ -57,6 +58,7 @@ const SAVED_SUMMARY_STUB = {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(prisma.transaction.findMany).mockResolvedValue([])
+  vi.mocked(prisma.category.findMany).mockResolvedValue([] as never)
   vi.mocked(prisma.monthCategoryTotal.findMany).mockResolvedValue([])
   vi.mocked(prisma.monthSummary.upsert).mockResolvedValue(SAVED_SUMMARY_STUB as never)
   vi.mocked(prisma.monthCategoryTotal.deleteMany).mockResolvedValue({ count: 0 })
