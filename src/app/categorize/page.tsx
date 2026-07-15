@@ -1047,7 +1047,7 @@ export default function CategorizePage() {
   const user         = useAuthStore(s => s.user)
   const { apiFetch } = useApi()
   const qc           = useQueryClient()
-  const { unlocked, categorized: catCount, total: txTotal } = useInsightsUnlock()
+  const { unlocked, categorized: catCount, total: txTotal, transferCount } = useInsightsUnlock()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [, startTransition] = useTransition()
 
@@ -1859,6 +1859,11 @@ export default function CategorizePage() {
                   transition: 'width 0.4s ease',
                 }} />
               </div>
+              {transferCount > 0 && (
+                <p style={{ margin: '5px 0 0', fontSize: 11, color: 'var(--muted)', textAlign: 'right' }}>
+                  {transferCount} transaction{transferCount !== 1 ? 's' : ''} excluded as internal transfers
+                </p>
+              )}
             </div>
           )}
 

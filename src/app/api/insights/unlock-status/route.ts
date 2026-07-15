@@ -10,9 +10,10 @@ export async function GET(req: NextRequest) {
   // exclude them here so they don't block the unlock.
   const base = { account: { userId: payload.userId }, isExcluded: false, isTransfer: false }
 
-  const [total, uncategorized] = await Promise.all([
+  const [total, uncategorized, transferCount] = await Promise.all([
     prisma.transaction.count({ where: base }),
     prisma.transaction.count({ where: { ...base, appCategory: null } }),
+    prisma.transaction.count({ where: { account: { userId: payload.userId }, isTransfer: true } }),
   ])
 
   return NextResponse.json({
@@ -20,5 +21,6 @@ export async function GET(req: NextRequest) {
     uncategorized,
     categorized: total - uncategorized,
     unlocked: total > 0 && uncategorized === 0,
+    transferCount,
   })
 }

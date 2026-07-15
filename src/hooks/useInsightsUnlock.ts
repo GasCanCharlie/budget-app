@@ -9,6 +9,7 @@ interface UnlockStatus {
   uncategorized: number
   categorized: number
   unlocked: boolean
+  transferCount: number
 }
 
 export function useInsightsUnlock() {
@@ -30,6 +31,7 @@ export function useInsightsUnlock() {
     categorized: data?.categorized ?? 0,
     total: data?.total ?? 0,
     uncategorized: data?.uncategorized ?? 0,
+    transferCount: data?.transferCount ?? 0,
     loading: isLoading,
   }
 }
