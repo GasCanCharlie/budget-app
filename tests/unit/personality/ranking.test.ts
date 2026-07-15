@@ -281,6 +281,14 @@ describe('resolveMasterKey()', () => {
   it('fuzzy match: "Gas Station" → TRANSPORT', () => {
     expect(resolveMasterKey(null, 'Gas Station')).toBe('TRANSPORT')
   })
+
+  it('Credit Card → FINANCIAL via fuzzy match', () => {
+    expect(resolveMasterKey(null, 'Credit Card')).toBe('FINANCIAL')
+  })
+
+  it('Credit Cards → FINANCIAL via fuzzy match', () => {
+    expect(resolveMasterKey(null, 'Credit Cards')).toBe('FINANCIAL')
+  })
 })
 
 // ─── categoryPct — discretionary accumulation ─────────────────────────────────
@@ -360,5 +368,91 @@ describe('big_ticket_player scoring guards', () => {
     }))
     const btp = ranked.find(r => r.meta.id === 'big_ticket_player')
     expect(btp!.score).toBe(95)
+  })
+})
+
+// ─── computeSignals() — income and housing exclusions ────────────────────────
+
+describe('computeSignals() — income and housing exclusions', () => {
+  it('Income category excluded from categoryPct even if passed in categories array', () => {
+    const signals = computeSignals({
+      income: 5000, spending: 0, net: 5000,
+      categories: [
+        { name: 'Income', pctOfSpending: 100, masterKey: null },
+      ],
+      subCount: 0, anomalyCount: 0, statementType: 'unknown',
+    })
+    expect(signals.categoryPct).toEqual({})
+    expect(signals.unresolvedCategories).toContain('Income')
+  })
+
+  it('Housing dominant spending → HOME absent from categoryPct', () => {
+    const signals = computeSignals({
+      income: 5000, spending: 4000, net: 1000,
+      categories: [
+        { name: 'Housing',      pctOfSpending: 60, masterKey: 'HOME'      },
+        { name: 'Transport',    pctOfSpending: 25, masterKey: 'TRANSPORT' },
+        { name: 'Food & Dining', pctOfSpending: 15, masterKey: 'FOOD'     },
+      ],
+      subCount: 0, anomalyCount: 0, statementType: 'unknown',
+    })
+    expect(signals.categoryPct['HOME']).toBeUndefined()
+    expect(signals.topDiscretionaryCatMaster).toBe('TRANSPORT')
+    expect(signals.categoryPct['TRANSPORT']).toBeCloseTo(62.5)
+    expect(signals.categoryPct['FOOD']).toBeCloseTo(37.5)
+  })
+
+  it('categoryPct is non-empty when recognizable categories exist', () => {
+    const signals = computeSignals({
+      income: 5000, spending: 2000, net: 3000,
+      categories: [
+        { name: 'Transport',    pctOfSpending: 50, masterKey: 'TRANSPORT' },
+        { name: 'Food & Dining', pctOfSpending: 50, masterKey: 'FOOD'     },
+      ],
+      subCount: 0, anomalyCount: 0, statementType: 'unknown',
+    })
+    expect(Object.keys(signals.categoryPct).length).toBeGreaterThan(0)
+  })
+})
+
+// ─── detectPersonality() — housing and income exclusion from ranking ─────────
+
+describe('detectPersonality() — housing and income exclusion from ranking', () => {
+  it('Housing-dominant spending: main personality is not HOME-based, currency_combustion scores from TRANSPORT', () => {
+    const signals = computeSignals({
+      income: 5000, spending: 4000, net: 1000,
+      categories: [
+        { name: 'Housing',   pctOfSpending: 60, masterKey: 'HOME'      },
+        { name: 'Transport', pctOfSpending: 40, masterKey: 'TRANSPORT' },
+      ],
+      subCount: 0, anomalyCount: 0, statementType: 'unknown',
+    })
+
+    expect(signals.categoryPct['HOME']).toBeUndefined()
+
+    const result = detectPersonality(signals)
+    const cc = result.rankedPersonalities.find(r => r.meta.id === 'currency_combustion')
+    expect(cc).toBeDefined()
+    expect(cc!.score).toBe(90)
+    // HOME is not a discretionary trait — no HOME-based personality exists
+    expect(result.mainPersonality.id).not.toContain('home')
+  })
+
+  it('Income never becomes top spending category in personality output', () => {
+    const signals = computeSignals({
+      income: 5000, spending: 0, net: 5000,
+      categories: [
+        { name: 'Income', pctOfSpending: 100, masterKey: null },
+      ],
+      subCount: 0, anomalyCount: 0, statementType: 'unknown',
+    })
+
+    const result = detectPersonality(signals)
+
+    // Income is not discretionary — categoryPct stays empty
+    expect(signals.categoryPct).toEqual({})
+    // A main personality is always selected (steady_builder is the guaranteed fallback)
+    expect(result.mainPersonality).toBeDefined()
+    expect(result.rankedPersonalities.length).toBeGreaterThan(0)
   })
 })

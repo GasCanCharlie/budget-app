@@ -6,6 +6,7 @@ vi.mock('@/lib/db', () => ({
     monthSummary: { upsert: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
     monthCategoryTotal: { deleteMany: vi.fn(), createMany: vi.fn(), findMany: vi.fn() },
     anomalyAlert: { deleteMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn() },
+    category: { findMany: vi.fn() },
     $queryRaw: vi.fn(),
   },
 }))
@@ -87,6 +88,7 @@ beforeEach(() => {
   vi.mocked(prisma.anomalyAlert.deleteMany).mockResolvedValue({ count: 0 })
   vi.mocked(prisma.anomalyAlert.findFirst).mockResolvedValue(null)
   vi.mocked(prisma.anomalyAlert.create).mockResolvedValue({ id: 'alert-1' } as never)
+  vi.mocked(prisma.category.findMany).mockResolvedValue([] as never)
 })
 
 // ─── computeMonthSummary ──────────────────────────────────────────────────────
@@ -490,6 +492,80 @@ describe('computeMonthSummary', () => {
       await computeMonthSummary('user-1', 2024, 3)
 
       expect(prisma.monthCategoryTotal.createMany).not.toHaveBeenCalled()
+    })
+  })
+
+  // 10. Income category identity ───────────────────────────────────────────────
+
+  describe('10. Income category identity — a reversal inside Income stays income', () => {
+    it('Income category containing a debit transaction is still classified as income', async () => {
+      const payroll = makeTx({
+        id: 'tx-payroll',
+        amount: 3000,
+        description: 'PAYROLL DEPOSIT',
+        appCategory: 'Income',
+        bankCategoryRaw: 'Income',
+        date: new Date('2024-03-14'),
+      })
+      const reversal = makeTx({
+        id: 'tx-reversal',
+        amount: -50,
+        description: 'INCOME CORRECTION',
+        appCategory: 'Income',
+        bankCategoryRaw: 'Income',
+        date: new Date('2024-03-15'),
+      })
+      vi.mocked(prisma.transaction.findMany).mockResolvedValue([payroll, reversal] as never)
+
+      const result = await computeMonthSummary('user-1', 2024, 3)
+
+      expect(result.categoryTotals).toHaveLength(1)
+      const incomeEntry = result.categoryTotals[0]
+      expect(incomeEntry.isIncome).toBe(true)
+      // total must equal incomeTotal (3000), not the debit amount (50) or net (2950)
+      expect(incomeEntry.total).toBe(3000)
+      expect(incomeEntry.total).toBe(result.totalIncome)
+    })
+  })
+
+  // 11. Spending category with refunds ─────────────────────────────────────────
+
+  describe('11. Spending category with refunds reduces net spend, never goes negative', () => {
+    it('Spending category with refunds: net spend = debits minus credits', async () => {
+      const debit1 = makeTx({
+        id: 'tx-t1',
+        amount: -200,
+        description: 'CAR PAYMENT',
+        appCategory: 'Transport',
+        bankCategoryRaw: 'Transport',
+        date: new Date('2024-03-05'),
+      })
+      const debit2 = makeTx({
+        id: 'tx-t2',
+        amount: -150,
+        description: 'GAS STATION',
+        appCategory: 'Transport',
+        bankCategoryRaw: 'Transport',
+        date: new Date('2024-03-10'),
+      })
+      const refund = makeTx({
+        id: 'tx-t3',
+        amount: 80,
+        description: 'TOLL REFUND',
+        appCategory: 'Transport',
+        bankCategoryRaw: 'Transport',
+        date: new Date('2024-03-15'),
+      })
+      vi.mocked(prisma.transaction.findMany).mockResolvedValue([debit1, debit2, refund] as never)
+
+      const result = await computeMonthSummary('user-1', 2024, 3)
+
+      expect(result.categoryTotals).toHaveLength(1)
+      const transportEntry = result.categoryTotals[0]
+      // net spend = 200 + 150 - 80 = 270
+      expect(transportEntry.total).toBe(270)
+      expect(transportEntry.isIncome).toBe(false)
+      expect(transportEntry.pctOfSpending).toBeGreaterThan(0)
     })
   })
 

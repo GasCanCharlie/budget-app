@@ -344,6 +344,16 @@ export function detectPersonality(signals: PersonalitySignals): PersonalityResul
   // #3 for hazing line on the card (only show if meaningfully scored)
   const soft3 = (eligible[2] && eligible[2].score > 15) ? eligible[2].meta : undefined
 
+  if (process.env.NODE_ENV === 'development') {
+    console.group('[personality detect debug]')
+    console.log('Top 10 ranked:',
+      ranked.slice(0, 10).map(r => `${r.meta.id} score=${r.score} eligible=${r.eligible}`)
+    )
+    console.log('Main:', main.meta.id, 'score', main.score)
+    console.log('Alter Ego:', alter?.meta.id ?? '(none)', alter?.score ?? 0)
+    console.groupEnd()
+  }
+
   return {
     // Canonical
     mainPersonality:     mainMeta,

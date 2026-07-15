@@ -71,6 +71,23 @@ export function computeSignals(input: RawSignalInput): PersonalitySignals {
     console.warn('[signals] unresolved categories (no masterKey):', unresolvedCategories)
   }
 
+  if (process.env.NODE_ENV === 'development') {
+    const resolvedMasters = input.categories.map(c => ({
+      name: c.name,
+      masterKey: resolveMaster(c) ?? '(unresolved)',
+    }))
+    const eligibleDiscretionary = Object.entries(discretionaryRaw)
+      .map(([k, v]) => `${k}: ${v.toFixed(1)}% raw`)
+      .join(', ') || '(none)'
+    console.group('[personality signals debug]')
+    console.log('Resolved master keys:', resolvedMasters)
+    console.log('Unresolved categories:', unresolvedCategories)
+    console.log('Eligible discretionary raw:', eligibleDiscretionary)
+    console.log('categoryPct:', categoryPct)
+    console.log('topDiscretionaryCatMaster:', topDiscretionaryCatMaster)
+    console.groupEnd()
+  }
+
   return {
     income:                    input.income,
     spending:                  input.spending,
