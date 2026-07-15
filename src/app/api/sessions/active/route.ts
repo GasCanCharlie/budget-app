@@ -10,6 +10,18 @@ export async function GET(req: NextRequest) {
   const session = await prisma.analysisSession.findFirst({
     where:   { userId: payload.userId, status: { in: ['ACTIVE', 'READY', 'PROCESSING'] } },
     orderBy: { createdAt: 'desc' },
+  })
+
+  // Backfill any uploads that pre-date the session feature
+  if (session) {
+    await prisma.upload.updateMany({
+      where: { userId: payload.userId, sessionId: null },
+      data:  { sessionId: session.id },
+    })
+  }
+
+  const sessionWithUploads = session ? await prisma.analysisSession.findUnique({
+    where: { id: session.id },
     select: {
       id: true, title: true, status: true,
       dateRangeStart: true, dateRangeEnd: true,
@@ -23,7 +35,7 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'asc' },
       },
     },
-  })
+  }) : null
 
-  return NextResponse.json({ session })
+  return NextResponse.json({ session: sessionWithUploads })
 }
