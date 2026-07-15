@@ -31,8 +31,33 @@ model User {
   insightCards           InsightCard[]
   subscriptionCandidates SubscriptionCandidate[]
   budgetTargets          BudgetTarget[]
+  analysisSessions       AnalysisSession[]
 
   @@map("users")
+}
+
+// ─── AnalysisSession ──────────────────────────────────────────────────────────
+// Container for a multi-statement financial analysis. One ACTIVE session per user.
+// status: ACTIVE | PROCESSING | READY | ARCHIVED
+
+model AnalysisSession {
+  id             String    @id @default(cuid())
+  userId         String
+  title          String    @default("Financial Autopsy")
+  // status: ACTIVE | PROCESSING | READY | ARCHIVED
+  status         String    @default("ACTIVE")
+  dateRangeStart DateTime?
+  dateRangeEnd   DateTime?
+  accountCount   Int       @default(0)
+  txCount        Int       @default(0)
+  createdAt      DateTime  @default(now())
+  archivedAt     DateTime?
+
+  user    User     @relation(fields: [userId], references: [id])
+  uploads Upload[]
+
+  @@index([userId, status])
+  @@map("analysis_sessions")
 }
 
 model Account {
@@ -115,14 +140,19 @@ model Upload {
   financialAutopsyStatus      String?   @default("pending")
   financialAutopsyGeneratedAt DateTime?
 
-  user            User             @relation(fields: [userId], references: [id])
-  account         Account          @relation(fields: [accountId], references: [id])
+  // Session link — null for uploads created before sessions were introduced
+  sessionId       String?
+
+  user            User              @relation(fields: [userId], references: [id])
+  account         Account           @relation(fields: [accountId], references: [id])
+  session         AnalysisSession?  @relation(fields: [sessionId], references: [id])
   rawTxs          TransactionRaw[]
   transactions    Transaction[]
   auditLogEntries AuditLogEntry[]
   ingestionIssues IngestionIssue[]
   stagingUpload   StagingUpload?
 
+  @@index([sessionId])
   @@map("uploads")
 }
 

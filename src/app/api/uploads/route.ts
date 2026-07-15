@@ -101,6 +101,18 @@ export async function POST(req: NextRequest) {
     })
     if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
 
+    // ── Auto-attach to active session (or create one) ─────────────────────────
+    let activeSession = await prisma.analysisSession.findFirst({
+      where:   { userId: payload.userId, status: { in: ['ACTIVE', 'READY', 'PROCESSING'] } },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (!activeSession) {
+      activeSession = await prisma.analysisSession.create({
+        data: { userId: payload.userId, title: 'Financial Autopsy', status: 'ACTIVE' },
+      })
+    }
+    const sessionId = activeSession.id
+
     // ── Read file as raw bytes ────────────────────────────────────────────────
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
@@ -180,6 +192,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId:              payload.userId,
           accountId,
+          sessionId,
           filename:            file.name,
           fileHash,
           formatDetected:      'PDF',
@@ -342,10 +355,12 @@ export async function POST(req: NextRequest) {
       }
 
       await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
+      await prisma.analysisSession.update({ where: { id: sessionId }, data: { status: 'READY' } }).catch(() => {})
 
       return NextResponse.json(
         {
           uploadId:             pdfUpload.id,
+          sessionId,
           accepted:             pdfAccepted,
           rejected:             pdfRejected,
           totalUnresolved:      lowConfidence.length,
@@ -414,6 +429,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId:              payload.userId,
           accountId,
+          sessionId,
           filename:            file.name,
           fileHash,
           formatDetected:      ofxVariant,
@@ -552,10 +568,12 @@ export async function POST(req: NextRequest) {
 
       // Cross-account transfer pairing for OFX uploads
       await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
+      await prisma.analysisSession.update({ where: { id: sessionId }, data: { status: 'READY' } }).catch(() => {})
 
       return NextResponse.json(
         {
           uploadId:             ofxUpload.id,
+          sessionId,
           accepted:             ofxAccepted,
           rejected:             ofxRejected,
           totalUnresolved:      0,
@@ -612,6 +630,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId:              payload.userId,
           accountId,
+          sessionId,
           filename:            file.name,
           fileHash,
           formatDetected:      'QIF',
@@ -750,10 +769,12 @@ export async function POST(req: NextRequest) {
       }
 
       await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
+      await prisma.analysisSession.update({ where: { id: sessionId }, data: { status: 'READY' } }).catch(() => {})
 
       return NextResponse.json(
         {
           uploadId:             qifUpload.id,
+          sessionId,
           accepted:             qifAccepted,
           rejected:             qifRejected,
           totalUnresolved:      0,
@@ -848,6 +869,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId:              payload.userId,
         accountId,
+        sessionId,
         filename:            file.name,
         fileHash,
         formatDetected,
@@ -1373,9 +1395,16 @@ export async function POST(req: NextRequest) {
     // Runs after staging creation so newly imported transactions are included.
     await detectTransfers(payload.userId).catch(() => { /* non-fatal */ })
 
+    // ── Update session status to READY ────────────────────────────────────────
+    await prisma.analysisSession.update({
+      where: { id: sessionId },
+      data:  { status: 'READY' },
+    }).catch(() => { /* non-fatal */ })
+
     return NextResponse.json(
       {
         uploadId:                   upload.id,
+        sessionId,
         accepted,
         rejected,
         totalUnresolved,

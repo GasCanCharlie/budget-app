@@ -22,11 +22,12 @@ interface Props {
   prevMonthSpending: number | null
   largestCategory: { name: string; pct: number } | null
   latestUploadId?: string
+  label?: string
 }
 
 export function FinancialSummaryHeader({
   month, year, totalIncome, totalSpending, net, transactionCount,
-  prevMonthNet, largestCategory, latestUploadId,
+  prevMonthNet, largestCategory, latestUploadId, label,
 }: Props) {
   const monthName = MONTHS[month - 1] ?? ''
   const isPositive = net >= 0
@@ -54,7 +55,7 @@ export function FinancialSummaryHeader({
       <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-            {monthName} {year}
+            {label ?? `${monthName} ${year}`}
           </p>
           <h1 className="text-base font-bold mt-0.5" style={{ color: 'var(--text)' }}>Financial Summary</h1>
         </div>

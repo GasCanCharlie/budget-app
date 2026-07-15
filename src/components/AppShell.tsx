@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { useInsightsUnlock } from '@/hooks/useInsightsUnlock'
 import {
   LayoutDashboard, FileText, ArrowLeftRight, Tags, Layers,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, FlaskConical, Settings, Unlock, User,
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, Gavel, History, FlaskConical, Settings, Unlock, User, Microscope,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { LogoMark } from '@/components/LogoMark'
@@ -27,10 +27,10 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 // Core product flow — shown in both desktop sidebar and mobile bottom nav
 const primaryNavItems = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/session',      label: 'Analysis',     icon: Microscope },
   { href: '/upload',       label: 'Uploads',      icon: FileText },
   { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/categorize',   label: 'Categorize',   icon: Tags },
-  { href: '/insights',     label: 'Financial Autopsy', icon: FlaskConical },
 ]
 
 // Management utilities — desktop sidebar only, visually de-emphasized

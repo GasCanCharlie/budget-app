@@ -21,6 +21,7 @@ import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard'
 import { OnboardingWelcome } from '@/components/dashboard/OnboardingWelcome'
 import { PersonalityCard } from '@/components/dashboard/FinancialAutopsyPanel'
 import { MonthlyStorylineCard } from '@/components/dashboard/MonthlyStorylineCard'
+import { SessionStatusBar } from '@/components/session/SessionStatusBar'
 import type { InsightCard } from '@/lib/insights/types'
 import { computeSignals } from '@/lib/personality/signals'
 import { detectPersonality } from '@/lib/personality/detect'
@@ -310,6 +311,9 @@ export default function DashboardPage() {
   return (
     <AppShell year={year} month={month} availableMonths={availableMonths} onMonthChange={handleMonthChange}>
       <div className="space-y-6 pb-24">
+
+        {/* Active analysis session */}
+        <SessionStatusBar />
 
         {/* Background-refetch indicator */}
         {!!(isRefetching || trendsRefetching) && (
