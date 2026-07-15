@@ -13,7 +13,9 @@
     "db:studio": "prisma studio",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "repair:sessions": "tsx scripts/repair-sessions.ts",
+    "check:sessions": "tsx scripts/repair-sessions.ts --check"
   },
   "engines": {
     "node": ">=20"
@@ -63,6 +65,7 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.6",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.1",
     "typescript": "^5.5.3",
     "vitest": "^1.6.0"
   }
