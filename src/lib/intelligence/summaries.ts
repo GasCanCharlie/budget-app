@@ -144,6 +144,7 @@ export async function computeMonthSummary(
       merchantNormalized: true,
       amount:             true,
       appCategory:        true,
+      account:            { select: { accountType: true } },
     },
     orderBy: { date: 'asc' },
   })
@@ -297,22 +298,28 @@ export async function computeMonthSummary(
   const secondCatName = spendingCats[1]?.categoryName ?? ''
   const secondCatPct  = spendingCats[1]?.pctOfSpending ?? 0
 
-  // Statement type detection — scan all transaction descriptions
-  const CREDIT_KEYWORDS = /credit card payment|card payment|visa payment|mastercard|amex payment/i
+  // Statement type: derive from account.accountType first (authoritative),
+  // fall back to keyword scan only for interest detection.
   const INTEREST_KEYWORDS = /interest charge|finance charge|interest fee/i
+  const CREDIT_ACCOUNT_TYPES = new Set(['credit', 'credit_card', 'creditcard'])
+  const BANK_ACCOUNT_TYPES   = new Set(['checking', 'savings', 'bank'])
 
-  let statementType: 'bank' | 'credit' | 'unknown' = 'unknown'
+  let hasCredit = false
+  let hasBank   = false
   let interestDetected = false
 
   for (const tx of transactions) {
-    const desc = tx.description ?? ''
-    if (CREDIT_KEYWORDS.test(desc)) {
-      statementType = 'credit'
-    }
-    if (INTEREST_KEYWORDS.test(desc)) {
-      interestDetected = true
-    }
+    const acctType = (tx.account?.accountType ?? '').toLowerCase()
+    if (CREDIT_ACCOUNT_TYPES.has(acctType)) hasCredit = true
+    if (BANK_ACCOUNT_TYPES.has(acctType))   hasBank   = true
+    if (INTEREST_KEYWORDS.test(tx.description ?? '')) interestDetected = true
   }
+
+  // Pure credit → 'credit', pure bank → 'bank', mixed/unknown → 'unknown'
+  const statementType: 'bank' | 'credit' | 'unknown' =
+    hasCredit && !hasBank ? 'credit' :
+    hasBank   && !hasCredit ? 'bank' :
+    'unknown'
 
   // Anomaly detection (requires history)
   const alerts: AnomalyAlert[] = await detectAnomalies(userId, year, month, categoryTotals, transactions)
