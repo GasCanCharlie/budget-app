@@ -140,12 +140,14 @@ model Upload {
   financialAutopsyStatus      String?   @default("pending")
   financialAutopsyGeneratedAt DateTime?
 
-  // Session link — null for uploads created before sessions were introduced
-  sessionId       String?
+  // Every upload belongs to exactly one session (enforced since Phase 5).
+  // Pre-Phase-4 orphaned uploads were backfilled via repairSessionIntegrity() before this
+  // constraint was applied.
+  sessionId       String
 
-  user            User              @relation(fields: [userId], references: [id])
-  account         Account           @relation(fields: [accountId], references: [id])
-  session         AnalysisSession?  @relation(fields: [sessionId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  account         Account          @relation(fields: [accountId], references: [id])
+  session         AnalysisSession  @relation(fields: [sessionId], references: [id])
   rawTxs          TransactionRaw[]
   transactions    Transaction[]
   auditLogEntries AuditLogEntry[]

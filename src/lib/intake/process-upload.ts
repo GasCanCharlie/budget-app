@@ -111,7 +111,7 @@ export interface ProcessUploadResult {
   pdfLowConfidenceCount?: number
   pdfClassification?: object
   // Session snapshot (spec)
-  upload: { id: string; sessionId: string | null }
+  upload: { id: string; sessionId: string }
   session: { id: string; status: string; uploadCount: number; txCount: number }
   uploadCount: number
   accountCount: number

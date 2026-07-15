@@ -23,9 +23,12 @@ export async function GET(req: NextRequest) {
   const payload = getUserFromRequest(req)
   if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Only bootstrap a session if orphaned uploads exist — avoids creating empty sessions on first login
+  // Only bootstrap a session if orphaned uploads exist — avoids creating empty sessions on first login.
+  // Post-Phase-5: sessionId is non-nullable; this count will always be 0 for new uploads.
+  // Kept as a safety net in case of DB-level manipulation or pre-Phase-5 data.
   const orphanCount = await prisma.upload.count({
-    where: { userId: payload.userId, sessionId: null },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    where: { userId: payload.userId, sessionId: null as any },
   })
 
   let sessionId: string | null = null

@@ -9,6 +9,7 @@ import { categorizeBatch } from '@/lib/categorization/engine'
 import { normalizeMerchant } from '@/lib/categorization/engine'
 import { computeMonthSummary } from '@/lib/intelligence/summaries'
 import { isTransferDescription as isTransfer } from '@/lib/intelligence/transfers'
+import { getOrCreateActiveSession } from '@/lib/sessions/get-or-create-session'
 import crypto from 'crypto'
 
 const SAMPLE_TRANSACTIONS = [
@@ -100,9 +101,11 @@ export async function POST(req: NextRequest) {
   const parseResult = parseCSV(csvText, account.id)
   const { transactions: parsed } = parseResult
 
+  const activeSession = await getOrCreateActiveSession(payload.userId)
+
   const upload = await prisma.upload.create({
     data: {
-      userId: payload.userId, accountId: account.id,
+      userId: payload.userId, accountId: account.id, sessionId: activeSession.id,
       filename: 'sample_data.csv', fileHash, formatDetected: 'Sample',
       rowCountRaw: parsed.length, rowCountParsed: parsed.length,
       status: 'processing', warnings: '[]',

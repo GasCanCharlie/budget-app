@@ -49,7 +49,8 @@ export async function repairSessionIntegrity(options: RepairOptions = {}): Promi
   } else {
     // Collect users with orphaned uploads
     const orphanRows = await prisma.upload.findMany({
-      where:    { sessionId: null },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      where:    { sessionId: null as any },
       select:   { userId: true },
       distinct: ['userId'],
     })

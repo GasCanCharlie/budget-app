@@ -53,7 +53,8 @@ export async function getOrCreateActiveSession(userId: string): Promise<ActiveSe
  */
 export async function backfillOrphanedUploads(userId: string, sessionId: string): Promise<number> {
   const result = await prisma.upload.updateMany({
-    where: { userId, sessionId: null },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    where: { userId, sessionId: null as any },
     data:  { sessionId },
   })
   return result.count
