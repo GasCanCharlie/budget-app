@@ -509,7 +509,8 @@ export default function UploadDetailPage() {
     queryKey: ['session-active'],
     queryFn:  () => apiFetch('/api/sessions/active'),
     enabled:  !!user,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
   const catBreakdown: Array<{ category: string; total: number; pct: number }> =
     scanData?.findings?.categoryBreakdown ?? []
