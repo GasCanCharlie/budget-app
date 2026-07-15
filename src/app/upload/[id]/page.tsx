@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, FileText, Tags, TrendingUp, TrendingDown, Minus, Wrench } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2, ChevronDown, ChevronRight, Trash2, FileText, Tags, TrendingUp, TrendingDown, Minus, Wrench, Layers, ArrowRight } from 'lucide-react'
 import clsx from 'clsx'
 import { AppShell } from '@/components/AppShell'
 import { useAuthStore } from '@/store/auth'
@@ -504,6 +504,13 @@ export default function UploadDetailPage() {
     queryFn:  () => apiFetch(`/api/uploads/${id}/scan-report`),
     enabled:  !!user && !!id,
   })
+
+  const { data: sessionData } = useQuery({
+    queryKey: ['session-active'],
+    queryFn:  () => apiFetch('/api/sessions/active'),
+    enabled:  !!user,
+    staleTime: 30_000,
+  })
   const catBreakdown: Array<{ category: string; total: number; pct: number }> =
     scanData?.findings?.categoryBreakdown ?? []
   const spendingBreakdown = catBreakdown.filter(c => c.category !== 'Income')
@@ -643,6 +650,45 @@ export default function UploadDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Session context banner ───────────────────────────────────────── */}
+        {(() => {
+          const session = sessionData?.session
+          if (!session) return null
+          // Count unique accounts in this session
+          const seen = new Set<string>()
+          const acctNames: string[] = []
+          let totalTxs = 0
+          for (const u of session.uploads ?? []) {
+            totalTxs += (u as Record<string, number>).rowCountAccepted ?? 0
+            if (!seen.has(u.account.id)) {
+              seen.add(u.account.id)
+              acctNames.push(u.account.name)
+            }
+          }
+          const uploadCount = (session.uploads ?? []).length
+          if (uploadCount <= 1) return null
+          return (
+            <div style={{ marginBottom: 20, borderRadius: 16, border: '1px solid rgba(108,124,255,0.25)', background: 'rgba(108,124,255,0.07)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <Layers size={16} style={{ color: '#939AFF', flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#C7D0FF', margin: 0 }}>
+                  This statement is 1 of {uploadCount} in your active analysis
+                </p>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>
+                  {totalTxs > 0 ? `${totalTxs.toLocaleString()} total transactions` : 'Processing…'}
+                  {acctNames.length > 1 ? ` across ${acctNames.slice(0,3).join(', ')}${acctNames.length > 3 ? ` +${acctNames.length - 3} more` : ''}` : ''}
+                </p>
+              </div>
+              <button
+                onClick={() => router.push('/session')}
+                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 10, border: '1px solid rgba(108,124,255,0.35)', background: 'rgba(108,124,255,0.15)', padding: '8px 14px', fontSize: 12, fontWeight: 600, color: '#939AFF', cursor: 'pointer' }}
+              >
+                View Combined Analysis <ArrowRight size={12} />
+              </button>
+            </div>
+          )
+        })()}
 
         {/* ── Two-column layout ────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }} className="lg:grid-cols-[1.4fr_1fr] xl:grid-cols-[1.5fr_.9fr]">

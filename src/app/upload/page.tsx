@@ -95,6 +95,8 @@ export default function StatementsPage() {
       qc.invalidateQueries({ queryKey: ['uploads'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['summary'] })
+      qc.invalidateQueries({ queryKey: ['session-active'] })
+      qc.invalidateQueries({ queryKey: ['session-summary'] })
       // Auto-apply saved rules to the newly uploaded transactions before redirecting
       void apiFetch('/api/transactions/apply-rules', { method: 'POST' }).then(() => {
         qc.invalidateQueries({ queryKey: ['categorize-transactions'] })

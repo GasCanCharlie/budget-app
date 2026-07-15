@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
       uploads: {
         select: {
           id: true, filename: true, status: true, createdAt: true,
+          rowCountAccepted: true,
           account: { select: { id: true, name: true, accountType: true, institution: true } },
         },
         orderBy: { createdAt: 'asc' },

@@ -7,6 +7,7 @@ import { CheckCircle2, Plus, Archive, ChevronRight, Loader2, CreditCard, Buildin
 
 interface SessionUpload {
   id: string; filename: string; status: string; createdAt: string;
+  rowCountAccepted: number;
   account: { id: string; name: string; accountType: string; institution: string }
 }
 
@@ -69,10 +70,12 @@ export function SessionStatusBar() {
 
   const session = data?.session
 
-  // Unique accounts in this session (by accountId)
+  // Unique accounts + live tx count from upload records
   const seen = new Set<string>()
   const accounts: SessionUpload['account'][] = []
+  let liveTxCount = 0
   for (const u of session?.uploads ?? []) {
+    liveTxCount += u.rowCountAccepted ?? 0
     if (!seen.has(u.account.id)) { seen.add(u.account.id); accounts.push(u.account) }
   }
 
@@ -94,7 +97,7 @@ export function SessionStatusBar() {
           {session && (
             <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>
               {formatDateRange(session.dateRangeStart, session.dateRangeEnd)}
-              {session.txCount > 0 && ` · ${session.txCount.toLocaleString()} transactions`}
+              {liveTxCount > 0 && ` · ${liveTxCount.toLocaleString()} transactions`}
             </p>
           )}
         </div>
