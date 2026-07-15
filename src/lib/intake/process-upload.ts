@@ -765,7 +765,7 @@ async function persistCsv(
       const isSpend = expensesAreNegative ? cents < 0 : cents > 0
       if (!isSpend) continue
       const arr = vendorAmountMap.get(key) ?? []
-      arr.push(Math.abs(cents))
+      arr.push(Math.abs(Number(cents)))
       vendorAmountMap.set(key, arr)
     }
     const recurringVendorKeys = new Set<string>()
@@ -780,7 +780,7 @@ async function persistCsv(
         const vendorRaw = tx.merchantNormalized || tx.descriptionRaw || ''
         const vendorKey = normalizeVendor(vendorRaw)
         const cents     = amountToCents(tx.amount)
-        const engineSuggestion = suggestCategory(vendorRaw, cents, expensesAreNegative)
+        const engineSuggestion = suggestCategory(vendorRaw, Number(cents), expensesAreNegative)
         const isDescTransfer   = engineSuggestion?.category === 'Transfer'
         let suggestionCategory: string | null = null, suggestionConfidence: string | null = null, suggestionSource: string | null = null
         if (isDescTransfer) { suggestionCategory = 'Transfer'; suggestionConfidence = 'high'; suggestionSource = 'engine' }
@@ -791,7 +791,7 @@ async function persistCsv(
         if (!suggestionCategory && engineSuggestion) { suggestionCategory = engineSuggestion.category; suggestionConfidence = engineSuggestion.confidence; suggestionSource = 'engine' }
         return {
           stagingUploadId: stagingUpload.id, userId, uploadId,
-          date: tx.date, vendorRaw, vendorKey, amountCents: cents,
+          date: tx.date, vendorRaw, vendorKey, amountCents: Number(cents),
           description: tx.descriptionRaw || '', bankCategoryRaw: tx.bankCategoryRaw || null,
           status: 'uncategorized', suggestionCategory, suggestionConfidence, suggestionSource,
           isRecurring: recurringVendorKeys.has(vendorKey),
